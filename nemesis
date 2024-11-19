@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+
+// Autoload dependencies
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Command-line argument parsing
+$command = $argv[1] ?? null;
+
+switch ($command) {
+    case 'serve':
+        $host = 'localhost';
+        $port = 8000;
+        $docRoot = __DIR__ . DIRECTORY_SEPARATOR . 'public';
+
+        // Check for custom host or port
+        if (isset($argv[2])) {
+            [$host, $port] = explode(':', $argv[2]);
+        }
+
+        echo "Starting development server on http://$host:$port\n";
+
+        // Use absolute path and wrap in quotes to handle spaces
+        $docRoot = '"' . realpath($docRoot) . '"';
+        exec("php -S $host:$port -t $docRoot");
+        break;
+
+    default:
+        echo "Nemesis Framework CLI\n";
+        echo "Usage:\n";
+        echo "  php nemesis serve [host:port]\n";
+        break;
+}

@@ -1,0 +1,22 @@
+{
+    "name": "jarir-ahmed/file",
+    "description": "A custom file manipulation package.",
+    "type": "library",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "JarirAhmed\\File\\": "src/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jarir Ahmed",
+            "email": "jarircse16@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,133 @@
+<?php return array(
+    'root' => array(
+        'name' => 'jarir/nemesis',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
+        'type' => 'library',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => true,
+    ),
+    'versions' => array(
+        'christian-riesen/base32' => array(
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
+            'reference' => 'e8b7d85382e396b101d418844b997b4cd744cb8f',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../christian-riesen/base32',
+            'aliases' => array(
+                0 => '1.x-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/auth-token-maker' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '312b930e13496a1bb3d3a2b363cc1e4f713a075f',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/auth-token-maker',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/data-encryption-utility' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '5ef963b819e2d02521b032579834e23dd9e88b9e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/data-encryption-utility',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/file' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'da0dd863fbcd136d96e3d43f48bf7f3171cb716b',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/file',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/hash-helper' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '08063356ac52b36f4be7332803508c184d04d19f',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/hash-helper',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/http-response' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '0a6a467f6b5046be9f0c59e486cd3cf998191c6e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/http-response',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/password-generator' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'eba4d4aa6ba0e4e0a23040b2b74dabfe70c3e853',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/password-generator',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/time-helper' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '7d9e57ed9187c257e3e8730c0cbaf472cee90540',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/time-helper',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir-ahmed/user-info-capture' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '79b2cf123da8a202407ffb5302567e8af3ec9bb3',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../jarir-ahmed/user-info-capture',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'jarir/nemesis' => array(
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phpmailer/phpmailer' => array(
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
+            'reference' => '561609ac2ebae1b3ec1b636a38bf174d8de12955',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpmailer/phpmailer',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+    ),
+);

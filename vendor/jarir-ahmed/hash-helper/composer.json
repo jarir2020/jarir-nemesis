@@ -1,0 +1,22 @@
+{
+    "name": "jarir-ahmed/hash-helper",
+    "description": "A PHP package to encode and hash strings in various formats.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4",
+        "christian-riesen/base32": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "JarirAhmed\\HashHelper\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JarirAhmed\\HashHelper\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
