@@ -42,8 +42,6 @@ class User {
         return $result ? $result : null;
     }
     
-
-
     // Update the user's auth token
     public function updateAuthToken($userId, $authToken) {
         

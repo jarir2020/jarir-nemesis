@@ -27,7 +27,7 @@ public static function connect($config = null) {
 
     // Use the stored configuration for the connection
     try {
-        $dsn = "mysql:host=" . self::$config['host'] . ";dbname=" . self::$config['dbname'];
+        $dsn = "mysql:host=" . self::$config['host'] . ";port=" . (self::$config['port'] ?? 3306) . ";dbname=" . self::$config['dbname'];
         self::$pdo = new PDO($dsn, self::$config['username'], self::$config['password'], [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

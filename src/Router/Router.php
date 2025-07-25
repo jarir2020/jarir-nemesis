@@ -11,7 +11,9 @@ class Router {
 
     public function dispatch($uri, $method) {
         foreach ($this->routes as $route) {
-            $pattern = preg_replace('/\{(\w+)\}/', '(?P<$1>\d+)', $route['uri']);
+            // Adjust the pattern to match any alphanumeric parameters
+            $pattern = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $route['uri']);
+            
             if ($method == $route['method'] && preg_match("#^{$pattern}$#", $uri, $matches)) {
                 // Extract parameters from the URI
                 $params = [];
@@ -20,18 +22,28 @@ class Router {
                         $params[$key] = $value;
                     }
                 }
-
+    
+                // Merge query string parameters
+                $queryStringParams = [];
+                if (isset($_GET)) {
+                    $queryStringParams = $_GET;
+                }
+    
+                $params = array_merge($params, $queryStringParams);
+    
                 // Call the controller and pass the parameters
                 $action = $route['action'];
                 call_user_func_array($action, $params);
                 return;
             }
         }
-
+    
         // If no routes matched
         header("HTTP/1.1 404 Not Found");
-        echo json_encode(['message' => 'Route not found']);
+        //echo json_encode(['message' => 'Route not found']);
+        include('Errors/404.php'); 
     }
+    
 
     public function getRoutes() {
         return $this->routes;
