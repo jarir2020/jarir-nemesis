@@ -3,33 +3,33 @@ namespace JarirAhmed\File;
 
 class FileManager
 {
-    public function exists($path)
+    public static function exists($path)
     {
         return file_exists($path);
     }
 
-    public function get($path)
+    public static function get($path)
     {
         return file_get_contents($path);
     }
 
-    public function put($path, $contents, $lock = false)
+    public static function put($path, $contents, $lock = false)
     {
         return file_put_contents($path, $contents, $lock ? LOCK_EX : 0);
     }
 
-    public function prepend($path, $data)
+    public static function prepend($path, $data)
     {
         $existing = $this->get($path);
         return $this->put($path, $data . $existing);
     }
 
-    public function append($path, $data)
+    public static function append($path, $data)
     {
         return file_put_contents($path, $data, FILE_APPEND);
     }
 
-    public function delete($paths)
+    public static function delete($paths)
     {
         foreach ((array) $paths as $path) {
             if (file_exists($path)) {
@@ -38,78 +38,78 @@ class FileManager
         }
     }
 
-    public function move($path, $target)
+    public static function move($path, $target)
     {
         return rename($path, $target);
     }
 
-    public function copy($path, $target)
+    public static function copy($path, $target)
     {
         return copy($path, $target);
     }
 
-    public function name($path)
+    public static function name($path)
     {
         return pathinfo($path, PATHINFO_FILENAME);
     }
 
-    public function basename($path)
+    public static function basename($path)
     {
         return basename($path);
     }
 
-    public function dirname($path)
+    public static function dirname($path)
     {
         return dirname($path);
     }
 
-    public function extension($path)
+    public static function extension($path)
     {
         return pathinfo($path, PATHINFO_EXTENSION);
     }
 
-    public function type($path)
+    public static function type($path)
     {
         return filetype($path);
     }
 
-    public function mimeType($path)
+    public static function mimeType($path)
     {
         return mime_content_type($path);
     }
 
-    public function size($path)
+    public static function size($path)
     {
         return filesize($path);
     }
 
-    public function lastModified($path)
+    public static function lastModified($path)
     {
         return filemtime($path);
     }
 
-    public function isDirectory($directory)
+    public static function isDirectory($directory)
     {
         return is_dir($directory);
     }
 
-    public function isFile($file)
+    public static function isFile($file)
     {
         return is_file($file);
     }
 
-    public function glob($pattern, $flags = 0)
+    public static function glob($pattern, $flags = 0)
     {
         return glob($pattern, $flags);
     }
 
-    public function files($directory, $hidden = false)
+    public static function files($directory, $hidden = false)
     {
         $files = scandir($directory);
         return array_diff($files, ['.', '..']);
     }
 
-    public function allFiles($directory, $hidden = false)
+    public static function allFiles($directory, $hidden = false)
     {
         $rii = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
         $files = [];
@@ -122,12 +122,12 @@ class FileManager
         return $files;
     }
 
-    public function directories($directory)
+    public static function directories($directory)
     {
         return glob($directory . '/*', GLOB_ONLYDIR);
     }
 
-    public function allDirectories($directory)
+    public static function allDirectories($directory)
     {
         $directories = [];
         $rii = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory), \RecursiveIteratorIterator::SELF_FIRST);
@@ -139,12 +139,12 @@ class FileManager
         return $directories;
     }
 
-    public function makeDirectory($path, $mode = 0755, $recursive = false, $force = false)
+    public static function makeDirectory($path, $mode = 0755, $recursive = false, $force = false)
     {
         return mkdir($path, $mode, $recursive);
     }
 
-    public function deleteDirectory($directory, $preserve = false)
+    public static function deleteDirectory($directory, $preserve = false)
     {
         if ($preserve) {
             return $this->cleanDirectory($directory);
@@ -152,7 +152,7 @@ class FileManager
         return rmdir($directory);
     }
 
-    public function cleanDirectory($directory)
+    public static function cleanDirectory($directory)
     {
         $files = $this->files($directory);
         foreach ($files as $file) {
@@ -160,32 +160,32 @@ class FileManager
         }
     }
 
-    public function touch($path)
+    public static function touch($path)
     {
         return touch($path);
     }
 
-    public function isReadable($path)
+    public static function isReadable($path)
     {
         return is_readable($path);
     }
 
-    public function isWritable($path)
+    public static function isWritable($path)
     {
         return is_writable($path);
     }
 
-    public function chmod($path, $permissions)
+    public static function chmod($path, $permissions)
     {
         return chmod($path, $permissions);
     }
 
-    public function chown($path, $user)
+    public static function chown($path, $user)
     {
         return chown($path, $user);
     }
 
-    public function getLines($path, $start = 0, $length = null)
+    public static function getLines($path, $start = 0, $length = null)
     {
         $file = new \SplFileObject($path);
         $file->seek($start);
@@ -200,59 +200,59 @@ class FileManager
         return $lines;
     }
 
-    public function findAndReplace($path, $search, $replace)
+    public static function findAndReplace($path, $search, $replace)
     {
         $content = $this->get($path);
         $updatedContent = str_replace($search, $replace, $content);
         return $this->put($path, $updatedContent);
     }
 
-    public function getFileCreationTime($path)
+    public static function getFileCreationTime($path)
     {
         return filectime($path);
     }
 
 
-    public function getFileOwner($path)
+    public static function getFileOwner($path)
     {
         return fileowner($path);
     }
 
-    public function getFilePermissions($path)
+    public static function getFilePermissions($path)
     {
         return substr(sprintf('%o', fileperms($path)), -4);
     }
 
-    public function countLines($path)
+    public static function countLines($path)
     {
         $file = new \SplFileObject($path, 'r');
         $file->seek(PHP_INT_MAX);
         return $file->key() + 1;
     }
 
-    public function isSymbolicLink($path)
+    public static function isSymbolicLink($path)
     {
         return is_link($path);
     }
 
-    public function createSymbolicLink($target, $link)
+    public static function createSymbolicLink($target, $link)
     {
         return symlink($target, $link);
     }
 
-    public function readFromLine($path, $lineNumber)
+    public static function readFromLine($path, $lineNumber)
     {
         $file = new \SplFileObject($path);
         $file->seek($lineNumber);
         return $file->current();
     }
 
-    public function getFileHash($path, $algorithm = 'md5')
+    public static function getFileHash($path, $algorithm = 'md5')
     {
         return hash_file($algorithm, $path);
     }
 
-    public function copyDirectory($source, $destination)
+    public static function copyDirectory($source, $destination)
     {
         $directory = opendir($source);
         mkdir($destination);
@@ -272,18 +272,18 @@ class FileManager
         closedir($directory);
     }
 
-    public function moveDirectory($source, $destination)
+    public static function moveDirectory($source, $destination)
     {
         $this->copyDirectory($source, $destination);
         $this->deleteDirectory($source);
     }
 
-    public function isEmpty($path)
+    public static function isEmpty($path)
     {
         return filesize($path) === 0;
     }
     
-    public function readCsv($path, $delimiter = ',', $enclosure = '"', $escape = '\\')
+    public static function readCsv($path, $delimiter = ',', $enclosure = '"', $escape = '\\')
     {
         $csvData = [];
         if (($handle = fopen($path, 'r')) !== false) {
@@ -295,7 +295,7 @@ class FileManager
         return $csvData;
     }
 
-    public function writeCsv($path, array $data, $delimiter = ',', $enclosure = '"', $escape = '\\')
+    public static function writeCsv($path, array $data, $delimiter = ',', $enclosure = '"', $escape = '\\')
     {
         $handle = fopen($path, 'w');
         foreach ($data as $row) {
@@ -304,66 +304,66 @@ class FileManager
         fclose($handle);
     }
 
-    public function appendToFile($path, $content)
+    public static function appendToFile($path, $content)
     {
         return file_put_contents($path, $content, FILE_APPEND);
     }
 
-    public function getFileSize($path)
+    public static function getFileSize($path)
     {
         return filesize($path);
     }
 
-    public function getFileExtension($path)
+    public static function getFileExtension($path)
     {
         return pathinfo($path, PATHINFO_EXTENSION);
     }
-        public function clearFile($path)
+        public static function clearFile($path)
     {
         return file_put_contents($path, '');
     }
 
-    public function replaceFile($source, $destination)
+    public static function replaceFile($source, $destination)
     {
         $this->moveFile($source, $destination);
     }
 
-    public function readFileToArray($path)
+    public static function readFileToArray($path)
     {
         return file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     }
 
-    public function writeArrayToFile($path, array $data)
+    public static function writeArrayToFile($path, array $data)
     {
         return file_put_contents($path, implode(PHP_EOL, $data));
     }
 
-    public function getFileModificationTime($path)
+    public static function getFileModificationTime($path)
     {
         return filemtime($path);
     }
 
-    public function getFileInfo($path)
+    public static function getFileInfo($path)
     {
         return pathinfo($path);
     }
 
-    public function createDirectory($path, $permissions = 0755)
+    public static function createDirectory($path, $permissions = 0755)
     {
         return mkdir($path, $permissions, true);
     }
 
-    public function getDirectoryContents($path)
+    public static function getDirectoryContents($path)
     {
         return scandir($path);
     }
 
-    public function downloadFile($url, $saveTo)
+    public static function downloadFile($url, $saveTo)
     {
         return file_put_contents($saveTo, fopen($url, 'r'));
     }
 
-    public function searchInFile($path, $searchTerm)
+    public static function searchInFile($path, $searchTerm)
     {
         $lines = $this->readFileToArray($path);
         return array_filter($lines, function($line) use ($searchTerm) {
@@ -371,7 +371,7 @@ class FileManager
         });
     }
 
-    public function copyFile($source, $destination)
+    public static function copyFile($source, $destination)
     {
         return copy($source, $destination);
     }

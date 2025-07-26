@@ -9,7 +9,7 @@ class UserInfo
      *
      * @return string|null
      */
-    public function getUserIp(): ?string
+    public static function getUserIp(): ?string
     {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             return $_SERVER['HTTP_CLIENT_IP'];
@@ -25,7 +25,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getUserAgent(): string
+    public static function getUserAgent(): string
     {
         return $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown User Agent';
     }
@@ -37,7 +37,7 @@ class UserInfo
      * @return array
      * @throws \Exception
      */
-    public function getIpInformation(string $ip): array
+    public static function getIpInformation(string $ip): array
     {
         $url = "http://ip-api.com/json/{$ip}";
         $response = file_get_contents($url);
@@ -61,7 +61,7 @@ class UserInfo
      * @param string $height
      * @return array
      */
-    public function getScreenSize(string $width = 'Unknown', string $height = 'Unknown'): array
+    public static function getScreenSize(string $width = 'Unknown', string $height = 'Unknown'): array
     {
         return [
             'width' => $width,
@@ -74,7 +74,7 @@ class UserInfo
      *
      * @return string|null
      */
-    public function getReferer(): ?string
+    public static function getReferer(): ?string
     {
         return $_SERVER['HTTP_REFERER'] ?? null;
     }
@@ -84,7 +84,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getRequestMethod(): string
+    public static function getRequestMethod(): string
     {
         return $_SERVER['REQUEST_METHOD'];
     }
@@ -94,7 +94,7 @@ class UserInfo
      *
      * @return int
      */
-    public function getRequestTime(): int
+    public static function getRequestTime(): int
     {
         return $_SERVER['REQUEST_TIME'];
     }
@@ -104,7 +104,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getBrowserLanguage(): string
+    public static function getBrowserLanguage(): string
     {
         return $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'Unknown';
     }
@@ -114,7 +114,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getRequestUri(): string
+    public static function getRequestUri(): string
     {
         return $_SERVER['REQUEST_URI'];
     }
@@ -124,7 +124,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getHost(): string
+    public static function getHost(): string
     {
         return $_SERVER['HTTP_HOST'];
     }
@@ -134,7 +134,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getProtocol(): string
+    public static function getProtocol(): string
     {
         return isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'HTTPS' : 'HTTP';
     }
@@ -144,7 +144,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getOperatingSystem(): string
+    public static function getOperatingSystem(): string
     {
         $userAgent = $this->getUserAgent();
         $osArray = [
@@ -170,7 +170,7 @@ class UserInfo
      *
      * @return string
      */
-    public function getBrowser(): string
+    public static function getBrowser(): string
     {
         $userAgent = $this->getUserAgent();
         $browserArray = [
@@ -196,7 +196,7 @@ class UserInfo
      *
      * @return array
      */
-    public function getAllInfo(): array
+    public static function getAllInfo(): array
     {
         $ip = $this->getUserIp();
         $ipInfo = $this->getIpInformation($ip);

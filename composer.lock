@@ -72,12 +72,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-auth-token-maker.git",
-                "reference": "312b930e13496a1bb3d3a2b363cc1e4f713a075f"
+                "reference": "17a25d892ffd872b05d2a9d1d8eb16afa487c1d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-auth-token-maker/zipball/312b930e13496a1bb3d3a2b363cc1e4f713a075f",
-                "reference": "312b930e13496a1bb3d3a2b363cc1e4f713a075f",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-auth-token-maker/zipball/17a25d892ffd872b05d2a9d1d8eb16afa487c1d9",
+                "reference": "17a25d892ffd872b05d2a9d1d8eb16afa487c1d9",
                 "shasum": ""
             },
             "require": {
@@ -103,9 +103,9 @@
             "description": "A PHP package to generate a secure auth token with a fixed length of 60 characters.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-auth-token-maker/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-auth-token-maker/tree/main"
+                "source": "https://github.com/jarir2020/jarir-ahmed-auth-token-maker/tree/1.1.1.1"
             },
-            "time": "2024-10-10T17:15:56+00:00"
+            "time": "2025-07-26T21:11:07+00:00"
         },
         {
             "name": "jarir-ahmed/data-encryption-utility",
@@ -113,12 +113,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-data-encryption-utility.git",
-                "reference": "5ef963b819e2d02521b032579834e23dd9e88b9e"
+                "reference": "2e4ff9375e25ecfaabeff332fd2f894d6c6523e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-data-encryption-utility/zipball/5ef963b819e2d02521b032579834e23dd9e88b9e",
-                "reference": "5ef963b819e2d02521b032579834e23dd9e88b9e",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-data-encryption-utility/zipball/2e4ff9375e25ecfaabeff332fd2f894d6c6523e1",
+                "reference": "2e4ff9375e25ecfaabeff332fd2f894d6c6523e1",
                 "shasum": ""
             },
             "require": {
@@ -147,9 +147,9 @@
             "description": "A simple and secure data encryption/decryption utility for PHP.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-data-encryption-utility/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-data-encryption-utility/tree/main"
+                "source": "https://github.com/jarir2020/jarir-ahmed-data-encryption-utility/tree/1.1.1.1"
             },
-            "time": "2024-10-08T20:10:04+00:00"
+            "time": "2025-07-26T20:54:56+00:00"
         },
         {
             "name": "jarir-ahmed/file",
@@ -157,12 +157,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-file.git",
-                "reference": "da0dd863fbcd136d96e3d43f48bf7f3171cb716b"
+                "reference": "bee6a02d96683c49e49bdcaed3872b4f318327aa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-file/zipball/da0dd863fbcd136d96e3d43f48bf7f3171cb716b",
-                "reference": "da0dd863fbcd136d96e3d43f48bf7f3171cb716b",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-file/zipball/bee6a02d96683c49e49bdcaed3872b4f318327aa",
+                "reference": "bee6a02d96683c49e49bdcaed3872b4f318327aa",
                 "shasum": ""
             },
             "require": {
@@ -188,9 +188,9 @@
             "description": "A custom file manipulation package.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-file/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-file/tree/1.0.0.0"
+                "source": "https://github.com/jarir2020/jarir-ahmed-file/tree/1.1.1.1"
             },
-            "time": "2024-10-11T23:33:16+00:00"
+            "time": "2025-07-26T21:00:02+00:00"
         },
         {
             "name": "jarir-ahmed/hash-helper",
@@ -198,12 +198,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-hash-helper.git",
-                "reference": "08063356ac52b36f4be7332803508c184d04d19f"
+                "reference": "7bb10188b5ea30978fb61998a2581c1487d4c0fe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-hash-helper/zipball/08063356ac52b36f4be7332803508c184d04d19f",
-                "reference": "08063356ac52b36f4be7332803508c184d04d19f",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-hash-helper/zipball/7bb10188b5ea30978fb61998a2581c1487d4c0fe",
+                "reference": "7bb10188b5ea30978fb61998a2581c1487d4c0fe",
                 "shasum": ""
             },
             "require": {
@@ -224,9 +224,9 @@
             "description": "A PHP package to encode and hash strings in various formats.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-hash-helper/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-hash-helper/tree/1.0.0.0"
+                "source": "https://github.com/jarir2020/jarir-ahmed-hash-helper/tree/1.1.1.1"
             },
-            "time": "2024-10-10T21:38:30+00:00"
+            "time": "2025-07-26T21:10:24+00:00"
         },
         {
             "name": "jarir-ahmed/http-response",
@@ -266,12 +266,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-password-generator.git",
-                "reference": "eba4d4aa6ba0e4e0a23040b2b74dabfe70c3e853"
+                "reference": "04cfa4475fca3b16b1a5b6e23c847adf58b70fc4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-password-generator/zipball/eba4d4aa6ba0e4e0a23040b2b74dabfe70c3e853",
-                "reference": "eba4d4aa6ba0e4e0a23040b2b74dabfe70c3e853",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-password-generator/zipball/04cfa4475fca3b16b1a5b6e23c847adf58b70fc4",
+                "reference": "04cfa4475fca3b16b1a5b6e23c847adf58b70fc4",
                 "shasum": ""
             },
             "require": {
@@ -297,9 +297,9 @@
             "description": "A simple password generator that creates strong passwords between 8 to 12 characters.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-password-generator/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-password-generator/tree/main"
+                "source": "https://github.com/jarir2020/jarir-ahmed-password-generator/tree/1.1.1.1"
             },
-            "time": "2024-10-08T21:50:29+00:00"
+            "time": "2025-07-26T20:52:41+00:00"
         },
         {
             "name": "jarir-ahmed/time-helper",
@@ -307,12 +307,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-time-helper.git",
-                "reference": "7d9e57ed9187c257e3e8730c0cbaf472cee90540"
+                "reference": "8629a233577fa9036ae92d621d17792a3e97f4c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-time-helper/zipball/7d9e57ed9187c257e3e8730c0cbaf472cee90540",
-                "reference": "7d9e57ed9187c257e3e8730c0cbaf472cee90540",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-time-helper/zipball/8629a233577fa9036ae92d621d17792a3e97f4c7",
+                "reference": "8629a233577fa9036ae92d621d17792a3e97f4c7",
                 "shasum": ""
             },
             "require": {
@@ -335,9 +335,9 @@
             "description": "A simple PHP package for handling time and date operations.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-time-helper/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-time-helper/tree/1.0.0.3"
+                "source": "https://github.com/jarir2020/jarir-ahmed-time-helper/tree/1.0.0.4"
             },
-            "time": "2024-10-14T14:34:25+00:00"
+            "time": "2025-07-26T20:49:29+00:00"
         },
         {
             "name": "jarir-ahmed/user-info-capture",
@@ -345,12 +345,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-user-info-capture.git",
-                "reference": "79b2cf123da8a202407ffb5302567e8af3ec9bb3"
+                "reference": "6eaea2a1188e396385d1a98d53f68e1b2cf3b0ff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-user-info-capture/zipball/79b2cf123da8a202407ffb5302567e8af3ec9bb3",
-                "reference": "79b2cf123da8a202407ffb5302567e8af3ec9bb3",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-user-info-capture/zipball/6eaea2a1188e396385d1a98d53f68e1b2cf3b0ff",
+                "reference": "6eaea2a1188e396385d1a98d53f68e1b2cf3b0ff",
                 "shasum": ""
             },
             "require": {
@@ -376,9 +376,9 @@
             "description": "A package to capture user's IP, user agent, screen size and fetch IP-related info.",
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-user-info-capture/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-user-info-capture/tree/main"
+                "source": "https://github.com/jarir2020/jarir-ahmed-user-info-capture/tree/1.1.1.1"
             },
-            "time": "2024-10-08T20:09:30+00:00"
+            "time": "2025-07-26T20:51:15+00:00"
         },
         {
             "name": "phpmailer/phpmailer",

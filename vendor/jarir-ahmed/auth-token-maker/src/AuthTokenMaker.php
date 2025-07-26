@@ -13,7 +13,7 @@ class AuthTokenMaker
      * @return string The generated token.
      * @throws Exception
      */
-    public function generate($length = 60)
+    public static function generate($length = 60)
     {
         if ($length <= 0) {
             throw new Exception("Token length must be greater than zero.");

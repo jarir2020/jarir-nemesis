@@ -10,7 +10,7 @@ class PasswordGenerator
      * @param int $length Length of the password (default is random between 8 to 12).
      * @return string The generated password.
      */
-    public function generate($length = null)
+    public static function generate($length = null)
     {
         if ($length === null) {
             $length = rand(8, 12); // Random length between 8 to 12

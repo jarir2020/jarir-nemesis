@@ -395,9 +395,9 @@ public static function generateRandomNumberInRange(int $min, int $max): int
 {
     return rand($min, $max);
 }
-
 public static function generateToken($bytes = 4, $start = 0, $length = 8) {
     return strtoupper(substr(bin2hex(random_bytes($bytes)), $start, $length));
 }
+
 
 }
