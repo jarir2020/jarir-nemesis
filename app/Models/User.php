@@ -3,6 +3,7 @@ namespace App\Models;
 
 use Nemesis\Core\Fluent;
 use JarirAhmed\AuthTokenMaker\AuthTokenMaker;
+use Nemesis\Helpers\Helpers;
 use PDO;
 
 class User {
@@ -70,4 +71,19 @@ class User {
         // Generate a new token of 60 characters
         return $authTokenMaker->generate(60);
     }
+
+
+    public function storeOtp($id, $otp) {
+        return Fluent::table('users')->whereUpdate('id', '=', $id)->update(['otp' => $otp]);
+        }
+
+    public function clearOtp($id) {
+        return Fluent::table('users')->whereUpdate('id', '=', $id)->update(['otp' => null]);
+    }
+
+    public function updatePassword($id, $newPassword) {
+        $hashed = Helpers::passwordHash($newPassword);
+        return Fluent::table('users')->whereUpdate('id', '=', $id)->update(['password' => $hashed]);
+    }
+
 }

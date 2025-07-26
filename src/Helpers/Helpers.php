@@ -113,4 +113,9 @@ class Helpers {
     public static function passwordVerify(string $password, string $hashedPassword): bool {
         return password_verify($password, $hashedPassword);
     }
+
+    public static function passwordHash($password) {
+    return password_hash($password, PASSWORD_BCRYPT);
+    }
+
 }

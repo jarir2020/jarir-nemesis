@@ -23,6 +23,14 @@ $router->add('POST', '/email/generate', function () use ($emailController) {
     $emailController->generate();
 });
 
+$router->add('POST', '/user/send-reset-otp', function () use ($userController) {
+    $userController->sendResetOtp();
+});
+
+$router->add('POST', '/user/reset-password', function () use ($userController) {
+    $userController->resetPassword();
+});
+
 $router->add('POST', '/email/cron-generate', function () use ($emailController) {
     $emailController->cronGenerate();
 });
@@ -97,6 +105,11 @@ $router->add('GET', '/application', function () use ($applicationsController) {
 $router->add('POST', '/application', function () use ($applicationsController) {
     $applicationsController->create();
 });
+
+$router->add('POST', '/application/search', function () use ($applicationsController) {
+    $applicationsController->search();
+});
+
 
 $router->add('GET', '/application/{serial}', function ($serial) use ($applicationsController) {
     $applicationsController->view($serial);

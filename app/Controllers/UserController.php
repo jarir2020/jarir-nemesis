@@ -6,7 +6,10 @@ use JarirAhmed\AuthTokenMaker\AuthTokenMaker;
 use Nemesis\Core\Controller;
 use Nemesis\Core\Validator;
 use JarirAhmed\HTTPResponse\HTTPResponse;
+use JarirAhmed\TimeHelper\TimeHelper;
 use Nemesis\Helpers\Helpers;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class UserController {
 
@@ -132,6 +135,81 @@ class UserController {
             'message' => 'User registered successfully.',
             'auth_token' => $authToken
         ]);
+    }
+
+
+    public function sendResetOtp() {
+        $data = Helpers::getInput();
+        $email = $data['email'] ?? '';
+
+        if (empty($email)) {
+            HTTPResponse::badRequest();
+            Helpers::json(['error' => true, 'message' => 'Email is required']);
+            return;
+        }
+
+        $user = new User();
+        $userData = $user->getByEmail($email);
+
+        if (!$userData) {
+            HTTPResponse::notFound();
+            Helpers::json(['error' => true, 'message' => 'User not found']);
+            return;
+        }
+
+        $otp = TimeHelper::generateRandomNumber(6);
+        $user->storeOtp($userData['id'], $otp);
+
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'slot.book.wims@gmail.com';
+            $mail->Password = 'ceib criu fpyf hpoh';
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
+
+            $mail->setFrom('slot.book.wims@gmail.com', 'Password Reset');
+            $mail->addAddress($email);
+            $mail->Subject = 'Your OTP for Password Reset';
+            $mail->Body = "Your OTP is: $otp";
+
+            $mail->send();
+        } catch (Exception $e) {
+            HTTPResponse::internalServerError();
+            Helpers::json(['error' => true, 'message' => 'Failed to send OTP.']);
+            return;
+        }
+
+        Helpers::json(['success' => true, 'message' => 'OTP sent to email']);
+    }
+
+    public function resetPassword() {
+        $data = Helpers::getInput();
+        $email = $data['email'] ?? '';
+        $otp = $data['otp'] ?? '';
+        $newPassword = $data['new_password'] ?? '';
+
+        if (empty($email) || empty($otp) || empty($newPassword)) {
+            HTTPResponse::badRequest();
+            Helpers::json(['error' => true, 'message' => 'Email, OTP, and new password are required']);
+            return;
+        }
+
+        $user = new User();
+        $userData = $user->getByEmail($email);
+
+        if (!$userData || $userData['otp'] !== $otp) {
+            HTTPResponse::unauthorized();
+            Helpers::json(['error' => true, 'message' => 'Invalid OTP or email']);
+            return;
+        }
+
+        $user->updatePassword($userData['id'], $newPassword);
+        $user->clearOtp($userData['id']);
+
+        Helpers::json(['success' => true, 'message' => 'Password reset successful']);
     }
     
 }

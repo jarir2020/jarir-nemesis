@@ -35,7 +35,7 @@ class SMTP
      *
      * @var string
      */
-    const VERSION = '6.9.2';
+    const VERSION = '6.10.0';
 
     /**
      * SMTP line break constant.
@@ -158,6 +158,15 @@ class SMTP
      * @var bool
      */
     public $do_verp = false;
+
+    /**
+     * Whether to use SMTPUTF8.
+     *
+     * @see https://www.rfc-editor.org/rfc/rfc6531
+     *
+     * @var bool
+     */
+    public $do_smtputf8 = false;
 
     /**
      * The timeout value for connection, in seconds.
@@ -624,10 +633,41 @@ class SMTP
                     return false;
                 }
                 $oauth = $OAuth->getOauth64();
-
-                //Start authentication
-                if (!$this->sendCommand('AUTH', 'AUTH XOAUTH2 ' . $oauth, 235)) {
-                    return false;
+                /*
+                 * An SMTP command line can have a maximum length of 512 bytes, including the command name,
+                 * so the base64-encoded OAUTH token has a maximum length of:
+                 * 512 - 13 (AUTH XOAUTH2) - 2 (CRLF) = 497 bytes
+                 * If the token is longer than that, the command and the token must be sent separately as described in
+                 * https://www.rfc-editor.org/rfc/rfc4954#section-4
+                 */
+                if ($oauth === '') {
+                    //Sending an empty auth token is legitimate, but it must be encoded as '='
+                    //to indicate it's not a 2-part command
+                    if (!$this->sendCommand('AUTH', 'AUTH XOAUTH2 =', 235)) {
+                        return false;
+                    }
+                } elseif (strlen($oauth) <= 497) {
+                    //Authenticate using a token in the initial-response part
+                    if (!$this->sendCommand('AUTH', 'AUTH XOAUTH2 ' . $oauth, 235)) {
+                        return false;
+                    }
+                } else {
+                    //The token is too long, so we need to send it in two parts.
+                    //Send the auth command without a token and expect a 334
+                    if (!$this->sendCommand('AUTH', 'AUTH XOAUTH2', 334)) {
+                        return false;
+                    }
+                    //Send the token
+                    if (!$this->sendCommand('OAuth TOKEN', $oauth, [235, 334])) {
+                        return false;
+                    }
+                    //If the server answers with 334, send an empty line and wait for a 235
+                    if (
+                        substr($this->last_reply, 0, 3) === '334'
+                        && $this->sendCommand('AUTH End', '', 235)
+                    ) {
+                        return false;
+                    }
                 }
                 break;
             default:
@@ -913,7 +953,15 @@ class SMTP
      * $from. Returns true if successful or false otherwise. If True
      * the mail transaction is started and then one or more recipient
      * commands may be called followed by a data command.
-     * Implements RFC 821: MAIL <SP> FROM:<reverse-path> <CRLF>.
+     * Implements RFC 821: MAIL <SP> FROM:<reverse-path> <CRLF> and
+     * two extensions, namely XVERP and SMTPUTF8.
+     *
+     * The server's EHLO response is not checked. If use of either
+     * extensions is enabled even though the server does not support
+     * that, mail submission will fail.
+     *
+     * XVERP is documented at https://www.postfix.org/VERP_README.html
+     * and SMTPUTF8 is specified in RFC 6531.
      *
      * @param string $from Source address of this message
      *
@@ -922,10 +970,11 @@ class SMTP
     public function mail($from)
     {
         $useVerp = ($this->do_verp ? ' XVERP' : '');
+        $useSmtputf8 = ($this->do_smtputf8 ? ' SMTPUTF8' : '');
 
         return $this->sendCommand(
             'MAIL FROM',
-            'MAIL FROM:<' . $from . '>' . $useVerp,
+            'MAIL FROM:<' . $from . '>' . $useSmtputf8 . $useVerp,
             250
         );
     }
@@ -1362,6 +1411,26 @@ class SMTP
     public function getVerp()
     {
         return $this->do_verp;
+    }
+
+    /**
+     * Enable or disable use of SMTPUTF8.
+     *
+     * @param bool $enabled
+     */
+    public function setSMTPUTF8($enabled = false)
+    {
+        $this->do_smtputf8 = $enabled;
+    }
+
+    /**
+     * Get SMTPUTF8 use.
+     *
+     * @return bool
+     */
+    public function getSMTPUTF8()
+    {
+        return $this->do_smtputf8;
     }
 
     /**

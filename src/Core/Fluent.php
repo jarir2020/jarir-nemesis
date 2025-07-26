@@ -156,4 +156,17 @@ class Fluent {
         $this->params[$column] = $value;
         return $this;
     }
+
+    public function max($column) {
+    $sql = "SELECT MAX({$column}) as max_value FROM {$this->table}";
+    $result = Database::view($sql);
+    return $result && isset($result[0]['max_value']) ? (int) $result[0]['max_value'] : 0;
+}
+
+    public function min($column) {
+    $sql = "SELECT MIN({$column}) as min_value FROM {$this->table}";
+    $result = Database::view($sql);
+    return $result && isset($result[0]['min_value']) ? (int) $result[0]['min_value'] : 0;
+}
+
 }

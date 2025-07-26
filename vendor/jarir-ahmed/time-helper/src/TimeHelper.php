@@ -10,7 +10,7 @@ class TimeHelper
      * @param string $format The format for the time.
      * @return string The current time.
      */
-    public function getCurrentTime(string $format = 'H:i:s'): string
+    public static function getCurrentTime(string $format = 'H:i:s'): string
     {
         return date($format);
     }
@@ -21,7 +21,7 @@ class TimeHelper
      * @param string $format The format for the date.
      * @return string The current date.
      */
-    public function getCurrentDate(string $format = 'Y-m-d'): string
+    public static function getCurrentDate(string $format = 'Y-m-d'): string
     {
         return date($format);
     }
@@ -32,7 +32,7 @@ class TimeHelper
      * @param string $format The format for the date and time.
      * @return string The current date and time.
      */
-    public function getCurrentDateTime(string $format = 'Y-m-d H:i:s'): string
+    public static function getCurrentDateTime(string $format = 'Y-m-d H:i:s'): string
     {
         return date($format);
     }
@@ -44,7 +44,7 @@ class TimeHelper
      * @param string $format The format for the time.
      * @return string The current time in the specified timezone.
      */
-    public function getCurrentTimeInTimezone(string $timezone, string $format = 'H:i:s'): string
+    public static function getCurrentTimeInTimezone(string $timezone, string $format = 'H:i:s'): string
     {
         $dateTime = new \DateTime('now', new \DateTimeZone($timezone));
         return $dateTime->format($format);
@@ -57,7 +57,7 @@ class TimeHelper
      * @param string $format The format for the date.
      * @return string The current date in the specified timezone.
      */
-    public function getCurrentDateInTimezone(string $timezone, string $format = 'Y-m-d'): string
+    public static function getCurrentDateInTimezone(string $timezone, string $format = 'Y-m-d'): string
     {
         $dateTime = new \DateTime('now', new \DateTimeZone($timezone));
         return $dateTime->format($format);
@@ -70,7 +70,7 @@ class TimeHelper
      * @param string $format The format for the date and time.
      * @return string The current date and time in the specified timezone.
      */
-    public function getCurrentDateTimeInTimezone(string $timezone, string $format = 'Y-m-d H:i:s'): string
+    public static function getCurrentDateTimeInTimezone(string $timezone, string $format = 'Y-m-d H:i:s'): string
     {
         $dateTime = new \DateTime('now', new \DateTimeZone($timezone));
         return $dateTime->format($format);
@@ -84,7 +84,7 @@ class TimeHelper
      * @param string $format The format for the output.
      * @return string The difference between the two dates.
      */
-    public function getDateDifference(string $date1, string $date2, string $format = '%y years, %m months, %d days'): string
+    public static function getDateDifference(string $date1, string $date2, string $format = '%y years, %m months, %d days'): string
     {
         $dt1 = new \DateTime($date1);
         $dt2 = new \DateTime($date2);
@@ -101,7 +101,7 @@ class TimeHelper
      * @param string $toTimezone The target timezone.
      * @return string The converted date/time.
      */
-    public function convertTimezone(string $dateTime, string $fromTimezone, string $toTimezone): string
+    public static function convertTimezone(string $dateTime, string $fromTimezone, string $toTimezone): string
     {
         $date = new \DateTime($dateTime, new \DateTimeZone($fromTimezone));
         $date->setTimezone(new \DateTimeZone($toTimezone));
@@ -120,7 +120,7 @@ class TimeHelper
      * @param int $years Number of years to add (negative for subtracting).
      * @return string The new date/time.
      */
-    public function timeTravel(
+    public static function timeTravel(
         int $seconds = 0,
         int $minutes = 0,
         int $hours = 0,
@@ -142,7 +142,7 @@ class TimeHelper
      * @param int $year The year to check.
      * @return bool True if it's a leap year, false otherwise.
      */
-    public function isLeapYear(int $year): bool
+    public static function isLeapYear(int $year): bool
     {
         return ($year % 4 === 0 && $year % 100 !== 0) || ($year % 400 === 0);
     }
@@ -152,7 +152,7 @@ class TimeHelper
      *
      * @return array An array of timezone identifiers.
      */
-    public function getTimezones(): array
+    public static function getTimezones(): array
     {
         return \DateTimeZone::listIdentifiers();
     }
@@ -163,7 +163,7 @@ class TimeHelper
      * @param int $length The length of the generated string (default: 60).
      * @return string The generated random string.
      */
-    public function generateRandomString(int $length = 60): string
+    public static function generateRandomString(int $length = 60): string
     {
         $time = microtime(true);
         $randomString = md5($time . uniqid('', true));
@@ -177,7 +177,7 @@ class TimeHelper
      * @param float $startTime The start time of the script execution.
      * @return float The total execution time in seconds.
      */
-    public function measureExecutionTime(float $startTime): float
+    public static function measureExecutionTime(float $startTime): float
     {
         $endTime = microtime(true); // Get the end time
         return $endTime - $startTime; // Calculate execution time
@@ -188,7 +188,7 @@ class TimeHelper
      *
      * @param int $seconds The number of seconds to sleep.
      */
-    public function sleepFor(int $seconds): void
+    public static function sleepFor(int $seconds): void
     {
         sleep($seconds); // Pause execution for the specified time
     }
@@ -198,24 +198,24 @@ class TimeHelper
      *
      * @param int $milliseconds The number of milliseconds to sleep.
      */
-    public function sleepForMilliseconds(int $milliseconds): void
+    public static function sleepForMilliseconds(int $milliseconds): void
     {
         usleep($milliseconds * 1000); // Pause execution for the specified time
     }
 
-        public function calculateAge(string $dateOfBirth): int
+        public static function calculateAge(string $dateOfBirth): int
     {
         $dob = new \DateTime($dateOfBirth);
         $today = new \DateTime();
         return $today->diff($dob)->y;
     }
 
-        public function isDateInPast(string $date): bool
+        public static function isDateInPast(string $date): bool
     {
         return new \DateTime($date) < new \DateTime();
     }
 
-        public function getDayOfWeek(string $date): string
+        public static function getDayOfWeek(string $date): string
     {
         return (new \DateTime($date))->format('l'); // Returns full name of the day
     }
@@ -226,7 +226,7 @@ class TimeHelper
      * @param string|null $dateTime The date/time to convert (default: null for current time).
      * @return int The Unix timestamp.
      */
-    public function getTimestamp(string $dateTime = null): int
+    public static function getTimestamp(string $dateTime = null): int
     {
         if ($dateTime === null) {
             return time(); // Current timestamp
@@ -240,7 +240,7 @@ class TimeHelper
      * @param string $date The date to check.
      * @return bool True if the date is today, false otherwise.
      */
-    public function isToday(string $date): bool
+    public static function isToday(string $date): bool
     {
         return (new \DateTime($date))->format('Y-m-d') === (new \DateTime())->format('Y-m-d');
     }
@@ -251,7 +251,7 @@ class TimeHelper
      * @param string $date The date for which to get the start and end times.
      * @return array An associative array with 'start' and 'end' keys.
      */
-    public function getStartAndEndOfDay(string $date): array
+    public static function getStartAndEndOfDay(string $date): array
     {
         $start = (new \DateTime($date))->setTime(0, 0, 0)->format('Y-m-d H:i:s');
         $end = (new \DateTime($date))->setTime(23, 59, 59)->format('Y-m-d H:i:s');
@@ -267,7 +267,7 @@ class TimeHelper
      * @param string $format The format string.
      * @return string The formatted date.
      */
-    public function formatDateAccordingToLocale(string $date, string $locale, string $format): string
+    public static function formatDateAccordingToLocale(string $date, string $locale, string $format): string
     {
         $dateFormatter = new \IntlDateFormatter($locale, \IntlDateFormatter::LONG, \IntlDateFormatter::NONE);
         return $dateFormatter->format(new \DateTime($date));
@@ -279,7 +279,7 @@ class TimeHelper
      * @param string $date The date to check.
      * @return int The week number of the year.
      */
-    public function getWeekNumber(string $date): int
+    public static function getWeekNumber(string $date): int
     {
         return (new \DateTime($date))->format('W');
     }
@@ -290,7 +290,7 @@ class TimeHelper
      * @param string $date The date to check.
      * @return array An associative array with 'first' and 'last' keys.
      */
-    public function getFirstAndLastDayOfMonth(string $date): array
+    public static function getFirstAndLastDayOfMonth(string $date): array
     {
         $first = (new \DateTime($date))->modify('first day of this month')->format('Y-m-d');
         $last = (new \DateTime($date))->modify('last day of this month')->format('Y-m-d');
@@ -303,7 +303,7 @@ class TimeHelper
      * @param string $futureDate The future date.
      * @return int The number of days until the future date.
      */
-    public function daysUntil(string $futureDate): int
+    public static function daysUntil(string $futureDate): int
     {
         $today = new \DateTime();
         $future = new \DateTime($futureDate);
@@ -316,7 +316,7 @@ class TimeHelper
      * @param string $date The date to check.
      * @return string The name of the month.
      */
-    public function getMonthName(string $date): string
+    public static function getMonthName(string $date): string
     {
         return (new \DateTime($date))->format('F'); // Full month name
     }
@@ -328,7 +328,7 @@ class TimeHelper
      * @param string $endDate The end date.
      * @return array An array of dates.
      */
-    public function getAllDatesInRange(string $startDate, string $endDate): array
+    public static function getAllDatesInRange(string $startDate, string $endDate): array
     {
         $start = new \DateTime($startDate);
         $end = new \DateTime($endDate);
@@ -349,7 +349,7 @@ class TimeHelper
      * @param string $endDate The end date.
      * @return int The number of business days.
      */
-    public function getBusinessDaysBetween(string $startDate, string $endDate): int
+    public static function getBusinessDaysBetween(string $startDate, string $endDate): int
     {
         $start = new \DateTime($startDate);
         $end = new \DateTime($endDate);
@@ -372,11 +372,11 @@ class TimeHelper
      *
      * @return int Number of microseconds per second (1,000,000).
      */
-    public function getClocksPerSec(): int
+    public static function getClocksPerSec(): int
     {
         return 1000000; // Microseconds per second
     }
-    public function generateRandomNumber(int $length = 10): string
+    public static function generateRandomNumber(int $length = 10): string
 {
     $randomNumber = '';
     for ($i = 0; $i < $length; $i++) {
@@ -386,15 +386,17 @@ class TimeHelper
     return $randomNumber;
 }
 
-public function roll_dice(): int
+public static function roll_dice(): int
 {
     return rand(1, 6);
 }
     
-public function generateRandomNumberInRange(int $min, int $max): int
+public static function generateRandomNumberInRange(int $min, int $max): int
 {
     return rand($min, $max);
 }
 
-
+public static function generateToken($bytes = 4, $start = 0, $length = 8) {
+    return strtoupper(substr(bin2hex(random_bytes($bytes)), $start, $length));
+}
 }
