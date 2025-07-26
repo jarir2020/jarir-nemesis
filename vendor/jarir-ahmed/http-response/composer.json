@@ -1,0 +1,12 @@
+{
+    "name": "jarir-ahmed/http-response",
+    "description": "A simple package to throw specific HTTP response codes.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "JarirAhmed\\HTTPResponse\\": "src/"
+        }
+    },
+    "require": {}
+}
