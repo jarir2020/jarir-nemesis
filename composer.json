@@ -1,9 +1,10 @@
 {
-    "name": "jarir/nemesis",
-    "description": "A Modern PHP Framework",
-    "type": "library",
+    "name": "jarir/nemesis-framework",
+    "description": "Nemesis: A High-Performance, Zero-Dependency PHP Framework for SaaS and APIs.",
+    "type": "project",
     "require": {
-        "phpmailer/phpmailer": "dev-master"
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.8"
     },
     "license": "MIT",
     "autoload": {
@@ -14,8 +15,11 @@
     },
     "authors": [
         {
-            "name": "jarircse16"
+            "name": "Jarir Ahmed",
+            "email": "jarircse16@gmail.com"
         }
     ],
-    "minimum-stability": "dev"
+    "keywords": ["framework", "php", "zero-dependency", "orm", "mvc", "api"],
+    "homepage": "https://github.com/jarir2020/jarir-nemesis",
+    "minimum-stability": "stable"
 }
