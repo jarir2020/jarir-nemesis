@@ -20,15 +20,25 @@ class Archive {
     }
 
     public static function extract($source, $destination) {
-        $ext = pathinfo($source, PATHINFO_EXTENSION);
-        $driver = null;
-        
-        if ($ext === 'zip') {
-            $driver = new \Nemesis\Core\Storage\Drivers\ZipDriver($source);
-        } else {
-            $driver = new \Nemesis\Core\Storage\Drivers\PharDriver($source);
+        if (!file_exists($source)) {
+            throw new \Exception("Archive file not found: $source");
         }
         
-        return $driver->extract($destination);
+        $ext = pathinfo($source, PATHINFO_EXTENSION);
+        
+        if ($ext === 'zip') {
+            $zip = new \ZipArchive();
+            if ($zip->open($source) === true) {
+                $zip->extractTo($destination);
+                $zip->close();
+                return true;
+            }
+            throw new \Exception("Failed to open ZIP archive for extraction");
+        } else {
+            // For Phar formats
+            $phar = new \PharData($source);
+            $phar->extractTo($destination, null, true);
+            return true;
+        }
     }
 }

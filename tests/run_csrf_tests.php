@@ -7,14 +7,14 @@ echo "\n--- CSRF Protection Test (Case 2: With Token) ---\n";
 // I'll just write two separate test files or one that handles cases based on an env var.
 
 file_put_contents('test_csrf_runner.php', "<?php
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 use Nemesis\Core\Config;
 use Nemesis\Http\Request;
 use Nemesis\Http\Pipeline;
 use Nemesis\Http\Session;
 use App\Http\Kernel;
 
-Config::load(__DIR__);
+Config::load(__DIR__ . '/../');
 \Nemesis\Core\Container::getInstance() ?: \Nemesis\Core\Container::setInstance(new \Nemesis\Core\Container());
 \Nemesis\Core\Container::getInstance()->singleton(Request::class);
 

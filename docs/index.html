@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nemesis Framework - The Definitive Guide</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg: #0f172a;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --sidebar: #1e293b;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --code-bg: #020617;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 300px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+        }
+
+        .nav-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding: 1rem;
+        }
+
+        .nav-group {
+            margin-bottom: 2rem;
+        }
+
+        .nav-header {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+            padding-left: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4rem 10%;
+            scroll-behavior: smooth;
+        }
+
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+
+        p {
+            line-height: 1.8;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+        }
+
+        ul {
+            line-height: 1.7;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        code {
+            font-family: inherit;
+            color: #e2e8f0;
+        }
+
+        .inline-code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            color: var(--primary);
+        }
+
+        /* Syntax Highlighting */
+        .kwd {
+            color: #c084fc;
+        }
+
+        .str {
+            color: #4ade80;
+        }
+
+        .cls {
+            color: #22d3ee;
+        }
+
+        .fn {
+            color: #facc15;
+        }
+
+        .cmt {
+            color: #64748b;
+        }
+
+        .var {
+            color: #f472b6;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: #0f172a;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .alert-info {
+            border-color: #3b82f6;
+        }
+
+        .alert-warn {
+            border-color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside>
+        <div class="brand">Nemesis Docs</div>
+        <div class="nav-scroll">
+            <div class="nav-group">
+                <div class="nav-header">Prologue</div>
+                <a href="#intro" class="nav-link">Introduction</a>
+                <a href="#install" class="nav-link">Installation</a>
+                <a href="#config" class="nav-link">Configuration</a>
+                <a href="#folder" class="nav-link">Directory Structure</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-header">The Basics</div>
+                <a href="#routing" class="nav-link">Routing</a>
+                <a href="#middleware" class="nav-link">Middleware</a>
+                <a href="#csrf" class="nav-link">CSRF Protection</a>
+                <a href="#controllers" class="nav-link">Controllers</a>
+                <a href="#req-res" class="nav-link">Requests & Responses</a>
+                <a href="#validation" class="nav-link">Validation</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-header">Database</div>
+                <a href="#database" class="nav-link">Getting Started</a>
+                <a href="#builder" class="nav-link">Query Builder</a>
+                <a href="#migrations" class="nav-link">Migrations</a>
+                <a href="#seeding" class="nav-link">Seeding</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-header">Eloquent ORM</div>
+                <a href="#models" class="nav-link">Models</a>
+                <a href="#relationships" class="nav-link">Relationships</a>
+                <a href="#scopes" class="nav-link">Query Scopes</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-header">Security</div>
+                <a href="#auth" class="nav-link">Authentication</a>
+                <a href="#rbac" class="nav-link">Authorization (RBAC)</a>
+                <a href="#encryption" class="nav-link">Encryption</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-header">Advanced</div>
+                <a href="#websockets" class="nav-link">Broadcasting</a>
+                <a href="#saas" class="nav-link">Multi-Tenancy</a>
+                <a href="#queues" class="nav-link">Queues</a>
+                <a href="#scheduling" class="nav-link">Task Scheduling</a>
+                <a href="#cli-ref" class="nav-link">Artisan CLI</a>
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div class="content">
+            <section id="intro">
+                <h1>Introduction</h1>
+                <p>Nemesis is a web application framework with expressive, elegant syntax. We believe development must
+                    be an enjoyable and creative experience to be truly fulfilling.</p>
+            </section>
+
+            <section id="install">
+                <h2>Installation</h2>
+                <p>Clone the repository and install dependencies:</p>
+                <pre>git clone https://github.com/jarir/nemesis.git my-app
+cd my-app
+composer install</pre>
+            </section>
+
+            <section id="config">
+                <h2>Configuration</h2>
+                <p>Configuration files are stored in the <span class="inline-code">config</span> directory. Use <span
+                        class="inline-code">.env</span> for environment specific variables.</p>
+                <pre>cp .env.example .env
+php nemesis key:generate</pre>
+            </section>
+
+            <section id="folder">
+                <h2>Directory Structure</h2>
+                <ul>
+                    <li><strong>app/</strong>: Contains core application logic (Controllers, Models, etc).</li>
+                    <li><strong>src/</strong>: The framework core code (do not edit).</li>
+                    <li><strong>config/</strong>: Configuration files.</li>
+                    <li><strong>database/</strong>: Migrations and Seeds.</li>
+                    <li><strong>public/</strong>: Web entry point & assets.</li>
+                    <li><strong>routes/</strong>: Route definitions.</li>
+                    <li><strong>storage/</strong>: Logs, compiled views, file storage.</li>
+                    <li><strong>tests/</strong>: Application tests.</li>
+                </ul>
+            </section>
+
+            <section id="routing">
+                <h2>Routing</h2>
+                <p>Routes are defined in <span class="inline-code">routes/route.php</span>.</p>
+                <pre>$router->get(<span class="str">'/hello'</span>, <span class="kwd">function</span> () {
+    <span class="kwd">return</span> <span class="str">'Hello World'</span>;
+});</pre>
+            </section>
+
+            <section id="middleware">
+                <h2>Middleware</h2>
+                <p>Filter HTTP requests entering your application.</p>
+                <pre>$router->get(<span class="str">'/admin'</span>, <span class="str">'AdminController@index'</span>)->middleware(<span class="str">'auth'</span>);</pre>
+            </section>
+
+            <section id="csrf">
+                <h2>CSRF Protection</h2>
+                <p>Nemesis automatically generates a CSRF "token" for each active user session. This token is used to
+                    verify that the authenticated user is the one actually making the requests to the application.</p>
+                <pre>&lt;form method="POST" action="/profile"&gt;
+    &lt;input type="hidden" name="_token" value="<span class="var">&lt;?php</span> <span class="kwd">echo</span> csrf_token(); <span class="var">?&gt;</span>"&gt;
+    ...
+&lt;/form&gt;</pre>
+            </section>
+
+            <section id="controllers">
+                <h2>Controllers</h2>
+                <p>Controllers can group related request handling logic into a single class.</p>
+                <pre><span class="kwd">class</span> <span class="cls">UserController</span> <span class="kwd">extends</span> <span class="cls">Controller</span>
+{
+    <span class="kwd">public function</span> <span class="fn">show</span>($id)
+    {
+        <span class="kwd">return</span> <span class="cls">User</span>::<span class="fn">findOrFail</span>($id);
+    }
+}</pre>
+            </section>
+
+            <section id="req-res">
+                <h2>Requests & Responses</h2>
+                <h3>Accessing Input</h3>
+                <pre>$name = $request->input(<span class="str">'name'</span>);
+$input = $request->all();</pre>
+
+                <h3>Attaching Headers</h3>
+                <pre><span class="kwd">return</span> response($content)
+            ->header(<span class="str">'Content-Type'</span>, <span class="str">'application/json'</span>)
+            ->cookie(<span class="str">'name'</span>, <span class="str">'value'</span>, $minutes);</pre>
+            </section>
+
+            <section id="validation">
+                <h2>Validation</h2>
+                <p>Validate incoming data easily:</p>
+                <pre>$validated = $request->validate([
+    <span class="str">'title'</span> => <span class="str">'required|min:5'</span>,
+    <span class="str">'body'</span> => <span class="str">'required'</span>,
+]);</pre>
+            </section>
+
+            <section id="database">
+                <h2>Database</h2>
+                <p>Interact with databases using raw SQL or Query Builder.</p>
+                <pre>$users = <span class="cls">DB</span>::<span class="fn">select</span>(<span class="str">'select * from users where active = 1'</span>);</pre>
+            </section>
+
+            <section id="builder">
+                <h2>Query Builder</h2>
+                <pre>$users = <span class="cls">DB</span>::<span class="fn">table</span>(<span class="str">'users'</span>)
+             ->where(<span class="str">'votes'</span>, <span class="str">'>'</span>, 100)
+             ->get();</pre>
+            </section>
+
+            <section id="migrations">
+                <h2>Migrations</h2>
+                <p>Generte migration:</p>
+                <pre>php nemesis make:migration create_flights_table</pre>
+
+                <p>Structure:</p>
+                <pre><span class="cls">Schema</span>::<span class="fn">create</span>(<span class="str">'flights'</span>, <span class="kwd">function</span> ($table) {
+    $table->id();
+    $table->string(<span class="str">'name'</span>);
+    $table->string(<span class="str">'airline'</span>);
+    $table->timestamps();
+});</pre>
+
+                <p>Run:</p>
+                <pre>php nemesis migrate:run</pre>
+            </section>
+
+            <section id="seeding">
+                <h2>Seeding</h2>
+                <p>Populate database with test data.</p>
+                <pre>php nemesis make:seeder UserSeeder
+php nemesis db:seed</pre>
+            </section>
+
+            <section id="models">
+                <h2>Eloquent Models</h2>
+                <pre><span class="kwd">class</span> <span class="cls">Flight</span> <span class="kwd">extends</span> <span class="cls">Model</span> {}
+
+$flight = <span class="kwd">new</span> <span class="cls">Flight</span>;
+$flight->name = <span class="str">'London to Paris'</span>;
+$flight->save();</pre>
+            </section>
+
+            <section id="relationships">
+                <h2>Relationships</h2>
+                <pre><span class="kwd">public function</span> <span class="fn">user</span>()
+{
+    <span class="kwd">return</span> $this->belongsTo(<span class="cls">User</span>::<span class="kwd">class</span>);
+}</pre>
+            </section>
+
+            <section id="scopes">
+                <h2>Query Scopes</h2>
+                <p>Define common sets of constraints that you may easily re-use via Global Scopes or Local Scopes.</p>
+                <pre><span class="cmt">// Global Scope example</span>
+<span class="cls">User</span>::<span class="fn">addGlobalScope</span>(<span class="str">'age'</span>, <span class="kwd">function</span> ($builder) {
+    $builder->where(<span class="str">'age'</span>, <span class="str">'>'</span>, 200);
+});</pre>
+            </section>
+
+            <section id="auth">
+                <h2>Authentication</h2>
+                <pre><span class="kwd">if</span> (<span class="cls">Auth</span>::<span class="fn">attempt</span>($credentials)) {
+    <span class="kwd">return</span> redirect(<span class="str">'/dashboard'</span>);
+}</pre>
+            </section>
+
+            <section id="rbac">
+                <h2>Authorization (RBAC)</h2>
+                <p>Nemesis features a Role-Based Access Control system. You can define Roles and Permissions in the
+                    database.</p>
+
+                <h3>Usage</h3>
+                <pre><span class="cmt">// Check permission</span>
+<span class="kwd">if</span> ($user->can(<span class="str">'edit-post'</span>)) {
+    <span class="cmt">// ...</span>
+}
+
+<span class="cmt">// In Controller</span>
+$this->authorize(<span class="str">'update'</span>, $post);</pre>
+
+                <h3>Management</h3>
+                <p>Use the provided CLI tools or Models to manage roles:</p>
+                <pre>$role = <span class="cls">Role</span>::<span class="fn">create</span>([<span class="str">'name'</span> => <span class="str">'writer'</span>]);
+$permission = <span class="cls">Permission</span>::<span class="fn">create</span>([<span class="str">'name'</span> => <span class="str">'edit-post'</span>]);
+
+$role->givePermissionTo($permission);
+$user->assignRole(<span class="str">'writer'</span>);</pre>
+            </section>
+
+            <section id="encryption">
+                <h2>Encryption</h2>
+                <p>Nemesis provides an AES-256-CBC encrypter via the OpenSSL PHP extension.</p>
+
+                <pre><span class="kwd">use</span> Nemesis\Security\Crypt;
+
+$encrypted = <span class="cls">Crypt</span>::<span class="fn">encrypt</span>(<span class="str">'Hello World'</span>);
+
+$decrypted = <span class="cls">Crypt</span>::<span class="fn">decrypt</span>($encrypted);</pre>
+            </section>
+
+            <section id="websockets">
+                <h2>Broadcasting</h2>
+                <p>Broadcast events over WebSockets.</p>
+                <pre>php nemesis websockets:serve</pre>
+            </section>
+
+            <section id="saas">
+                <h2>Multi-Tenancy</h2>
+                <p>Automatically scope queries to the current tenant.</p>
+                <pre><span class="cls">TenantManager</span>::<span class="fn">setTenant</span>(1);</pre>
+            </section>
+
+            <section id="queues">
+                <h2>Queues</h2>
+                <p>Offload slow tasks (like emailing) to background queue workers.</p>
+
+                <h3>Dispatching</h3>
+                <pre><span class="cls">Queue</span>::<span class="fn">push</span>(<span class="kwd">new</span> <span class="cls">SendEmailJob</span>($user));</pre>
+
+                <h3>Worker</h3>
+                <p>Run the worker to process jobs:</p>
+                <pre>php nemesis queue:work</pre>
+            </section>
+
+            <section id="scheduling">
+                <h2>Task Scheduling</h2>
+                <p>Define your schedule in <span class="inline-code">app/Console/Kernel.php</span>.</p>
+
+                <pre><span class="kwd">protected function</span> <span class="fn">schedule</span>($schedule)
+{
+    $schedule->call(<span class="kwd">function</span> () {
+        <span class="cls">DB</span>::<span class="fn">table</span>(<span class="str">'recent_users'</span>)->delete();
+    })->daily();
+}</pre>
+
+                <p>Add the following Cron entry to your server:</p>
+                <pre>* * * * * php /path-to-project/nemesis schedule:run >> /dev/null 2>&1</pre>
+            </section>
+
+            <section id="cli-ref">
+                <h2>Artisan CLI</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>list</code></td>
+                            <td>List all available commands</td>
+                        </tr>
+                        <tr>
+                            <td><code>help</code></td>
+                            <td>Display help for a command</td>
+                        </tr>
+                        <tr>
+                            <td><code>make:controller</code></td>
+                            <td>Create a new controller class</td>
+                        </tr>
+                        <tr>
+                            <td><code>make:model</code></td>
+                            <td>Create a new Eloquent model class</td>
+                        </tr>
+                        <tr>
+                            <td><code>make:migration</code></td>
+                            <td>Create a new migration file</td>
+                        </tr>
+                        <tr>
+                            <td><code>migrate</code></td>
+                            <td>Run the database migrations</td>
+                        </tr>
+                        <tr>
+                            <td><code>db:seed</code></td>
+                            <td>Seed the database with records</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <footer
+                style="margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); text-align: center;">
+                <p>&copy; 2026 Nemesis Framework. Documentation Version 1.0.</p>
+            </footer>
+        </div>
+    </main>
+
+</body>
+
+</html>

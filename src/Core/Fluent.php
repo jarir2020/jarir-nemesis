@@ -12,8 +12,8 @@ class Fluent {
     protected $whereClause;
     // Constructor to set the table
     public function __construct($table) {
-        $this->table = $table;
-        $this->query = "SELECT * FROM {$table}";
+        $this->table = "`" . str_replace("`", "``", $table) . "`";
+        $this->query = "SELECT * FROM {$this->table}";
     }
 
     // Static method to instantiate Fluent with the table
@@ -63,10 +63,24 @@ class Fluent {
 
     // Perform the select query
     public function get() {
-        if (!empty($this->whereClause) && strpos($this->query, "WHERE") === false) {
-            $this->query .= " " . $this->whereClause;
+        $sql = "SELECT * FROM {$this->table}";
+        
+        if (!empty($this->whereClause)) {
+            $sql .= " " . $this->whereClause;
         }
-        return Database::view($this->query, $this->params);
+        
+        // Extract any ORDER BY, LIMIT, OFFSET from the query
+        if (preg_match('/(ORDER BY .+?)(?=\s+LIMIT|\s+OFFSET|$)/i', $this->query, $orderMatch)) {
+            $sql .= " " . $orderMatch[1];
+        }
+        if (preg_match('/(LIMIT \d+)/i', $this->query, $limitMatch)) {
+            $sql .= " " . $limitMatch[1];
+        }
+        if (preg_match('/(OFFSET \d+)/i', $this->query, $offsetMatch)) {
+            $sql .= " " . $offsetMatch[1];
+        }
+        
+        return Database::view($sql, $this->params);
     }
 
     // Retrieve the first result of the query
@@ -181,6 +195,19 @@ class Fluent {
         if (!empty($this->whereClause)) $sql .= " " . $this->whereClause;
         $result = Database::view($sql, $this->params);
         return $result && isset($result[0]['min_value']) ? (int) $result[0]['min_value'] : 0;
+    }
+
+    public function paginate($perPage = 15, $page = null) {
+        if ($page === null) {
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        }
+
+        $total = $this->count();
+        $offset = ($page - 1) * $perPage;
+
+        $items = $this->limit($perPage)->offset($offset)->get();
+        
+        return new Paginator($items ?: [], $total, $perPage, $page);
     }
 
 }

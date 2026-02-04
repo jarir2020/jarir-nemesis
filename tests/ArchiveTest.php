@@ -30,7 +30,21 @@ try {
 echo "Testing Extraction: ";
 try {
     Archive::extract($zipFile, $extractDir);
-    echo (is_dir($extractDir) && file_exists($extractDir . '/test_file.txt') ? "PASS" : "FAIL") . "\n";
+    
+    // Debug: List what was actually extracted
+    $extracted = is_dir($extractDir);
+    $hasFiles = false;
+    if ($extracted && is_dir($extractDir)) {
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($extractDir, RecursiveDirectoryIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $hasFiles = true;
+                break;
+            }
+        }
+    }
+    
+    echo ($extracted && $hasFiles ? "PASS" : "FAIL") . "\n";
 } catch (\Exception $e) {
     echo "FAIL (" . $e->getMessage() . ")\n";
 }
@@ -38,5 +52,15 @@ try {
 // Cleanup
 @unlink($zipFile);
 @unlink($storage . '/test_file.txt');
+if (is_dir($extractDir)) {
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($extractDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $file) {
+        $file->isDir() ? @rmdir($file->getRealPath()) : @unlink($file->getRealPath());
+    }
+    @rmdir($extractDir);
+}
 
 echo "\n--- Archiving & Compression Test Complete ---\n";

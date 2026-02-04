@@ -3,14 +3,6 @@
     "description": "A Modern PHP Framework",
     "type": "library",
     "require": {
-        "jarir-ahmed/auth-token-maker": "dev-main",
-        "jarir-ahmed/data-encryption-utility": "dev-main",
-        "jarir-ahmed/file": "dev-main",
-        "jarir-ahmed/hash-helper": "dev-main",
-        "jarir-ahmed/http-response": "dev-main",
-        "jarir-ahmed/password-generator": "dev-main",
-        "jarir-ahmed/time-helper": "dev-main",
-        "jarir-ahmed/user-info-capture": "dev-main",
         "phpmailer/phpmailer": "dev-master"
     },
     "license": "MIT",

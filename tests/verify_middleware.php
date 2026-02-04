@@ -11,7 +11,7 @@ define('TestingMiddleware', true);
 // We need to modify index.php slightly to allow this test
 // Or just replicate the logic here.
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Nemesis\Core\Config;
 use Nemesis\Core\Database;
@@ -19,7 +19,7 @@ use Nemesis\Http\Request;
 use Nemesis\Http\Pipeline;
 use App\Http\Kernel;
 
-Config::load(__DIR__);
+Config::load(__DIR__ . '/../');
 $container = \Nemesis\Core\Container::getInstance();
 if (!$container) {
     $container = new \Nemesis\Core\Container();
@@ -27,14 +27,14 @@ if (!$container) {
 }
 $container->singleton(Request::class);
 
-$config = require __DIR__ . '/config/config.php';
+$config = require __DIR__ . '/../config/config.php';
 Database::connect($config['database']);
 
 echo "Starting middleware verification test...\n";
 
 $kernel = new Kernel();
 $request = $container->make(Request::class);
-$router = require __DIR__ . '/routes/route.php';
+$router = require __DIR__ . '/../routes/route.php';
 
 (new Pipeline())
     ->send($request)

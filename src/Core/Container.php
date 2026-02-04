@@ -22,6 +22,11 @@ class Container {
             $concrete = $abstract;
         }
 
+        // Support Interface binding
+        if ($abstract !== $concrete) {
+            // Already handled by resolving later, just store mapping
+        }
+
         $this->bindings[$abstract] = compact('concrete', 'shared');
     }
 

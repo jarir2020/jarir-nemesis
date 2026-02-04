@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Nemesis\Core\Config;
 use Nemesis\Core\Log;
 
-Config::load(__DIR__);
+Config::load(__DIR__ . '/../');
 
 echo "--- Logging System Test ---\n";
 

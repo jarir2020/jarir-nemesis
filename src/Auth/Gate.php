@@ -23,26 +23,22 @@ class Gate {
     /**
      * Determine if the given ability should be granted for the current user.
      */
-    public static function allows($ability, $arguments = []) {
-        // Wrap single argument in array if not already
-        if (!is_array($arguments)) {
-            $arguments = [$arguments];
-        }
-
+    public static function allows($ability, ...$arguments) {
         // 1. Check direct abilities
         if (isset(self::$abilities[$ability])) {
             return call_user_func_array(self::$abilities[$ability], $arguments);
         }
 
-        // 2. Check policies if an object is passed
+        // 2. Check policies if an object is passed or a string key
         $firstArgument = $arguments[0] ?? null;
-        if (is_object($firstArgument)) {
-            $class = get_class($firstArgument);
-            if (isset(self::$policies[$class])) {
-                $policy = new self::$policies[$class]();
-                if (method_exists($policy, $ability)) {
-                    return call_user_func_array([$policy, $ability], $arguments);
-                }
+        $class = is_object($firstArgument) ? get_class($firstArgument) : $firstArgument;
+        
+        if ($class && isset(self::$policies[$class])) {
+            $policy = new self::$policies[$class]();
+            if (method_exists($policy, $ability)) {
+                // If it's a string key, we slice it off. If it's an object, we keep it as it's the model.
+                $argsToPass = is_object($firstArgument) ? $arguments : array_slice($arguments, 1);
+                return call_user_func_array([$policy, $ability], $argsToPass);
             }
         }
 

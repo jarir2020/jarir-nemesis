@@ -12,8 +12,8 @@ Database::connect($config['database']);
 echo "--- Fluent ORM Test ---\n";
 
 // Use a temporary table for testing
-$db = Database::getInstance();
-$db->query("CREATE TEMPORARY TABLE test_users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255))");
+$db = Database::connect();
+$db->exec("CREATE TEMPORARY TABLE test_users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255))");
 
 class TestUser extends Fluent {
     public function __construct() {
@@ -25,7 +25,7 @@ $user = new TestUser();
 
 // 1. Create
 echo "Testing Create: ";
-$id = $user->create(['name' => 'John Doe', 'email' => 'john@example.com']);
+$id = $user->insert(['name' => 'John Doe', 'email' => 'john@example.com']);
 echo ($id > 0 ? "PASS (ID: $id)" : "FAIL") . "\n";
 
 // 2. Find

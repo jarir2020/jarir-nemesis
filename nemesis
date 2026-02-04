@@ -447,6 +447,26 @@ switch ($command) {
         exec("php -S localhost:8001 -t $docRoot");
         break;
 
+    case 'api:docs':
+        echo "Generating Interactive API Documentation...\n";
+        $router = require __DIR__ . '/routes/route.php';
+        $routes = $router->getRoutes();
+        $html = "<html><head><title>Nemesis API Explorer</title><style>body{font-family:sans-serif;padding:40px;background:#f7fafc} .route{background:#fff;padding:15px;margin-bottom:10px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1)} .method{font-weight:bold;color:#3182ce;margin-right:10px} .uri{color:#4a5568}</style></head><body><h1>API Explorer</h1>";
+        foreach ($routes as $r) {
+            $html .= "<div class='route'><span class='method'>{$r['method']}</span><span class='uri'>{$r['uri']}</span></div>";
+        }
+        $html .= "</body></html>";
+        file_put_contents(__DIR__ . '/public/docs.html', $html);
+        echo "✅ Documentation generated at public/docs.html\n";
+        break;
+
+    case 'optimize':
+        echo "Warming up application caches...\n";
+        passthru("php nemesis config:cache");
+        passthru("php nemesis route:cache");
+        echo "✅ Application optimized for production.\n";
+        break;
+
     case 'deadcode:find':
         echo "Scanning codebase for dead code (Routes never hit, unused Controllers)...\n";
         $router = require __DIR__ . '/routes/route.php';
@@ -599,6 +619,12 @@ switch ($command) {
         }
         break;
 
+    case 'websocket:serve':
+        $port = $argv[2] ?? 8080;
+        $server = new \Nemesis\Broadcasting\WebSocketServer('127.0.0.1', $port);
+        $server->start();
+        break;
+
     case 'key:generate':
         $key = bin2hex(random_bytes(16));
         updateEnv('APP_KEY', $key);
@@ -666,6 +692,8 @@ switch ($command) {
             'test' => 'Run the framework test suite',
             'deadcode:find' => 'Find unused code and routes',
             'app:mirror' => 'Start a read-only clone of the API',
+            'api:docs' => 'Generate interactive API documentation HTML',
+            'optimize' => 'Warm up all configuration and route caches',
             'down' => 'Put the application into maintenance mode',
             'up' => 'Bring the application out of maintenance mode',
         ];

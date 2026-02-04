@@ -1,5 +1,8 @@
 <?php
 echo "--- Nemesis framework Full Test Suite ---\n\n";
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Nemesis\Testing\TestRunner;
 
 $tests = glob(__DIR__ . '/*Test.php');
 

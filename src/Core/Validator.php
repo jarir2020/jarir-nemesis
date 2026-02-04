@@ -28,6 +28,10 @@ class Validator {
             if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
                 $this->errors[$field][] = "The $field must be a valid email address.";
             }
+        } elseif ($rule === 'integer') {
+            if (!filter_var($value, FILTER_VALIDATE_INT)) {
+                $this->errors[$field][] = "The $field must be an integer.";
+            }
         }
         // Add more rules as needed
     }

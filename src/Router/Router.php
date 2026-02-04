@@ -82,17 +82,17 @@ class Router {
                         if (is_string($action) && strpos($action, '@') !== false) {
                             [$controller, $methodName] = explode('@', $action);
                             $instance = $this->container->make($controller);
-                            return call_user_func_array([$instance, $methodName], $params);
+                            return call_user_func_array([$instance, $methodName], array_merge([$request], $params));
                         }
 
                         if (is_array($action) && count($action) === 2) {
                             [$controller, $methodName] = $action;
                             $instance = is_string($controller) ? $this->container->make($controller) : $controller;
-                            return call_user_func_array([$instance, $methodName], $params);
+                            return call_user_func_array([$instance, $methodName], array_merge([$request], $params));
                         }
 
                         if (is_callable($action)) {
-                            return call_user_func_array($action, $params);
+                            return call_user_func_array($action, array_merge([$request], $params));
                         }
                         
                         throw new \Exception("Invalid route action.");

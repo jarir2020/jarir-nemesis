@@ -121,10 +121,20 @@ class Helpers {
     public static function csrfToken() {
         return \Nemesis\Http\Session::token();
     }
+
+    public static function e($value) {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8', false);
+    }
 }
 
 if (!function_exists('csrf_token')) {
     function csrf_token() {
         return \Nemesis\Helpers\Helpers::csrfToken();
+    }
+}
+
+if (!function_exists('e')) {
+    function e($value) {
+        return \Nemesis\Helpers\Helpers::e($value);
     }
 }

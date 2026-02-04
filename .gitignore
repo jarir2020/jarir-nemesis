@@ -1,0 +1,16 @@
+# Nemesis Framework .gitignore
+/vendor/
+/.env
+/storage/cache/*
+/storage/logs/*
+/storage/framework/views/*
+/storage/framework/down
+/test_result.txt
+/test_results.log
+/test.php
+/public/storage
+/public/docs.html
+.phpunit.result.cache
+*.sql
+*.log
+.DS_Store
