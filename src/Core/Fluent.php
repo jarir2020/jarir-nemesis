@@ -21,46 +21,27 @@ class Fluent {
         return new self($table);
     }
 
-    // Add where clause to the query
-    public function whereGET($column, $operator, $value) {
-        if (strpos($this->query, "WHERE") === false) {
-            $this->query .= " WHERE {$column} {$operator} :{$column}";
-        } else {
-            $this->query .= " AND {$column} {$operator} :{$column}";
+    // Generic where method to replace specific ones
+    public function where($column, $operator, $value = null) {
+        if ($value === null) {
+            $value = $operator;
+            $operator = '=';
         }
-    
-        // Add the parameter to the binding array
-        $this->params[":{$column}"] = $value;
-    
-        // Debugging: Check the SQL query and parameters
-        //echo "SQL: {$this->query}\n"; // Print the generated query
-        //print_r($this->params); // Print the parameters array
-    
+
+        if (empty($this->whereClause)) {
+            $this->whereClause = "WHERE {$column} {$operator} :where_{$column}";
+        } else {
+            $this->whereClause .= " AND {$column} {$operator} :where_{$column}";
+        }
+
+        $this->params["where_{$column}"] = $value;
         return $this;
     }
 
-
-    public function whereDELETE($column, $operator, $value) {
-        if (empty($this->whereClause)) {
-            $this->whereClause = "WHERE {$column} {$operator} :{$column}";
-        } else {
-            $this->whereClause .= " AND {$column} {$operator} :{$column}";
-        }
-    
-        // Add the parameter for binding without `:`
-        $this->params[$column] = $value;
-    
-        return $this; // Enable method chaining
-    }    
-    
-
-    public function whereUpdate($column, $operator, $value) {
-        $this->whereClause = "{$column} {$operator} :where_{$column}";
-        $this->params["where_{$column}"] = $value;
-        return $this; // Return the object for method chaining
-    }
-    
-    
+    // Deprecated methods for backward compatibility
+    public function whereGET($column, $operator, $value) { return $this->where($column, $operator, $value); }
+    public function whereDELETE($column, $operator, $value) { return $this->where($column, $operator, $value); }
+    public function whereUpdate($column, $operator, $value) { return $this->where($column, $operator, $value); }
 
     // Add order by clause to the query
     public function orderBy($column, $direction = 'ASC') {
@@ -82,6 +63,9 @@ class Fluent {
 
     // Perform the select query
     public function get() {
+        if (!empty($this->whereClause) && strpos($this->query, "WHERE") === false) {
+            $this->query .= " " . $this->whereClause;
+        }
         return Database::view($this->query, $this->params);
     }
 
@@ -91,30 +75,50 @@ class Fluent {
         return $result ? $result[0] : null;
     }
 
-    // Insert data into the table
+    // Find record by primary key
+    public function find($id, $column = 'id') {
+        return $this->where($column, '=', $id)->first();
+    }
+
+    // Get all records from the table
+    public function all() {
+        return $this->get();
+    }
+
+    // Count records
+    public function count() {
+        $sql = "SELECT COUNT(*) as count FROM {$this->table}";
+        if (!empty($this->whereClause)) {
+            $sql .= " " . $this->whereClause;
+        }
+        $result = Database::view($sql, $this->params);
+        return (int) ($result[0]['count'] ?? 0);
+    }
+
+    // Insert data into the table and return last insert ID
     public function insert($data) {
         $columns = implode(', ', array_keys($data));
-        $values = implode(', ', array_map(fn($item) => ":{$item}", array_keys($data)));
-        $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$values})";
+        $placeholders = implode(', ', array_map(fn($item) => ":{$item}", array_keys($data)));
+        $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
         Database::create($sql, $data);
+        return Database::connect()->lastInsertId();
     }
 
     // Update data in the table
     public function update($data) {
         $set = [];
         foreach ($data as $column => $value) {
-            $set[] = "{$column} = :{$column}";
-            $this->params[$column] = $value; // Bind update values
+            $set[] = "{$column} = :update_{$column}";
+            $this->params["update_{$column}"] = $value;
         }
     
-        // Append WHERE clause if it exists
         if (!empty($this->whereClause)) {
-            $this->query = "UPDATE {$this->table} SET " . implode(', ', $set) . " WHERE {$this->whereClause}";
+            $this->query = "UPDATE {$this->table} SET " . implode(', ', $set) . " {$this->whereClause}";
         } else {
             throw new \Exception("WHERE clause is missing in update query.");
         }
     
-        Database::update($this->query, $this->params);
+        return Database::update($this->query, $this->params);
     }
     
 
@@ -126,15 +130,23 @@ class Fluent {
     
         $this->query = "DELETE FROM {$this->table} {$this->whereClause}";
     
-        // Call the Database delete operation
-        Database::delete($this->query, $this->params);
+        return Database::delete($this->query, $this->params);
     }
     
 
     // Add an OR condition to the WHERE clause
-    public function orWhere($column, $operator, $value) {
-        $this->query .= " OR {$column} {$operator} :{$column}";
-        $this->params[$column] = $value;
+    public function orWhere($column, $operator, $value = null) {
+        if ($value === null) {
+            $value = $operator;
+            $operator = '=';
+        }
+
+        if (empty($this->whereClause)) {
+            $this->whereClause = "WHERE {$column} {$operator} :or_{$column}";
+        } else {
+            $this->whereClause .= " OR {$column} {$operator} :or_{$column}";
+        }
+        $this->params["or_{$column}"] = $value;
         return $this;
     }
 
@@ -152,20 +164,22 @@ class Fluent {
 
     // Add HAVING clause to the query
     public function having($column, $operator, $value) {
-        $this->query .= " HAVING {$column} {$operator} :{$column}";
-        $this->params[$column] = $value;
+        $this->whereClause .= " HAVING {$column} {$operator} :having_{$column}";
+        $this->params["having_{$column}"] = $value;
         return $this;
     }
     
-        public function max($column) {
+    public function max($column) {
         $sql = "SELECT MAX({$column}) as max_value FROM {$this->table}";
-        $result = Database::view($sql);
+        if (!empty($this->whereClause)) $sql .= " " . $this->whereClause;
+        $result = Database::view($sql, $this->params);
         return $result && isset($result[0]['max_value']) ? (int) $result[0]['max_value'] : 0;
     }
 
     public function min($column) {
         $sql = "SELECT MIN({$column}) as min_value FROM {$this->table}";
-        $result = Database::view($sql);
+        if (!empty($this->whereClause)) $sql .= " " . $this->whereClause;
+        $result = Database::view($sql, $this->params);
         return $result && isset($result[0]['min_value']) ? (int) $result[0]['min_value'] : 0;
     }
 

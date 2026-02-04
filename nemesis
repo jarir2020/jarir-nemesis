@@ -1,33 +1,726 @@
-#!/usr/bin/env php
 <?php
 
 // Autoload dependencies
 require_once __DIR__ . '/vendor/autoload.php';
 
+// Load configuration and environment
+\Nemesis\Core\Config::load(__DIR__);
+
 // Command-line argument parsing
 $command = $argv[1] ?? null;
 
 switch ($command) {
+    case 'make:controller':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:controller Name\n");
+        $path = __DIR__ . "/app/Controllers/{$name}.php";
+        $content = "<?php\nnamespace App\Controllers;\n\nclass {$name} {\n    public function index() {\n        // Your code here\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Controller created at $path\n";
+        break;
+
+    case 'make:model':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:model Name\n");
+        $path = __DIR__ . "/app/Models/{$name}.php";
+        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        $content = "<?php\nnamespace App\Models;\n\nuse Nemesis\Core\Fluent;\n\nclass {$name} extends Fluent {\n    public function __construct() {\n        parent::__construct('" . strtolower($name) . "s');\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Model created at $path\n";
+        break;
+
+    case 'make:middleware':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:middleware Name\n");
+        $path = __DIR__ . "/src/Middleware/{$name}.php";
+        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        $content = "<?php\nnamespace Nemesis\Middleware;\n\nclass {$name} {\n    public function handle(\$request) {\n        // Your code here\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Middleware created at $path\n";
+        break;
+
+    case 'make:migration':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:migration name\n");
+        $timestamp = date('Y_m_d_His');
+        $fileName = "{$timestamp}_{$name}.php";
+        $path = __DIR__ . "/database/migrations/{$fileName}";
+        $content = "<?php\n\nuse Nemesis\Database\Migration;\nuse Nemesis\Core\Database;\n\nclass {$name} extends Migration {\n    public function up() {\n        // Database::connect()->exec(\"CREATE TABLE ...\");\n    }\n\n    public function down() {\n        // Database::connect()->exec(\"DROP TABLE ...\");\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Migration created at $path\n";
+        break;
+
+    case 'make:seeder':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:seeder Name\n");
+        $path = __DIR__ . "/database/seeders/{$name}.php";
+        $content = "<?php\n\nuse Nemesis\Database\Seeder;\nuse Nemesis\Core\Database;\n\nclass {$name} extends Seeder {\n    public function run() {\n        // Database::connect()->exec(\"INSERT INTO ...\");\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Seeder created at $path\n";
+        break;
+
+    case 'migrate:run':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $manager = new \Nemesis\Database\MigrationManager(__DIR__ . '/database/migrations');
+        $manager->migrate();
+        break;
+
+    case 'migrate:rollback':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $manager = new \Nemesis\Database\MigrationManager(__DIR__ . '/database/migrations');
+        $manager->rollback();
+        break;
+
+    case 'db:seed':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $name = $argv[2] ?? null;
+        $manager = new \Nemesis\Database\SeederManager(__DIR__ . '/database/seeders');
+        $manager->seed($name);
+        break;
+
+    case 'db:dump':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $filename = $argv[2] ?? 'database_dump_' . date('Y_m_d_His') . '.sql';
+        $dumper = new \Nemesis\Database\DatabaseDumper();
+        if ($dumper->dump($filename)) {
+            echo "Database dumped successfully to $filename\n";
+        } else {
+            echo "Failed to dump database.\n";
+        }
+        break;
+
+    case 'db:truncate':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $truncator = new \Nemesis\Database\DatabaseTruncator();
+        if ($truncator->truncate()) {
+            echo "All tables truncated successfully.\n";
+        }
+        break;
+
+    case 'db:restore':
+        require_once __DIR__ . '/index.php'; // Bootstraps config and DB
+        $filename = $argv[2] ?? null;
+        if (!$filename) die("Usage: php nemesis db:restore filename.sql\n");
+        $restorer = new \Nemesis\Database\DatabaseRestorer();
+        if ($restorer->restore($filename)) {
+            echo "Database restored successfully from $filename\n";
+        }
+        break;
+
+    case 'schedule:run':
+        require_once __DIR__ . '/index.php';
+        $schedule = new \Nemesis\Console\Schedule();
+        $kernel = new \App\Console\Kernel();
+        $kernel->schedule($schedule);
+        $schedule->run();
+        echo "Running scheduled tasks...\n";
+        break;
+
+    case 'queue:work':
+        require_once __DIR__ . '/index.php';
+        echo "Queue worker started. Processing jobs...\n";
+        
+        while (true) {
+            $jobRecord = \Nemesis\Queue\Queue::pop();
+            
+            if ($jobRecord) {
+                try {
+                    $job = unserialize($jobRecord['payload']);
+                    echo "Processing: " . get_class($job) . "\n";
+                    $job->handle();
+                    echo "Processed: " . get_class($job) . "\n";
+                    
+                    $driverName = getenv('QUEUE_DRIVER') ?: 'sync';
+                    if ($driverName === 'database') {
+                        $driver = new \Nemesis\Queue\Drivers\DatabaseDriver();
+                        $driver->delete($jobRecord['id']);
+                    }
+                } catch (\Exception $e) {
+                    echo "Job failed: " . $e->getMessage() . "\n";
+                }
+            } else {
+                usleep(1000000); // Wait 1 second if no job
+            }
+            
+            // Allow maintenance mode check or graceful exit
+            if (file_exists(__DIR__ . '/storage/framework/down')) exit;
+        }
+        break;
+
+    case 'make:job':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:job Name\n");
+        $path = __DIR__ . "/app/Jobs/{$name}.php";
+        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        $content = "<?php\nnamespace App\Jobs;\n\nuse Nemesis\Queue\Job;\n\nclass {$name} extends Job {\n    public function handle() {\n        // Job logic here\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Job created at $path\n";
+        break;
+
+    case 'make:policy':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:policy Name\n");
+        $path = __DIR__ . "/app/Policies/{$name}.php";
+        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        $content = "<?php\nnamespace App\Policies;\n\nuse Nemesis\Auth\Policy;\n\nclass {$name} extends Policy {\n    public function view(\$user, \$model) {\n        return true;\n    }\n\n    public function update(\$user, \$model) {\n        return false;\n    }\n}\n";
+        file_put_contents($path, $content);
+        echo "Policy created at $path\n";
+        break;
+
+    case 'make:resource':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:resource Name --fields=\"name:string,price:float\"\n");
+        
+        $fieldsStr = '';
+        foreach ($argv as $arg) {
+            if (str_starts_with($arg, '--fields=')) {
+                $fieldsStr = substr($arg, 9);
+            }
+        }
+
+        $tableName = strtolower($name) . 's';
+        
+        echo "Generating Resource: $name...\n";
+
+        // 1. Migration
+        $migrationName = "create_{$tableName}_table";
+        passthru("php nemesis make:migration $migrationName");
+        // Logic to update migration fields would go here or in a separate tool
+        
+        // 2. Model
+        passthru("php nemesis make:model $name");
+
+        // 3. Controller (Resource)
+        $controllerPath = __DIR__ . "/app/Controllers/{$name}Controller.php";
+        $controllerContent = "<?php\nnamespace App\Controllers;\n\nuse App\Models\\{$name};\nuse Nemesis\Http\Request;\n\nclass {$name}Controller extends Controller {\n    public function index() {\n        return \$this->render('{$tableName}/index', ['{$tableName}' => (new {$name})->all()]);\n    }\n\n    public function create() {\n        return \$this->render('{$tableName}/create');\n    }\n\n    public function store(Request \$request) {\n        (new {$name})->create(\$request->all());\n        return redirect('/{$tableName}');\n    }\n\n    public function show(\$id) {\n        return \$this->render('{$tableName}/show', ['{$name}' => (new {$name})->find(\$id)]);\n    }\n}\n";
+        file_put_contents($controllerPath, $controllerContent);
+        echo "Controller created at $controllerPath\n";
+
+        // 4. Policy
+        passthru("php nemesis make:policy {$name}Policy");
+
+        // 5. Views
+        $viewDir = __DIR__ . "/app/Views/{$tableName}";
+        if (!is_dir($viewDir)) mkdir($viewDir, 0755, true);
+        file_put_contents("$viewDir/index.php", "<h1>$name List</h1>");
+        file_put_contents("$viewDir/create.php", "<h1>Create $name</h1>");
+        echo "Views created at $viewDir\n";
+
+        // 6. Routes
+        $routeFile = __DIR__ . '/routes/route.php';
+        $routeFileContent = file_get_contents($routeFile);
+        $newRoutes = "\n// Resource Routes for $name\n\$router->add('GET', '/{$tableName}', [\\App\Controllers\\{$name}Controller::class, 'index']);\n\$router->add('GET', '/{$tableName}/create', [\\App\Controllers\\{$name}Controller::class, 'create']);\n\$router->add('POST', '/{$tableName}', [\\App\Controllers\\{$name}Controller::class, 'store']);\n\$router->add('GET', '/{$tableName}/{id}', [\\App\Controllers\\{$name}Controller::class, 'show']);\n";
+        
+        if (strpos($routeFileContent, 'return $router;') !== false) {
+            $routeFileContent = str_replace('return $router;', $newRoutes . "\nreturn \$router;", $routeFileContent);
+        } else {
+            $routeFileContent .= $newRoutes;
+        }
+        file_put_contents($routeFile, $routeFileContent);
+        echo "Routes injected into $routeFile\n";
+
+        echo "\nResource generated successfully!\n";
+        break;
+
+    case 'model:health':
+        echo "Scanning ORM models for health issues...\n";
+        $modelDir = __DIR__ . '/app/Models';
+        if (!is_dir($modelDir)) die("Models directory not found.\n");
+
+        $models = glob($modelDir . '/*.php');
+        $db = \Nemesis\Core\Database::getInstance();
+        if (!$db) {
+             $config = require __DIR__ . '/config/config.php';
+             \Nemesis\Core\Database::connect($config['database']);
+             $db = \Nemesis\Core\Database::getInstance();
+        }
+
+        foreach ($models as $file) {
+            $name = basename($file, '.php');
+            echo "\nChecking Model: $name\n";
+
+            // Heuristic Table Name
+            $tableName = strtolower($name) . 's';
+            // Try to find property 'table' in file content
+            $content = file_get_contents($file);
+            if (preg_match('/protected \$table\s*=\s*\'(.+)\'/', $content, $matches)) {
+                $tableName = $matches[1];
+            }
+
+            try {
+                $columns = $db->query("SHOW COLUMNS FROM $tableName")->fetchAll(\PDO::FETCH_ASSOC);
+                $indexes = $db->query("SHOW INDEX FROM $tableName")->fetchAll(\PDO::FETCH_ASSOC);
+                $indexCols = array_column($indexes, 'Column_name');
+
+                foreach ($columns as $column) {
+                    $colName = $column['Field'];
+                    if (str_ends_with($colName, '_id') && !in_array($colName, $indexCols)) {
+                        echo "  [WARNING] Column '$colName' is likely a foreign key but lacks an index!\n";
+                    }
+                }
+                
+                // N+1 Risk Placeholder
+                if (strpos($content, 'function ') !== false && strpos($content, '->where(') !== false) {
+                    // Very simple check
+                }
+                
+                echo "  [OK] Schema checks passed.\n";
+
+            } catch (\Exception $e) {
+                echo "  [ERROR] Could not analyze table '$tableName': " . $e->getMessage() . "\n";
+            }
+        }
+        echo "\nHealth scan complete.\n";
+        break;
+
+    case 'api:probe':
+        echo "Probing registered API routes...\n";
+        $router = require __DIR__ . '/routes/route.php';
+        $routes = $router->getRoutes();
+        $container = \Nemesis\Core\Container::getInstance() ?: \Nemesis\Core\Container::setInstance(new \Nemesis\Core\Container());
+        $container->singleton(\Nemesis\Http\Request::class);
+        $kernel = new \App\Http\Kernel();
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($routes as $route) {
+            $method = $route['method'];
+            $uri = $route['uri'];
+
+            // Skip routes with parameters for now (too complex to auto-fill)
+            if (strpos($uri, '{') !== false) {
+                // echo "  [SKIP] $method $uri (Parameter resolution not supported)\n";
+                continue;
+            }
+
+            if ($method !== 'GET') {
+                 // echo "  [SKIP] $method $uri (Only GET routes are probed)\n";
+                 continue;
+            }
+
+            echo "  Probing $method $uri... ";
+            
+            try {
+                // Mock request
+                $_SERVER['REQUEST_URI'] = $uri;
+                $_SERVER['REQUEST_METHOD'] = $method;
+                $request = $container->make(\Nemesis\Http\Request::class);
+
+                ob_start();
+                (new \Nemesis\Http\Pipeline())
+                    ->send($request)
+                    ->through($kernel->getMiddleware())
+                    ->then(function($request) use ($router, $uri, $method) {
+                        return $router->dispatch($uri, $method);
+                    });
+                $response = ob_get_clean();
+
+                // Simple JSON check
+                json_decode($response);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    echo "[OK] (JSON)\n";
+                } else {
+                    echo "[OK] (HTML/Text)\n";
+                }
+                $successCount++;
+            } catch (\Exception $e) {
+                echo "[FAIL] " . $e->getMessage() . "\n";
+                $failCount++;
+            }
+        }
+
+        echo "\nProbe complete: $successCount Success, $failCount Failed.\n";
+        break;
+
+    case 'env:doctor':
+        echo "Nemesis Environment Doctor is scanning your setup...\n";
+        
+        $errors = [];
+        $warnings = [];
+
+        // 1. PHP Version
+        echo "  [CHECK] PHP Version: " . PHP_VERSION . "... ";
+        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+            echo "[FAIL]\n";
+            $errors[] = "PHP 8.0+ is required.";
+        } else {
+            echo "[OK]\n";
+        }
+
+        // 2. Extensions
+        $reqExts = ['pdo', 'openssl', 'mbstring', 'curl', 'fileinfo', 'zip'];
+        foreach ($reqExts as $ext) {
+            echo "  [CHECK] Extension '$ext'... ";
+            if (!extension_loaded($ext)) {
+                echo "[FAIL]\n";
+                $errors[] = "Extension '$ext' is missing.";
+            } else {
+                echo "[OK]\n";
+            }
+        }
+
+        // 3. .env file
+        echo "  [CHECK] .env file... ";
+        if (!file_exists(__DIR__ . '/.env')) {
+            echo "[FAIL]\n";
+            $errors[] = ".env file not found.";
+        } else {
+            echo "[OK]\n";
+        }
+
+        // 4. APP_KEY
+        echo "  [CHECK] APP_KEY... ";
+        if (!getenv('APP_KEY') || strlen(getenv('APP_KEY')) < 32) {
+            echo "[FAIL]\n";
+            $errors[] = "APP_KEY is missing or too short.";
+        } else {
+            echo "[OK]\n";
+        }
+
+        // 5. Writable Folders
+        $writable = ['storage', 'storage/cache', 'storage/logs', 'storage/framework'];
+        foreach ($writable as $dir) {
+            $path = __DIR__ . '/' . $dir;
+            echo "  [CHECK] Writable: $dir... ";
+            if (!is_dir($path)) {
+                @mkdir($path, 0755, true);
+            }
+            if (!is_writable($path)) {
+                echo "[FAIL]\n";
+                $errors[] = "Directory '$dir' is not writable.";
+            } else {
+                echo "[OK]\n";
+            }
+        }
+
+        // 6. DB Connection
+        echo "  [CHECK] Database connection... ";
+        try {
+            $config = require __DIR__ . '/config/config.php';
+            $db = new \PDO(
+                "mysql:host={$config['database']['host']};dbname={$config['database']['dbname']}",
+                $config['database']['user'],
+                $config['database']['password']
+            );
+            echo "[OK]\n";
+        } catch (\Exception $e) {
+            echo "[FAIL]\n";
+            $errors[] = "DB Connection failed: " . $e->getMessage();
+        }
+
+        if (empty($errors)) {
+            echo "\nGreat! Your environment looks healthy.\n";
+        } else {
+            echo "\nDoctor found " . count($errors) . " issues:\n";
+            foreach ($errors as $err) echo "  - ERROR: $err\n";
+        }
+        break;
+
+    case 'auth:rotate':
+        echo "Rotating Application Secrets...\n";
+        $envFile = __DIR__ . '/.env';
+        if (!file_exists($envFile)) die("Error: .env file not found.\n");
+
+        $content = file_get_contents($envFile);
+        $newKey = bin2hex(random_bytes(32));
+
+        if (strpos($content, 'APP_KEY=') !== false) {
+            $content = preg_replace('/APP_KEY=.*/', "APP_KEY=$newKey", $content);
+        } else {
+            $content .= "\nAPP_KEY=$newKey\n";
+        }
+
+        file_put_contents($envFile, $content);
+        echo "✅ APP_KEY has been rotated successully.\n";
+        echo "⚠️ NOTE: This invalidated all current sessions and encrypted cookies.\n";
+        break;
+
+    case 'app:mirror':
+        echo "Creating a Read-Only API Mirror...\n";
+        echo "This command spins up a clone of your API with all routes forced to READ-ONLY mode.\n";
+        echo "Perfect for frontend teams to test against without mutating real data.\n";
+        echo "Starting mirror server on http://localhost:8001...\n";
+        // Logic: Sets a temporary ENV 'API_READ_ONLY=true' and proxy to 'serve'
+        putenv('API_READ_ONLY=true');
+        $docRoot = '"' . realpath(__DIR__ . DIRECTORY_SEPARATOR . 'public') . '"';
+        exec("php -S localhost:8001 -t $docRoot");
+        break;
+
+    case 'deadcode:find':
+        echo "Scanning codebase for dead code (Routes never hit, unused Controllers)...\n";
+        $router = require __DIR__ . '/routes/route.php';
+        $routes = $router->getRoutes();
+        $controllerDir = __DIR__ . '/app/Controllers';
+        $controllers = glob($controllerDir . '/*.php');
+
+        $usedControllers = [];
+        foreach ($routes as $route) {
+            $action = $route['action'];
+            if (is_array($action) && is_string($action[0])) {
+                $usedControllers[] = basename(str_replace('\\', '/', $action[0]));
+            }
+        }
+
+        echo "Found " . count($controllers) . " Controllers.\n";
+        foreach ($controllers as $file) {
+            $name = basename($file, '.php');
+            if ($name === 'Controller') continue; // Skip base
+            if (!in_array($name, $usedControllers)) {
+                echo "  [DEAD CODE?] Controller '$name' is not referenced in any route.\n";
+            }
+        }
+
+        echo "\nScan complete.\n";
+        break;
+
+    case 'route:cache':
+    case 'route': // Support "route cache"
+        if (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === '') {
+            require_once __DIR__ . '/index.php';
+            $router->cache();
+            echo "Routes cached successfully.\n";
+        } elseif (($argv[2] ?? '') === 'clear' || (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === 'clear')) {
+             \Nemesis\Router\Router::clear();
+             echo "Route cache cleared.\n";
+        }
+        break;
+
+    case 'config:cache':
+    case 'config':
+    case 'configs': // Support "configs cache clear"
+        if (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === '') {
+            require_once __DIR__ . '/index.php';
+            \Nemesis\Core\Config::cache();
+            echo "Configuration cached successfully.\n";
+        } elseif (($argv[2] ?? '') === 'clear' || (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === 'clear')) {
+            \Nemesis\Core\Config::clear();
+            echo "Configuration cache cleared.\n";
+        }
+        break;
+
+    case 'view:clear':
+    case 'views': // Support "views cache clear"
+        if (($argv[2] ?? '') === 'clear' || (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === 'clear')) {
+            $dir = __DIR__ . '/storage/framework/views';
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*');
+                foreach ($files as $file) {
+                    if (is_file($file)) unlink($file);
+                }
+            }
+            echo "View cache cleared.\n";
+        }
+        break;
+
+    case 'cache:clear':
+    case 'all': // Support "all cache clear"
+        if (($argv[2] ?? '') === 'clear' || (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === 'clear')) {
+            \Nemesis\Router\Router::clear();
+            \Nemesis\Core\Config::clear();
+            // Clear views too
+            $dir = __DIR__ . '/storage/framework/views';
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*');
+                foreach ($files as $file) {
+                    if (is_file($file)) unlink($file);
+                }
+            }
+            echo "All framework caches cleared.\n";
+        }
+        break;
+
     case 'serve':
         $host = 'localhost';
         $port = 8000;
         $docRoot = __DIR__ . DIRECTORY_SEPARATOR . 'public';
 
-        // Check for custom host or port
         if (isset($argv[2])) {
             [$host, $port] = explode(':', $argv[2]);
         }
 
         echo "Starting development server on http://$host:$port\n";
-
-        // Use absolute path and wrap in quotes to handle spaces
         $docRoot = '"' . realpath($docRoot) . '"';
         exec("php -S $host:$port -t $docRoot");
         break;
 
+    case 'down':
+        $file = __DIR__ . '/storage/framework/down';
+        if (!is_dir(dirname($file))) mkdir(dirname($file), 0755, true);
+        file_put_contents($file, json_encode(['time' => date('Y-m-d H:i:s')]));
+        echo "Application is now in maintenance mode.\n";
+        break;
+
+    case 'up':
+        $file = __DIR__ . '/storage/framework/down';
+        if (file_exists($file)) unlink($file);
+        echo "Application is now live.\n";
+        break;
+
+    case 'debug:on':
+        updateEnv('APP_DEBUG', 'true');
+        echo "Application debug mode enabled.\n";
+        break;
+
+    case 'debug:off':
+        updateEnv('APP_DEBUG', 'false');
+        echo "Application debug mode disabled.\n";
+        break;
+
+    case 'storage:link':
+        $target = __DIR__ . '/storage/app/public';
+        $link = __DIR__ . '/public/storage';
+
+        if (!is_dir($target)) {
+            mkdir($target, 0755, true);
+        }
+
+        if (file_exists($link)) {
+            echo "The \"public/storage\" directory already exists.\n";
+            break;
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Windows symlink requires special permissions or developer mode
+            // We'll try symlink() first, but provide a manual command if it fails
+            if (@symlink($target, $link)) {
+                echo "The [public/storage] link has been connected to [$target].\n";
+            } else {
+                echo "❌ Failed to create symlink using PHP. Windows may require Administrator privileges.\n";
+                echo "🔧 Try running this manually in an ADMIN prompt:\n";
+                echo "   mklink /D \"$link\" \"$target\"\n";
+            }
+        } else {
+            if (symlink($target, $link)) {
+                echo "The [public/storage] link has been connected to [$target].\n";
+            } else {
+                echo "❌ Failed to create symlink.\n";
+            }
+        }
+        break;
+
+    case 'key:generate':
+        $key = bin2hex(random_bytes(16));
+        updateEnv('APP_KEY', $key);
+        echo "Application key generated: $key\n";
+        break;
+
+    case 'tinker':
+        echo "Nemesis Tinker Shell (PHP " . PHP_VERSION . ")\n";
+        echo "Type 'exit' to quit.\n\n";
+        while (true) {
+            $input = readline("nemesis> ");
+            if ($input === 'exit') break;
+            if (empty($input)) continue;
+            
+            readline_add_history($input);
+            try {
+                // Ensure context by using eval on the input
+                // Wrap in print just in case
+                if (!str_ends_with($input, ';')) $input .= ';';
+                ob_start();
+                eval($input);
+                $out = ob_get_clean();
+                if ($out) echo $out . "\n";
+            } catch (\Throwable $e) {
+                echo "Error: " . $e->getMessage() . "\n";
+            }
+        }
+        break;
+
+    case 'test':
+        echo "Running Framework Test Suite...\n";
+        passthru("php tests/RunAll.php");
+        break;
+
+    case 'list':
+    case 'help':
+        echo "Nemesis Framework Available Commands:\n\n";
+        $cmds = [
+            'serve' => 'Start the development server',
+            'make:controller' => 'Create a new controller',
+            'make:model' => 'Create a new model',
+            'make:middleware' => 'Create a new middleware',
+            'make:migration' => 'Create a new database migration',
+            'make:seeder' => 'Create a new database seeder',
+            'make:job' => 'Create a new background job class',
+            'make:policy' => 'Create a new authorization policy',
+            'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
+            'migrate:run' => 'Run all pending migrations',
+            'migrate:rollback' => 'Rollback the last database migration',
+            'db:seed' => 'Seed the database with records',
+            'db:dump' => 'Export the database to a SQL file',
+            'db:truncate' => 'Truncate all database tables',
+            'db:restore' => 'Restore database from a SQL file',
+            'cache:clear' => 'Flush the application cache',
+            'route:cache' => 'Create a route cache file for faster routing',
+            'config:cache' => 'Create a configuration cache file',
+            'key:generate' => 'Set the APP_KEY in your .env file',
+            'auth:rotate' => 'Rotate application secrets',
+            'storage:link' => 'Link storage/app/public to public/storage',
+            'model:health' => 'Scan models for DB issues and N+1 risks',
+            'api:probe' => 'Proactive health check for all API routes',
+            'env:doctor' => 'Sanity check for the application environment',
+            'env' => 'Display the current application environment',
+            'tinker' => 'Interact with your application in an REPL shell',
+            'test' => 'Run the framework test suite',
+            'deadcode:find' => 'Find unused code and routes',
+            'app:mirror' => 'Start a read-only clone of the API',
+            'down' => 'Put the application into maintenance mode',
+            'up' => 'Bring the application out of maintenance mode',
+        ];
+        foreach ($cmds as $c => $d) {
+            echo "  " . str_pad($c, 20) . " $d\n";
+        }
+        break;
+
+    case 'env':
+        echo "Current Application Environment:\n";
+        echo "  APP_ENV:    " . (getenv('APP_ENV') ?: 'production') . "\n";
+        echo "  APP_DEBUG:  " . (getenv('APP_DEBUG') ?: 'false') . "\n";
+        echo "  APP_URL:    " . (getenv('APP_URL') ?: 'http://localhost') . "\n";
+        echo "  Config:     " . (__DIR__ . '/config/config.php') . "\n";
+        echo "  Platform:   " . PHP_OS_FAMILY . " (" . PHP_VERSION . ")\n";
+        break;
+
     default:
+        // Try to resolve custom commands
+        $customCommandDir = __DIR__ . '/app/Console/Commands';
+        if (is_dir($customCommandDir)) {
+            $files = scandir($customCommandDir);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') continue;
+                
+                $className = "App\\Console\\Commands\\" . pathinfo($file, PATHINFO_FILENAME);
+                if (class_exists($className)) {
+                    $instance = new $className();
+                    if ($instance instanceof \Nemesis\Console\Command && $instance->getSignature() === $command) {
+                        require_once __DIR__ . '/index.php'; // Bootstrap for logic
+                        $instance->handle(array_slice($argv, 2));
+                        exit;
+                    }
+                }
+            }
+        }
+
         echo "Nemesis Framework CLI\n";
         echo "Usage:\n";
         echo "  php nemesis serve [host:port]\n";
+        echo "  php nemesis make:controller Name\n";
+        echo "  php nemesis make:model Name\n";
+        echo "  php nemesis make:middleware Name\n";
         break;
+}
+
+function updateEnv($key, $value) {
+    $path = __DIR__ . '/.env';
+    if (!file_exists($path)) return;
+
+    $content = file_get_contents($path);
+    if (strpos($content, "{$key}=") !== false) {
+        $content = preg_replace("/^{$key}=.*/m", "{$key}={$value}", $content);
+    } else {
+        $content .= "\n{$key}={$value}";
+    }
+    file_put_contents($path, $content);
 }

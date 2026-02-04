@@ -2,11 +2,11 @@
 
 return [
     'database' => [
-        'driver' => 'mysql',
-        'host' => 'localhost',
-        'port' => 3306,
-        'dbname' => 'eservica_database_2025',
-        'username' => 'eservica_database_2025',
-        'password' => 'eservica_database_2025'
+        'driver' => getenv('DB_DRIVER') ?: 'mysql',
+        'host' => getenv('DB_HOST') ?: '127.0.0.1',
+        'port' => getenv('DB_PORT') ?: 3306,
+        'dbname' => getenv('DB_NAME') ?: 'nemesis',
+        'username' => getenv('DB_USER') ?: 'root',
+        'password' => getenv('DB_PASS') ?: ''
     ]
 ];

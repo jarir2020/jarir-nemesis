@@ -1,0 +1,64 @@
+<?php
+
+namespace Nemesis\Auth;
+
+class Gate {
+    protected static $abilities = [];
+    protected static $policies = [];
+
+    /**
+     * Define a new ability.
+     */
+    public static function define($ability, $callback) {
+        self::$abilities[$ability] = $callback;
+    }
+
+    /**
+     * Register a policy for a class.
+     */
+    public static function policy($class, $policy) {
+        self::$policies[$class] = $policy;
+    }
+
+    /**
+     * Determine if the given ability should be granted for the current user.
+     */
+    public static function allows($ability, $arguments = []) {
+        // Wrap single argument in array if not already
+        if (!is_array($arguments)) {
+            $arguments = [$arguments];
+        }
+
+        // 1. Check direct abilities
+        if (isset(self::$abilities[$ability])) {
+            return call_user_func_array(self::$abilities[$ability], $arguments);
+        }
+
+        // 2. Check policies if an object is passed
+        $firstArgument = $arguments[0] ?? null;
+        if (is_object($firstArgument)) {
+            $class = get_class($firstArgument);
+            if (isset(self::$policies[$class])) {
+                $policy = new self::$policies[$class]();
+                if (method_exists($policy, $ability)) {
+                    return call_user_func_array([$policy, $ability], $arguments);
+                }
+            }
+        }
+
+        // 3. RBAC Fallback: Check if the user object has the permission
+        $user = $arguments[0] ?? null;
+        if (is_object($user) && method_exists($user, 'hasPermission')) {
+            return $user->hasPermission($ability);
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the given ability should be denied for the current user.
+     */
+    public static function denies($ability, $arguments = []) {
+        return !self::allows($ability, $arguments);
+    }
+}

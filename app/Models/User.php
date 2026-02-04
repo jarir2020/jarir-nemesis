@@ -6,8 +6,12 @@ use JarirAhmed\AuthTokenMaker\AuthTokenMaker;
 use Nemesis\Helpers\Helpers;
 use PDO;
 
-class User {
+use Nemesis\Auth\Traits\HasRoles;
 
+class User {
+    use HasRoles;
+
+    public $id;
     protected $table = 'users'; // Define the table name
 
     // Create a new user

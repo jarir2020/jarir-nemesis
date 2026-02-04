@@ -2,8 +2,27 @@
 namespace Nemesis\Core;
 
 class Controller {
-    // protected function view($view, $data = []) {
-    //     extract($data);
-    //     require "../app/Views/{$view}.php";
-    // } //Next Time When I Implement Views
+    protected $container;
+
+    public function __construct() {
+        $this->container = \Nemesis\Core\Container::getInstance();
+    }
+
+    protected function authorize($ability, $arguments = []) {
+        if (!\Nemesis\Auth\Gate::allows($ability, $arguments)) {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode(['error' => 'Unauthorized action.']);
+            exit;
+        }
+    }
+
+    protected function render($view, $data = []) {
+        extract($data);
+        $path = __DIR__ . "/../../app/Views/{$view}.php";
+        if (file_exists($path)) {
+            require $path;
+        } else {
+            throw new \Exception("View [{$view}] not found.");
+        }
+    }
 }

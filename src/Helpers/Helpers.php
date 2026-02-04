@@ -115,7 +115,16 @@ class Helpers {
     }
 
     public static function passwordHash($password) {
-    return password_hash($password, PASSWORD_BCRYPT);
+        return password_hash($password, PASSWORD_BCRYPT);
     }
 
+    public static function csrfToken() {
+        return \Nemesis\Http\Session::token();
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    function csrf_token() {
+        return \Nemesis\Helpers\Helpers::csrfToken();
+    }
 }
