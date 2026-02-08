@@ -5,10 +5,19 @@ class Config {
     protected static $configPath;
     protected static $cachedPath = __DIR__ . '/../../storage/framework/config.php';
 
+    protected static $items = [];
+
     public static function load($path) {
         self::$configPath = $path;
         
-        // Load from cache if it exists
+        // Load .env first
+        self::loadEnv($path);
+
+        // Load config files
+        self::loadConfigurationFiles($path . '/config');
+    }
+
+    protected static function loadEnv($path) {
         if (file_exists(self::$cachedPath)) {
             $config = require self::$cachedPath;
             foreach ($config as $name => $value) {
@@ -33,7 +42,6 @@ class Config {
             $name = trim($name);
             $value = trim($value);
             
-            // Strip surrounding quotes
             if (str_starts_with($value, '"') && str_ends_with($value, '"')) {
                 $value = trim($value, '"');
             } elseif (str_starts_with($value, "'") && str_ends_with($value, "'")) {
@@ -48,28 +56,45 @@ class Config {
         }
     }
 
-    public static function cache() {
-        if (!is_dir(dirname(self::$cachedPath))) {
-            mkdir(dirname(self::$cachedPath), 0755, true);
+    protected static function loadConfigurationFiles($path) {
+        if (!is_dir($path)) {
+            return;
         }
 
-        // We only cache the environment variables for now
-        $config = $_ENV;
-        $content = "<?php\n\nreturn " . var_export($config, true) . ";\n";
-        file_put_contents(self::$cachedPath, $content);
-    }
-
-    public static function clear() {
-        if (file_exists(self::$cachedPath)) {
-            unlink(self::$cachedPath);
+        foreach (glob($path . '/*.php') as $file) {
+            $key = basename($file, '.php');
+            self::$items[$key] = require $file;
         }
     }
 
     public static function get($key, $default = null) {
-        $value = getenv($key);
-        if ($value === false) {
-            return $default;
+        // Check loaded config arrays first
+        $value = self::arr_get(self::$items, $key);
+        if ($value !== null) {
+            return $value;
         }
-        return $value;
+
+        // Fallback to environment variables
+        $value = getenv($key);
+        if ($value !== false) {
+            return $value;
+        }
+
+        return $default;
+    }
+
+    protected static function arr_get($array, $key, $default = null) {
+        if (is_null($key)) return $array;
+        if (isset($array[$key])) return $array[$key];
+        if (strpos($key, '.') === false) return $array[$key] ?? $default;
+
+        foreach (explode('.', $key) as $segment) {
+            if (is_array($array) && array_key_exists($segment, $array)) {
+                $array = $array[$segment];
+            } else {
+                return $default;
+            }
+        }
+        return $array;
     }
 }

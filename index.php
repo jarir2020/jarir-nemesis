@@ -27,6 +27,10 @@ use Nemesis\Core\Database;
 
 Config::load(__DIR__);
 
+// Load plugins early in boot process
+$pluginManager = \Nemesis\Core\PluginManager::getInstance();
+$pluginManager->discover();
+
 // Fail-fast health check
 \Nemesis\Core\Bootstrap::check();
 

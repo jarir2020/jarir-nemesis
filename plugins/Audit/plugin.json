@@ -1,0 +1,20 @@
+{
+    "name": "audit",
+    "version": "1.0.0",
+    "description": "audit plugin for Nemesis framework",
+    "entry": "bootstrap.php",
+    "requires": {
+        "php": ">=8.0",
+        "nemesis": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nemesis\\Plugins\\Audit\\": "src/"
+        }
+    },
+    "permissions": [
+        "routes",
+        "middleware",
+        "events"
+    ]
+}

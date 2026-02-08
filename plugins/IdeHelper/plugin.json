@@ -1,0 +1,19 @@
+{
+    "name": "ide_helper",
+    "version": "1.0.0",
+    "description": "IDE Helper plugin for Nemesis framework",
+    "entry": "bootstrap.php",
+    "requires": {
+        "php": ">=8.0",
+        "nemesis": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nemesis\\Plugins\\IdeHelper\\": "src/",
+            "Nemesis\\Plugins\\IdeHelper\\Commands\\": "commands/"
+        }
+    },
+    "permissions": [
+        "commands"
+    ]
+}

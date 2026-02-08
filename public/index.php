@@ -18,31 +18,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require "vendor/autoload.php";
+require __DIR__ . "/../vendor/autoload.php";
 
 use Nemesis\Core\Config;
 use Nemesis\Core\Database;
 
 Config::load(__DIR__ . '/..');
 
-$container = new \Nemesis\Core\Container();
+$container = \Nemesis\Core\Container::getInstance();
 $container->singleton(\Nemesis\Http\Request::class);
 $container->singleton(\Nemesis\Router\Router::class);
 
 set_exception_handler(['Nemesis\Core\ErrorHandler', 'handleException']);
 set_error_handler(['Nemesis\Core\ErrorHandler', 'handleError']);
 
-$config = require 'config/config.php';
+$config = require __DIR__ . '/../config/config.php';
 
 Database::connect($config['database']);
 
+// Load plugins early in boot process
+$pluginManager = \Nemesis\Core\PluginManager::getInstance();
+$pluginManager->discover();
+
 // Load routes from external file
-$router = require "routes/route.php";
+$router = require __DIR__ . "/../routes/route.php";
 
-
-// Normalize URI and dispatch
-$router->dispatch($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);
-=======
 // Normalize URI by removing base folder (if any)
 $uri = $_SERVER['REQUEST_URI'];
 $scriptName = $_SERVER['SCRIPT_NAME'];
@@ -61,5 +61,13 @@ if ($uri === '' || $uri[0] !== '/') {
     $uri = '/' . $uri;
 }
 
-$router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+$response = $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
 
+if ($response instanceof \Nemesis\Http\Response) {
+    $response->send();
+} elseif (is_string($response)) {
+    echo $response;
+} elseif (is_numeric($response)) {
+    echo (string) $response;
+}
+// If null (controller echoed already and we didn't capture/return), nothing to do.

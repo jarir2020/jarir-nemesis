@@ -1,7 +1,6 @@
 <?php
-namespace Nemesis\Helpers;
-
-class Helpers {
+namespace Nemesis\Helpers {
+    class Helpers {
     /**
      * Returns the hostname.
      */
@@ -126,15 +125,61 @@ class Helpers {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8', false);
     }
 }
-
-if (!function_exists('csrf_token')) {
-    function csrf_token() {
-        return \Nemesis\Helpers\Helpers::csrfToken();
-    }
 }
 
-if (!function_exists('e')) {
-    function e($value) {
-        return \Nemesis\Helpers\Helpers::e($value);
+namespace {
+    if (!function_exists('csrf_token')) {
+        function csrf_token() {
+            return \Nemesis\Helpers\Helpers::csrfToken();
+        }
+    }
+
+    if (!function_exists('e')) {
+        function e($value) {
+            return \Nemesis\Helpers\Helpers::e($value);
+        }
+    }
+
+    if (!function_exists('base_path')) {
+        function base_path($path = '') {
+            return \Nemesis\Helpers\Helpers::basePath($path);
+        }
+    }
+
+    if (!function_exists('view')) {
+        function view($view, $data = []) {
+            return \Nemesis\Core\View::render($view, $data);
+        }
+    }
+
+    if (!function_exists('env')) {
+        function env($key, $default = null) {
+            $value = getenv($key);
+
+            if ($value === false) {
+                return $default;
+            }
+
+            switch (strtolower($value)) {
+                case 'true':
+                case '(true)':
+                    return true;
+                case 'false':
+                case '(false)':
+                    return false;
+                case 'empty':
+                case '(empty)':
+                    return '';
+                case 'null':
+                case '(null)':
+                    return null;
+            }
+
+            if (preg_match('/\A([\'"])(.*)\1\z/', $value, $matches)) {
+                return $matches[2];
+            }
+
+            return $value;
+        }
     }
 }

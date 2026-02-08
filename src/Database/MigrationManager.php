@@ -35,8 +35,9 @@ class MigrationManager {
             require_once $this->path . '/' . $file;
             $className = pathinfo($file, PATHINFO_FILENAME);
             $className = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $className);
+            $className = str_replace('_', '', ucwords($className, '_'));
             
-            echo "Migrating: $file\n";
+            echo "Migrating: $file (Class: $className)\n";
             $instance = new $className();
             $instance->up();
             

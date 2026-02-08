@@ -1,17 +1,24 @@
 {
     "name": "jarir/nemesis-framework",
     "description": "Nemesis: A High-Performance, Zero-Dependency PHP Framework for SaaS and APIs.",
+    "version": "3.0.0",
     "type": "project",
     "require": {
         "php": ">=8.0",
-        "phpmailer/phpmailer": "^6.8"
+        "phpmailer/phpmailer": "^6.8",
+        "league/flysystem": "^3.31",
+        "league/flysystem-aws-s3-v3": "^3.31",
+        "zircote/swagger-php": "^6.0"
     },
     "license": "MIT",
     "autoload": {
         "psr-4": {
             "Nemesis\\": "src/",
             "App\\": "app/"
-        }
+        },
+        "files": [
+            "src/Helpers/Helpers.php"
+        ]
     },
     "authors": [
         {
@@ -19,7 +26,14 @@
             "email": "jarircse16@gmail.com"
         }
     ],
-    "keywords": ["framework", "php", "zero-dependency", "orm", "mvc", "api"],
+    "keywords": [
+        "framework",
+        "php",
+        "zero-dependency",
+        "orm",
+        "mvc",
+        "api"
+    ],
     "homepage": "https://github.com/jarir2020/jarir-nemesis",
     "minimum-stability": "stable"
 }

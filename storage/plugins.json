@@ -1,0 +1,11 @@
+{
+    "active": [
+        "testplugin",
+        "debugbar",
+        "cloudstorage",
+        "swagger",
+        "ide_helper",
+        "audit"
+    ],
+    "updated_at": "2026-02-08 16:38:16"
+}

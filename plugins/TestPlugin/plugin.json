@@ -1,0 +1,20 @@
+{
+    "name": "testplugin",
+    "version": "1.0.0",
+    "description": "TestPlugin plugin for Nemesis framework",
+    "entry": "bootstrap.php",
+    "requires": {
+        "php": ">=8.0",
+        "nemesis": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nemesis\\Plugins\\TestPlugin\\": "src/"
+        }
+    },
+    "permissions": [
+        "routes",
+        "middleware",
+        "events"
+    ]
+}

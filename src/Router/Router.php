@@ -51,13 +51,84 @@ class Router {
         $this->globalMiddlewares[] = $middleware;
     }
 
+    protected $groupStack = [];
+
+    public function group($attributes, \Closure $callback) {
+        $this->groupStack[] = $attributes;
+        call_user_func($callback, $this);
+        array_pop($this->groupStack);
+    }
+
     public function add($method, $uri, $action, $middleware = []) {
+        $prefix = '';
+        $groupMiddleware = [];
+
+        foreach ($this->groupStack as $group) {
+            if (isset($group['prefix'])) {
+                $prefix .= '/' . trim($group['prefix'], '/');
+            }
+            if (isset($group['middleware'])) {
+                $groupMiddleware = array_merge($groupMiddleware, (array) $group['middleware']);
+            }
+        }
+
+        $uri = '/' . trim($prefix . '/' . trim($uri, '/'), '/');
+        $middleware = array_merge($groupMiddleware, (array) $middleware);
+
         $this->routes[] = [
             'method' => $method,
             'uri' => $uri,
             'action' => $action,
-            'middleware' => (array) $middleware
+            'middleware' => $middleware,
+            'name' => null,
+            'constraints' => []
         ];
+
+        return $this;
+    }
+
+    public function name($name) {
+        if (!empty($this->routes)) {
+            $lastIndex = count($this->routes) - 1;
+            $this->routes[$lastIndex]['name'] = $name;
+        }
+        return $this;
+    }
+
+    public function fallback($action) {
+        $this->add('ANY', '{fallback}', $action)->where('fallback', '.*');
+    }
+
+    public function where($name, $expression) {
+        if (!empty($this->routes)) {
+            $lastIndex = count($this->routes) - 1;
+            $this->routes[$lastIndex]['constraints'][$name] = $expression;
+        }
+        return $this;
+    }
+
+    public function get($uri, $action) {
+        return $this->add('GET', $uri, $action);
+    }
+
+    public function post($uri, $action) {
+        return $this->add('POST', $uri, $action);
+    }
+
+    public function put($uri, $action) {
+        return $this->add('PUT', $uri, $action);
+    }
+
+    public function patch($uri, $action) {
+        return $this->add('PATCH', $uri, $action);
+    }
+
+    public function delete($uri, $action) {
+        return $this->add('DELETE', $uri, $action);
+    }
+
+    public function options($uri, $action) {
+        return $this->add('OPTIONS', $uri, $action);
     }
 
     public function dispatch($uri, $method) {
@@ -65,12 +136,19 @@ class Router {
         $request = $this->container->make(\Nemesis\Http\Request::class);
 
         foreach ($this->routes as $route) {
-            $pattern = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $route['uri']);
+            $uriPattern = $route['uri'];
+            
+            // Apply constraints
+            foreach ($route['constraints'] as $param => $regex) {
+                $uriPattern = str_replace('{' . $param . '}', '(?P<' . $param . '>' . $regex . ')', $uriPattern);
+            }
+            
+            $pattern = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $uriPattern);
             
             if ($method == $route['method'] && preg_match("#^{$pattern}$#", $uri, $matches)) {
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
     
-                $middleware = $this->resolveMiddleware($route['middleware']);
+                $middleware = array_merge($this->globalMiddlewares, $this->resolveMiddleware($route['middleware']));
 
                 return (new \Nemesis\Http\Pipeline())
                     ->send($request)
@@ -112,10 +190,18 @@ class Router {
     protected function resolveMiddleware($middleware) {
         $kernel = new \App\Http\Kernel();
         $mapped = $kernel->getRouteMiddleware();
+        $groups = $kernel->getMiddlewareGroups();
+
         $resolved = [];
 
         foreach ($middleware as $m) {
             if (is_string($m)) {
+                // Check if it's a group
+                if (isset($groups[$m])) {
+                    $resolved = array_merge($resolved, $this->resolveMiddleware($groups[$m]));
+                    continue;
+                }
+
                 $parts = explode(':', $m);
                 $name = $parts[0];
                 $args = isset($parts[1]) ? explode(',', $parts[1]) : [];

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nemesis Docs - Viewer</title>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup-templating.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg: #0f172a;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --sidebar: #1e293b;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --code-bg: #020617;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: var(--primary);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary-hover);
+        }
+
+        /* Markdown Styles */
+        #content h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            color: #fff;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        #content h2 {
+            font-size: 1.8rem;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            color: #fff;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        #content h3 {
+            font-size: 1.3rem;
+            margin-top: 2rem;
+            color: var(--primary);
+        }
+
+        #content p {
+            margin-bottom: 1.5rem;
+            color: #cbd5e1;
+            font-size: 1.1rem;
+        }
+
+        #content ul,
+        #content ol {
+            margin-bottom: 1.5rem;
+            color: #cbd5e1;
+            padding-left: 1.5rem;
+        }
+
+        #content li {
+            margin-bottom: 0.5rem;
+        }
+
+        #content a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        #content a:hover {
+            text-decoration: underline;
+        }
+
+        #content code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+            color: var(--primary);
+        }
+
+        #content pre {
+            background: var(--code-bg) !important;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        #content pre code {
+            background: none;
+            padding: 0;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        #content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        #content th,
+        #content td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #content th {
+            background: #0f172a;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #content blockquote {
+            border-left: 4px solid var(--primary);
+            background: rgba(255, 255, 255, 0.03);
+            margin: 1.5rem 0;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+        }
+
+        /* Loading Spinner */
+        #loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50vh;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-right: 8px;">
+                <path d="M15.8333 10H4.16667" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <path d="M10 15.8333L4.16667 10L10 4.16667" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Back to Documentation
+        </a>
+
+        <div id="loader">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="content"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileName = urlParams.get('file');
+            const contentDiv = document.getElementById('content');
+            const loader = document.getElementById('loader');
+
+            if (!fileName) {
+                contentDiv.innerHTML = '<h1>Error</h1><p>No file specified.</p>';
+                loader.style.display = 'none';
+                return;
+            }
+
+            try {
+                console.log('Fetching:', fileName);
+                const response = await fetch(fileName);
+                if (!response.ok) {
+                    throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+                }
+
+                const markdown = await response.text();
+                contentDiv.innerHTML = marked.parse(markdown);
+
+                document.title = fileName.replace('.md', '').replace('_', ' ') + ' - Nemesis Docs';
+
+                // Trigger Prism highlighting
+                try {
+                    Prism.highlightAll();
+                } catch (pe) {
+                    console.warn('Syntax highlighting failed:', pe);
+                }
+
+                // Intercept internal links to .md files
+                contentDiv.querySelectorAll('a').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href && href.endsWith('.md') && !href.includes('://')) {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            window.location.search = `?file=${href}`;
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                contentDiv.innerHTML = `<h1>Error</h1><p>Documentation file <strong>${fileName}</strong> could not be loaded.</p><p style="color: #f87171;">Details: ${error.message}</p><p>Check if the file exists in <code>public/docs/</code>.</p>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -3,6 +3,8 @@
 // Autoload dependencies
 require_once __DIR__ . '/vendor/autoload.php';
 
+define('NEMESIS_CONSOLE', true);
+
 // Load configuration and environment
 \Nemesis\Core\Config::load(__DIR__);
 
@@ -63,6 +65,18 @@ switch ($command) {
         require_once __DIR__ . '/index.php'; // Bootstraps config and DB
         $manager = new \Nemesis\Database\MigrationManager(__DIR__ . '/database/migrations');
         $manager->migrate();
+        
+        // Migrate Plugins
+        $pluginManager = \Nemesis\Core\PluginManager::getInstance();
+        $pluginManager->discover();
+        foreach ($pluginManager->getActive() as $name => $plugin) {
+            $path = $plugin['manifest']->getDirectory() . '/migrations';
+            if (is_dir($path)) {
+                echo "Running migrations for plugin: {$name}...\n";
+                $manager = new \Nemesis\Database\MigrationManager($path);
+                $manager->migrate();
+            }
+        }
         break;
 
     case 'migrate:rollback':
@@ -165,6 +179,39 @@ switch ($command) {
         $content = "<?php\nnamespace App\Policies;\n\nuse Nemesis\Auth\Policy;\n\nclass {$name} extends Policy {\n    public function view(\$user, \$model) {\n        return true;\n    }\n\n    public function update(\$user, \$model) {\n        return false;\n    }\n}\n";
         file_put_contents($path, $content);
         echo "Policy created at $path\n";
+        break;
+
+    case 'make:module':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:module Name\n");
+        $moduleDir = __DIR__ . "/app/Modules/{$name}";
+        if (is_dir($moduleDir)) die("Module [{$name}] already exists.\n");
+
+        mkdir($moduleDir, 0755, true);
+        mkdir("{$moduleDir}/Controllers", 0755, true);
+        mkdir("{$moduleDir}/Models", 0755, true);
+        mkdir("{$moduleDir}/Views", 0755, true);
+        mkdir("{$moduleDir}/Migrations", 0755, true);
+        mkdir("{$moduleDir}/Config", 0755, true);
+        mkdir("{$moduleDir}/Services", 0755, true);
+
+        // routes.php
+        $lowerName = strtolower($name);
+        $routesContent = "<?php\n\n// Routes for module: {$name}\n\n\$router->add('GET', '/{$lowerName}', [\\App\Modules\\{$name}\\Controllers\\{$name}Controller::class, 'index']);\n";
+        file_put_contents("{$moduleDir}/routes.php", $routesContent);
+
+        // Controller
+        $controllerContent = "<?php\nnamespace App\Modules\\{$name}\Controllers;\n\nuse Nemesis\Core\Controller;\n\nclass {$name}Controller extends Controller {\n    public function index() {\n        return \$this->render('{$lowerName}::index', ['name' => '{$name}']);\n    }\n}\n";
+        file_put_contents("{$moduleDir}/Controllers/{$name}Controller.php", $controllerContent);
+
+        // Default View
+        file_put_contents("{$moduleDir}/Views/index.php", "<h1>Welcome to the {$name} Module</h1>\n<p>This is a standard module view.</p>");
+
+        // Register View Namespace in routes.php (as requested in description for simplicity)
+        $viewRegistration = "\n\\Nemesis\\Core\\View::addNamespace('{$lowerName}', base_path('app/Modules/{$name}/Views'));\n";
+        file_put_contents("{$moduleDir}/routes.php", $viewRegistration, FILE_APPEND);
+
+        echo "Module [{$name}] generated successfully at $moduleDir\n";
         break;
 
     case 'make:resource':
@@ -671,6 +718,7 @@ switch ($command) {
             'make:seeder' => 'Create a new database seeder',
             'make:job' => 'Create a new background job class',
             'make:policy' => 'Create a new authorization policy',
+            'make:module' => 'Create a new module structure',
             'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
@@ -696,10 +744,102 @@ switch ($command) {
             'optimize' => 'Warm up all configuration and route caches',
             'down' => 'Put the application into maintenance mode',
             'up' => 'Bring the application out of maintenance mode',
+            'plugin:list' => 'List all discovered plugins',
+            'plugin:enable' => 'Enable a plugin',
+            'plugin:disable' => 'Disable a plugin',
+            'plugin:create' => 'Create a new plugin structure',
         ];
         foreach ($cmds as $c => $d) {
             echo "  " . str_pad($c, 20) . " $d\n";
         }
+        break;
+
+    case 'plugin:list':
+        echo "Nemesis Plugins:\n\n";
+        $manager = \Nemesis\Core\PluginManager::getInstance();
+        $manager->discover();
+        $plugins = $manager->getAll();
+        
+        if (empty($plugins)) {
+            echo "No plugins found.\n";
+            break;
+        }
+        
+        foreach ($plugins as $name => $plugin) {
+            $manifest = $plugin['manifest'];
+            $status = $manager->isActive($name) ? '✓ Active' : '✗ Disabled';
+            echo "  {$name} v{$manifest->getVersion()} - {$status}\n";
+            echo "    {$manifest->get('description', 'No description')}\n\n";
+        }
+        break;
+
+    case 'plugin:enable':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis plugin:enable {name}\n");
+        
+        $manager = \Nemesis\Core\PluginManager::getInstance();
+        $manager->discover();
+        
+        try {
+            $manager->enable($name);
+            echo "Plugin '{$name}' enabled successfully.\n";
+        } catch (\Exception $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    case 'plugin:disable':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis plugin:disable {name}\n");
+        
+        $manager = \Nemesis\Core\PluginManager::getInstance();
+        $manager->disable($name);
+        echo "Plugin '{$name}' disabled successfully.\n";
+        break;
+
+    case 'plugin:create':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis plugin:create {Name}\n");
+        
+        $pluginDir = __DIR__ . "/plugins/{$name}";
+        if (is_dir($pluginDir)) die("Plugin [{$name}] already exists.\n");
+        
+        mkdir($pluginDir, 0755, true);
+        mkdir("{$pluginDir}/src", 0755, true);
+        mkdir("{$pluginDir}/config", 0755, true);
+        mkdir("{$pluginDir}/migrations", 0755, true);
+        
+        // plugin.json
+        $lowerName = strtolower($name);
+        $manifest = [
+            'name' => $lowerName,
+            'version' => '1.0.0',
+            'description' => "{$name} plugin for Nemesis framework",
+            'entry' => 'bootstrap.php',
+            'requires' => [
+                'php' => '>=8.0',
+                'nemesis' => '^1.0'
+            ],
+            'autoload' => [
+                'psr-4' => [
+                    "Nemesis\\Plugins\\{$name}\\" => 'src/'
+                ]
+            ],
+            'permissions' => ['routes', 'middleware', 'events']
+        ];
+        file_put_contents("{$pluginDir}/plugin.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        
+        // bootstrap.php
+        $bootstrap = "<?php\n\nuse Nemesis\\Core\\Plugin;\n\nPlugin::register('{$lowerName}', function(\$plugin) {\n    // Register routes\n    \$plugin->route('{$lowerName}', function() {\n        // Add your routes here\n    });\n    \n    // Register middleware\n    // \$plugin->middleware(YourMiddleware::class);\n    \n    // Register hooks\n    // Plugin::hook('app.boot', function() {\n    //     // Your hook logic\n    // });\n});\n";
+        file_put_contents("{$pluginDir}/bootstrap.php", $bootstrap);
+        
+        // README.md
+        $readme = "# {$name} Plugin\n\n{$manifest['description']}\n\n## Installation\n\n```bash\nphp nemesis plugin:enable {$lowerName}\n```\n\n## Usage\n\nAdd your usage instructions here.\n";
+        file_put_contents("{$pluginDir}/README.md", $readme);
+        
+        echo "Plugin [{$name}] created successfully at {$pluginDir}\n";
+        echo "Enable it with: php nemesis plugin:enable {$lowerName}\n";
         break;
 
     case 'env':
@@ -727,6 +867,30 @@ switch ($command) {
                         $instance->handle(array_slice($argv, 2));
                         exit;
                     }
+                }
+            }
+        }
+
+        // Try to handle as plugin command
+        $manager = \Nemesis\Core\PluginManager::getInstance();
+        $manager->discover();
+        $commands = \Nemesis\Core\Plugin::getCommands();
+        
+        foreach ($commands as $cmdClass) {
+            $cmd = new $cmdClass();
+            // Check if signature property exists or method getSignature
+            $sig = null;
+            if (property_exists($cmd, 'signature')) {
+                $sig = $cmd->signature;
+            } elseif (method_exists($cmd, 'getSignature')) {
+                $sig = $cmd->getSignature();
+            }
+
+            if ($sig === $command) {
+                require_once __DIR__ . '/index.php'; // Bootstrap
+                if (method_exists($cmd, 'handle')) {
+                    $cmd->handle(array_slice($argv, 2));
+                    exit(0);
                 }
             }
         }

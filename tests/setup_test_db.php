@@ -25,7 +25,12 @@ try {
 echo "Creating test tables... ";
 try {
     $schema = file_get_contents(__DIR__ . '/database/test_schema.sql');
-    $pdo->exec($schema);
+    $statements = array_filter(array_map('trim', explode(';', $schema)));
+    foreach ($statements as $statement) {
+        if ($statement) {
+            $pdo->exec($statement);
+        }
+    }
     echo "✓ Tables created\n";
 } catch (\Exception $e) {
     echo "✗ Failed: " . $e->getMessage() . "\n";
@@ -46,7 +51,12 @@ try {
     
     // Insert new data
     $data = file_get_contents(__DIR__ . '/database/test_data.sql');
-    $pdo->exec($data);
+    $statements = array_filter(array_map('trim', explode(';', $data)));
+    foreach ($statements as $statement) {
+        if ($statement) {
+            $pdo->exec($statement);
+        }
+    }
     echo "✓ Data inserted\n\n";
 } catch (\Exception $e) {
     echo "✗ Failed: " . $e->getMessage() . "\n";

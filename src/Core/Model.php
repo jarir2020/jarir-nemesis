@@ -4,7 +4,7 @@ namespace Nemesis\Core;
 
 use Nemesis\Core\Database;
 
-abstract class Model {
+abstract class Model implements \ArrayAccess {
     protected $table;
     protected $primaryKey = 'id';
     protected $attributes = [];
@@ -16,8 +16,11 @@ abstract class Model {
     protected $guarded = ['*'];
     protected static $events = ['creating', 'created', 'updating', 'updated', 'deleting', 'deleted', 'saving', 'saved'];
 
+    protected $original = [];
+
     public function __construct(array $attributes = []) {
         $this->attributes = $attributes;
+        $this->syncOriginal();
         
         if (!isset(static::$booted[static::class])) {
             static::boot();
@@ -168,6 +171,12 @@ abstract class Model {
         return static::query()->where($column, $operator, $value);
     }
 
+    public static function create(array $attributes = []) {
+        $model = new static($attributes);
+        $model->save();
+        return $model;
+    }
+
     public function getTable() {
         if (!isset($this->table)) {
             // Auto-generate table name from class name (pluralized lowercase)
@@ -175,6 +184,11 @@ abstract class Model {
             $this->table = strtolower($class) . 's';
         }
         return $this->table;
+    }
+
+    public function setTable($table) {
+        $this->table = $table;
+        return $this;
     }
 
     public function getKey() {
@@ -216,6 +230,7 @@ abstract class Model {
         }
 
         $this->fireModelEvent('saved');
+        $this->syncOriginal();
         return true;
     }
 
@@ -324,6 +339,32 @@ abstract class Model {
         return array_merge($this->attributes, $this->relations);
     }
 
+    public function getAttributes() {
+        return $this->attributes;
+    }
+
+    public function getOriginal($key = null) {
+        if ($key) {
+            return $this->original[$key] ?? null;
+        }
+        return $this->original;
+    }
+
+    public function syncOriginal() {
+        $this->original = $this->attributes;
+        return $this;
+    }
+
+    public function getChanges() {
+        $changes = [];
+        foreach ($this->attributes as $key => $value) {
+            if (!array_key_exists($key, $this->original) || $this->original[$key] !== $value) {
+                $changes[$key] = $value;
+            }
+        }
+        return $changes;
+    }
+
     // Query Scopes
     public function __call($method, $parameters) {
         // Check for scope methods
@@ -341,8 +382,25 @@ abstract class Model {
         if (method_exists($instance, 'scope' . ucfirst($method))) {
             return call_user_func_array([$instance, 'scope' . ucfirst($method)], array_merge([static::query()], $parameters));
         }
-
+ 
         throw new \BadMethodCallException("Method {$method} does not exist.");
+    }
+ 
+    // ArrayAccess Implementation
+    public function offsetExists($offset): bool {
+        return isset($this->attributes[$offset]);
+    }
+
+    public function offsetGet($offset): mixed {
+        return $this->__get($offset);
+    }
+
+    public function offsetSet($offset, $value): void {
+        $this->__set($offset, $value);
+    }
+
+    public function offsetUnset($offset): void {
+        unset($this->attributes[$offset]);
     }
 }
 

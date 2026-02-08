@@ -21,6 +21,10 @@ class Fluent {
         return new self($table);
     }
 
+    public function getTable() {
+        return str_replace('`', '', $this->table);
+    }
+
     // Generic where method to replace specific ones
     public function where($column, $operator, $value = null) {
         if ($value === null) {

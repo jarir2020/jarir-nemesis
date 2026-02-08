@@ -17,12 +17,6 @@ class Controller {
     }
 
     protected function render($view, $data = []) {
-        extract($data);
-        $path = __DIR__ . "/../../app/Views/{$view}.php";
-        if (file_exists($path)) {
-            require $path;
-        } else {
-            throw new \Exception("View [{$view}] not found.");
-        }
+        \Nemesis\Core\View::render($view, $data);
     }
 }
