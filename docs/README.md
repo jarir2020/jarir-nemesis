@@ -121,5 +121,5 @@ Nemesis Framework
 
 For more information, visit the individual documentation files or check the framework source code.
 
-**Framework Version:** 1.0.0  
+**Framework Version:** 3.0.0  
 **PHP Requirement:** >= 8.0
