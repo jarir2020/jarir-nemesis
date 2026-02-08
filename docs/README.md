@@ -5,8 +5,8 @@ Welcome to the Nemesis Framework documentation. This guide will help you underst
 ## 📚 Table of Contents
 
 ### 🚀 Getting Started
-- **[Installation](README.md#getting-started)** - Setup and configuration
-- **[Directory Structure](README.md#structure)** - Application organization
+- **[Installation](INSTALLATION.md)** - Setup and configuration
+- **[Directory Structure](STRUCTURE.md)** - Application organization
 - **[CLI Commands](CLI_COMMANDS.md)** - Command line reference
 
 ### 🏗️ Architecture
