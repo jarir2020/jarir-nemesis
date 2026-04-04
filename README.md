@@ -1,4 +1,4 @@
-# Nemesis Framework v3.0.0 (Enterprise)
+# Nemesis Framework v4.0.0 (Enterprise)
 
 [![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
