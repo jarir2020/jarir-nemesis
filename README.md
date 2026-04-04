@@ -1,6 +1,6 @@
 # Nemesis Framework v4.0.0 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.1-777bb4.svg)](https://php.net)
 
