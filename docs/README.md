@@ -1,6 +1,6 @@
 # Nemesis Framework Documentation
 
-**Version 5.0.0** — PHP 8.2+ | 769 tests passing
+**Version 4.0.0** — PHP 8.2+ | 769 tests passing
 
 ---
 
