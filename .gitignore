@@ -18,3 +18,5 @@
 .claude
 *.bak
 CLAUDE.md
+/tests/*.md
+/tests/**/*.md
