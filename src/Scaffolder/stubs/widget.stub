@@ -1,0 +1,14 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+class {{ClassName}}
+{
+    public function render(): string
+    {
+        ob_start();
+        include __DIR__ . '/view.php';
+        return (string) ob_get_clean();
+    }
+}

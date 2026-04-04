@@ -14,3 +14,7 @@
 *.sql
 *.log
 .DS_Store
+*.txt
+.claude
+*.bak
+CLAUDE.md

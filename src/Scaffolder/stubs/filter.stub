@@ -1,0 +1,13 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+class {{ClassName}}
+{
+    public function apply(array $query, array $params): array
+    {
+        // Apply filter conditions to query builder params
+        return $query;
+    }
+}

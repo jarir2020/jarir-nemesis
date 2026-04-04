@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Auth;
 
@@ -56,5 +57,30 @@ class Gate {
      */
     public static function denies($ability, $arguments = []) {
         return !self::allows($ability, $arguments);
+    }
+
+    // Added: 2026-04-03
+
+    /**
+     * Simple session-based ACL check.
+     *
+     * $acl = [
+     *     'allowed_user_type'         => ['admin', 'manager'],
+     *     'allowed_user_access_level' => [1, 2, 3],
+     * ];
+     * if (!Gate::checkAcl($request, $acl)) abort(403);
+     *
+     * Reads 'user_type' and 'user_level' from the active session.
+     */
+    public static function checkAcl(\Nemesis\Http\Request $request, array $acl): bool
+    {
+        $session    = \Nemesis\Http\Session::all();
+        $userType   = $session['user_type']  ?? null;
+        $userLevel  = $session['user_level'] ?? null;
+
+        $typesOk  = in_array($userType,  $acl['allowed_user_type']         ?? [], true);
+        $levelsOk = in_array($userLevel, $acl['allowed_user_access_level'] ?? [], true);
+
+        return $typesOk && $levelsOk;
     }
 }

@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Contracts\MiddlewareInterface;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
+
+class {{ClassName}} implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // Before
+        $response = $next($request);
+        // After
+        return $response;
+    }
+}

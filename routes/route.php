@@ -86,4 +86,7 @@ $router->add('GET', '/throttle-test', function() {
     echo "Throttled route hit";
 }, ['throttle:2,1']);
 
+// Health check endpoint — Phase 4 | Added: 2026-04-02
+$router->get('/_health', [\Nemesis\Http\HealthCheck::class, 'handle'])->name('health');
+
 return $router;

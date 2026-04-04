@@ -6,17 +6,9 @@
  * @package  JarirAhmed
  * @author   Jarir Ahmed <jarircse16@gmail.com>
  */
-
-// Enable CORS (MUST come before any output)
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+// CORS is now handled by App\Http\Middleware\CorsMiddleware per route-group.
+// Apply it to the 'api' group in routes/api.php via ->middleware('cors').
+// Updated: 2026-04-03
 
 require __DIR__ . "/../vendor/autoload.php";
 
@@ -40,8 +32,16 @@ Database::connect($config['database']);
 $pluginManager = \Nemesis\Core\PluginManager::getInstance();
 $pluginManager->discover();
 
-// Load routes from external file
+// Load routes — legacy + category files
+// routes/route.php   : existing routes (kept for backwards compat)
+// routes/web.php     : new browser/session routes
+// routes/api.php     : new JSON API routes (use cors + throttle middleware)
+// routes/console.php : CLI-only (skip on HTTP)
+// routes/channels.php: WebSocket channel auth (skip on HTTP)
+// Updated: 2026-04-03
 $router = require __DIR__ . "/../routes/route.php";
+require __DIR__ . "/../routes/web.php";
+require __DIR__ . "/../routes/api.php";
 
 // Normalize URI by removing base folder (if any)
 $uri = $_SERVER['REQUEST_URI'];

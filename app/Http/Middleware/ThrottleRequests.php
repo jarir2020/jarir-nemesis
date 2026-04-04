@@ -1,42 +1,57 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 3 — MiddlewareInterface | Updated: 2026-04-02
 
 namespace App\Http\Middleware;
 
+use Nemesis\Contracts\MiddlewareInterface;
 use Nemesis\Core\Cache;
+use Nemesis\Http\Request;
 use Nemesis\Http\Response;
 
-class ThrottleRequests {
+class ThrottleRequests implements MiddlewareInterface
+{
     /**
-     * Handle the incoming request.
+     * Extra optional parameters are valid in interface implementations (PHP LSP).
+     *
+     * @param  int|string  $maxAttempts   Max requests per window (default 60).
+     * @param  int|string  $decayMinutes  Window length in minutes (default 1).
      */
-    public function handle($request, $next, $maxAttempts = 60, $decayMinutes = 1) {
-        $key = $this->resolveRequestSignature($request);
-        $maxAttempts = (int) $maxAttempts;
+    public function handle(
+        Request  $request,
+        callable $next,
+        int|string $maxAttempts  = 60,
+        int|string $decayMinutes = 1,
+    ): Response {
+        $maxAttempts  = (int) $maxAttempts;
+        $decayMinutes = (int) $decayMinutes;
 
-        $hits = Cache::get($key, 0);
+        $key  = $this->resolveRequestSignature();
+        $hits = (int) Cache::get($key, 0);
 
         if ($hits >= $maxAttempts) {
-            header('X-RateLimit-Limit: ' . $maxAttempts);
-            header('X-RateLimit-Remaining: 0');
-            header('Retry-After: ' . ($decayMinutes * 60));
-            
-            header('HTTP/1.1 429 Too Many Requests');
-            die(json_encode(['error' => 'Too many requests. Please slow down.']));
+            return Response::json(
+                ['error' => 'Too many requests. Please slow down.'],
+                429
+            )
+            ->withHeader('X-RateLimit-Limit',     (string) $maxAttempts)
+            ->withHeader('X-RateLimit-Remaining', '0')
+            ->withHeader('Retry-After',            (string) ($decayMinutes * 60));
         }
 
         Cache::set($key, $hits + 1, $decayMinutes * 60);
 
-        header('X-RateLimit-Limit: ' . $maxAttempts);
-        header('X-RateLimit-Remaining: ' . ($maxAttempts - ($hits + 1)));
+        $response = $next($request);
 
-        return $next($request);
+        return $response
+            ->withHeader('X-RateLimit-Limit',     (string) $maxAttempts)
+            ->withHeader('X-RateLimit-Remaining', (string) max(0, $maxAttempts - ($hits + 1)));
     }
 
-    /**
-     * Resolve the request signature (IP + URI).
-     */
-    protected function resolveRequestSignature($request) {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    protected function resolveRequestSignature(): string
+    {
+        $ip  = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
         return 'throttle:' . md5($ip . '|' . $uri);
     }

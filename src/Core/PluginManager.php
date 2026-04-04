@@ -1,4 +1,8 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 7 — Plugin manifest v2, conflict detection | Updated: 2026-04-03
+
 namespace Nemesis\Core;
 
 /**
@@ -72,6 +76,15 @@ class PluginManager {
         $plugin = $this->plugins[$name];
         $manifest = $plugin['manifest'];
 
+        // v2: conflict detection — abort if a conflicting plugin is already active
+        foreach ($manifest->getConflicts() as $conflictName) {
+            if ($this->isActive($conflictName)) {
+                throw new \Exception(
+                    "Plugin [{$name}] conflicts with active plugin [{$conflictName}]. Disable [{$conflictName}] first."
+                );
+            }
+        }
+
         // Check compatibility
         $manifest->checkCompatibility();
 
@@ -94,6 +107,12 @@ class PluginManager {
         });
 
         $this->plugins[$name]['loaded'] = true;
+
+        // v2: auto-discover CLI commands from plugin Commands/ folder
+        $commandsDir = $manifest->getDirectory() . '/Commands';
+        if (is_dir($commandsDir)) {
+            \Nemesis\Reactor\CommandBus::getInstance()->discoverIn($commandsDir);
+        }
 
         // Fire hook
         Plugin::fire('plugin.loaded', $name);
@@ -158,6 +177,18 @@ class PluginManager {
      */
     public function isActive($name) {
         return in_array($name, $this->active);
+    }
+
+    /**
+     * Get plugins filtered by tag (v2 manifests only).
+     *
+     * @return array<string, array{manifest: PluginManifest, loaded: bool}>
+     */
+    public function getByTag(string $tag): array
+    {
+        return array_filter($this->plugins, function (array $plugin) use ($tag) {
+            return in_array($tag, $plugin['manifest']->getTags(), true);
+        });
     }
 
     /**

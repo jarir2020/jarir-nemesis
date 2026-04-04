@@ -1,0 +1,22 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+class {{ClassName}}
+{
+    public static function make(array $overrides = []): object
+    {
+        $defaults = [
+            // 'name'  => 'Default Name',
+            // 'email' => 'test@example.com',
+        ];
+
+        return (object) array_merge($defaults, $overrides);
+    }
+
+    public static function makeMany(int $count, array $overrides = []): array
+    {
+        return array_map(fn() => static::make($overrides), range(1, $count));
+    }
+}

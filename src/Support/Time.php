@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Support;
 
@@ -88,4 +89,33 @@ class Time {
     public static function monthName($date) { return date('F', strtotime($date)); }
     public static function weekNumber($date) { return date('W', strtotime($date)); }
     public static function daysUntil($date) { return (new \DateTime($date))->diff(new \DateTime())->days; }
+
+    // Added: 2026-04-03
+
+    /**
+     * Format a duration in minutes as a human-readable string.
+     *
+     *   minutesToHm(0)   → '-'
+     *   minutesToHm(45)  → '45m'
+     *   minutesToHm(90)  → '1 H 30 m'
+     *   minutesToHm(120) → '2 H 0 m'
+     */
+    public static function minutesToHm(int|float $minutes): string
+    {
+        if ($minutes <= 0) return '-';
+        $h = (int) floor($minutes / 60);
+        $m = (int) ($minutes % 60);
+        return $h === 0 ? "{$m}m" : "{$h} H {$m} m";
+    }
+
+    /**
+     * Format seconds as H:MM:SS (e.g. 3661 → '1:01:01').
+     */
+    public static function secondsToHms(int $seconds): string
+    {
+        $h = intdiv($seconds, 3600);
+        $m = intdiv($seconds % 3600, 60);
+        $s = $seconds % 60;
+        return sprintf('%d:%02d:%02d', $h, $m, $s);
+    }
 }

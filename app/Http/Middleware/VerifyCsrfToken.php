@@ -1,41 +1,62 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 3 — MiddlewareInterface | Updated: 2026-04-02
 
 namespace App\Http\Middleware;
 
+use Nemesis\Contracts\MiddlewareInterface;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
 use Nemesis\Http\Session;
 
-class VerifyCsrfToken {
+class VerifyCsrfToken implements MiddlewareInterface
+{
     /**
-     * The URIs that should be excluded from CSRF verification.
+     * URI prefixes/paths excluded from CSRF verification.
+     * Supports exact match and '*' wildcard suffix.
+     *
+     * @var string[]
      */
-    protected $except = [
+    protected array $except = [
         // 'api/webhooks/*',
     ];
 
-    public function handle($request, $next) {
-        if ($this->isReading($request) || $this->inExceptArray($request) || $this->tokensMatch($request)) {
+    public function handle(Request $request, callable $next): Response
+    {
+        if ($this->isReading() || $this->inExceptArray() || $this->tokensMatch()) {
             return $next($request);
         }
 
-        header('HTTP/1.1 419 Page Expired');
-        echo json_encode(['error' => 'CSRF token mismatch.']);
-        exit;
+        return Response::json(['error' => 'CSRF token mismatch.'], 419);
     }
 
-    protected function isReading($request) {
-        return in_array($_SERVER['REQUEST_METHOD'], ['HEAD', 'GET', 'OPTIONS']);
+    protected function isReading(): bool
+    {
+        return in_array(
+            $_SERVER['REQUEST_METHOD'] ?? 'GET',
+            ['HEAD', 'GET', 'OPTIONS'],
+            true
+        );
     }
 
-    protected function inExceptArray($request) {
-        // Simple URI matching logic
+    protected function inExceptArray(): bool
+    {
         $uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
-        foreach ($this->except as $except) {
-            if ($except === $uri) return true;
+        foreach ($this->except as $pattern) {
+            if (str_ends_with($pattern, '*')) {
+                if (str_starts_with((string) $uri, rtrim($pattern, '*'))) {
+                    return true;
+                }
+            } elseif ($pattern === $uri) {
+                return true;
+            }
         }
         return false;
     }
 
-    protected function tokensMatch($request) {
+    protected function tokensMatch(): bool
+    {
         $token = $_POST['_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
         return is_string($token) && hash_equals(Session::token(), $token);
     }

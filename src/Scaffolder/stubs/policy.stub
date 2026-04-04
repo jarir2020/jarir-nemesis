@@ -1,0 +1,29 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Auth\Policy;
+
+class {{ClassName}} extends Policy
+{
+    public function view(object $user, object $model): bool
+    {
+        return true;
+    }
+
+    public function create(object $user): bool
+    {
+        return true;
+    }
+
+    public function update(object $user, object $model): bool
+    {
+        return $user->id === $model->user_id;
+    }
+
+    public function delete(object $user, object $model): bool
+    {
+        return $user->id === $model->user_id;
+    }
+}

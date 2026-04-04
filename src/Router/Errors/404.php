@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 echo <<<HTML
 <!DOCTYPE html>
 <html lang="en">

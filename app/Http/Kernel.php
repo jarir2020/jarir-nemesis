@@ -1,53 +1,78 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 3 — Middleware groups & aliases | Updated: 2026-04-02
 
 namespace App\Http;
 
-class Kernel {
+class Kernel
+{
     /**
-     * The application's global HTTP middleware stack.
-     * These middleware are run during every request to your application.
+     * Global HTTP middleware — runs on every request.
+     *
+     * @var class-string[]
      */
-    protected $middleware = [
+    protected array $middleware = [
         \App\Http\Middleware\CheckForMaintenanceMode::class,
         \App\Http\Middleware\StartSession::class,
         \App\Http\Middleware\VerifyCsrfToken::class,
     ];
 
     /**
-     * The application's route middleware groups.
+     * Middleware groups — assign to route groups with ->group(['middleware' => 'web']).
+     *
+     * 'web'  — standard browser session stack
+     * 'api'  — stateless JSON stack
+     *
+     * @var array<string, class-string[]|string[]>
      */
-    protected $middlewareGroups = [
+    protected array $middlewareGroups = [
+        'web' => [
+            \App\Http\Middleware\StartSession::class,
+            \App\Http\Middleware\VerifyCsrfToken::class,
+        ],
         'api' => [
-            // \App\Http\Middleware\Authenticate::class,
+            'throttle:60,1',
         ],
     ];
 
     /**
-     * The application's route middleware.
-     * These middleware may be assigned to groups or used individually.
+     * Route middleware aliases — short names used in ->middleware('alias').
+     *
+     * @var array<string, class-string>
      */
-    protected $routeMiddleware = [
+    protected array $routeMiddleware = [
+        // app/Http/Middleware
         'throttle' => \App\Http\Middleware\ThrottleRequests::class,
+        'csrf'     => \App\Http\Middleware\VerifyCsrfToken::class,
+        'session'  => \App\Http\Middleware\StartSession::class,
+        // 'auth'   => \App\Http\Middleware\Authenticate::class,
+        // 'guest'  => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        // 'role'   => \App\Http\Middleware\CheckRole::class,
+
+        // Consolidated from src/Middleware → app/Http/Middleware (2026-04-02)
+        'cors'        => \App\Http\Middleware\CorsMiddleware::class,
+        'security'    => \App\Http\Middleware\SecurityHeadersMiddleware::class,
+        'api.version' => \App\Http\Middleware\ApiVersionMiddleware::class,
+        'debugbar'    => \App\Http\Middleware\DebugBarMiddleware::class,
     ];
 
-    /**
-     * Get the global middleware.
-     */
-    public function getMiddleware() {
+    // -------------------------------------------------------------------------
+    // Accessors (used by Router::resolveMiddleware)
+    // -------------------------------------------------------------------------
+
+    public function getMiddleware(): array
+    {
         return $this->middleware;
     }
 
-    /**
-     * Get the middleware groups.
-     */
-    public function getMiddlewareGroups() {
+    public function getMiddlewareGroups(): array
+    {
         return $this->middlewareGroups;
     }
 
-    /**
-     * Get the route middleware.
-     */
-    public function getRouteMiddleware() {
+    public function getRouteMiddleware(): array
+    {
         return $this->routeMiddleware;
     }
 }

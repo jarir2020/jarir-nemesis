@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Support;
 
@@ -208,5 +209,74 @@ class File {
         return array_filter(file($path), function($line) use ($term) {
             return strpos($line, $term) !== false;
         });
+    }
+
+    // Added: 2026-04-03
+
+    /**
+     * Create a directory if it does not already exist.
+     * Silent no-op when the path already exists.
+     *
+     * @param  string $path      Absolute directory path.
+     * @param  int    $mode      Unix permission bits (default 0755).
+     * @param  bool   $recursive Create intermediate directories.
+     */
+    public static function ensureDirectoryExists(string $path, int $mode = 0755, bool $recursive = true): void
+    {
+        if (!is_dir($path)) {
+            mkdir($path, $mode, $recursive);
+        }
+    }
+
+    // Added: 2026-04-03
+
+    /**
+     * Read a JSON file and return its decoded contents as an array.
+     * Returns [] when the file doesn't exist or is invalid JSON.
+     */
+    public static function readJson(string $path): array
+    {
+        if (!file_exists($path)) return [];
+        $raw = file_get_contents($path);
+        if ($raw === false) return [];
+        $data = json_decode($raw, true);
+        return (json_last_error() === JSON_ERROR_NONE && is_array($data)) ? $data : [];
+    }
+
+    /**
+     * Write an array to a JSON file (pretty-printed).
+     * Creates parent directories automatically.
+     */
+    public static function writeJson(string $path, array $data): bool
+    {
+        self::ensureDirectoryExists(dirname($path));
+        $encoded = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        if ($encoded === false) return false;
+        return file_put_contents($path, $encoded) !== false;
+    }
+
+    /**
+     * Sort an array of file paths by last-modified time, newest first.
+     * Sorts in-place (reference) and also returns the array.
+     *
+     * @param  string[] $files
+     * @return string[]
+     */
+    public static function sortByMtime(array &$files): array
+    {
+        usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+        return $files;
+    }
+
+    /**
+     * Search for files matching a glob pattern.
+     * Returns an array of matching paths (empty array on no match).
+     *
+     * @param  string $pattern  e.g. 'storage/logs/*.log'
+     * @return string[]
+     */
+    public static function searchByPattern(string $pattern): array
+    {
+        return glob($pattern) ?: [];
     }
 }

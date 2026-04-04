@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Testing;
 
@@ -48,22 +49,44 @@ class TestRunner {
                     if (strpos($method->getName(), 'test') === 0) {
                         $totalTests++;
                         echo "Running {$className}::{$method->getName()}... ";
-                        
+
+                        // Reset expectedException before each test | 2026-04-03
+                        $instance->_expectedException = '';
+
                         try {
                             if (method_exists($instance, 'setUp')) $instance->setUp();
                             $method->invoke($instance);
                             if (method_exists($instance, 'tearDown')) $instance->tearDown();
-                            
-                            echo "\033[32mPASS\033[0m\n";
-                            $passedTests++;
-                        } catch (\Exception $e) {
-                            echo "\033[31mFAIL\033[0m\n";
-                            $failedTests++;
-                            $failures[] = [
-                                'test' => "{$className}::{$method->getName()}",
-                                'message' => $e->getMessage(),
-                                'trace' => $e->getTraceAsString()
-                            ];
+
+                            // If expectException was declared but no exception thrown, fail
+                            if ($instance->_expectedException !== '') {
+                                echo "\033[31mFAIL\033[0m\n";
+                                $failedTests++;
+                                $failures[] = [
+                                    'test'    => "{$className}::{$method->getName()}",
+                                    'message' => "Expected exception {$instance->_expectedException} was not thrown.",
+                                    'trace'   => '',
+                                ];
+                            } else {
+                                echo "\033[32mPASS\033[0m\n";
+                                $passedTests++;
+                            }
+                        } catch (\Throwable $e) {
+                            // If this is the expected exception class, it's a PASS
+                            if ($instance->_expectedException !== ''
+                                && $e instanceof $instance->_expectedException
+                            ) {
+                                echo "\033[32mPASS\033[0m\n";
+                                $passedTests++;
+                            } else {
+                                echo "\033[31mFAIL\033[0m\n";
+                                $failedTests++;
+                                $failures[] = [
+                                    'test'    => "{$className}::{$method->getName()}",
+                                    'message' => $e->getMessage(),
+                                    'trace'   => $e->getTraceAsString(),
+                                ];
+                            }
                         }
                     }
                 }

@@ -1,0 +1,21 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+class {{ClassName}}
+{
+    public function transform(object $model): array
+    {
+        return [
+            'id' => $model->id ?? null,
+            // Map fields here
+        ];
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function collection(array $models): array
+    {
+        return array_map(fn($m) => $this->transform($m), $models);
+    }
+}

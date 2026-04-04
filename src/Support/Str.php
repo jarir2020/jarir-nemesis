@@ -1,10 +1,13 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Support;
 
 class Str {
     public static function random($length = 16) {
-        return bin2hex(random_bytes($length / 2));
+        // ceil ensures odd lengths work; substr trims to exact requested length | Fixed: 2026-04-03
+        $bytes = (int) ceil($length / 2);
+        return substr(bin2hex(random_bytes($bytes)), 0, $length);
     }
 
     public static function password($length = 12) {

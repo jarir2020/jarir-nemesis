@@ -1,4 +1,9 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 7 — Plugin Manifest v2 | Updated: 2026-04-03
+// v2 adds optional: provides, tags, conflicts (all backwards-compatible)
+
 namespace Nemesis\Core;
 
 /**
@@ -94,7 +99,55 @@ class PluginManifest {
         return true;
     }
 
-    public function toArray() {
+    // -------------------------------------------------------------------------
+    // v2 fields (all optional — backwards-compatible with v1 manifests)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Service bindings this plugin registers.
+     * e.g. ["CloudStorage\\StorageInterface" => "CloudStorage\\S3Driver"]
+     *
+     * @return array<string,string>
+     */
+    public function getProvides(): array
+    {
+        return $this->data['provides'] ?? [];
+    }
+
+    /**
+     * Categorisation tags.
+     * e.g. ["storage", "cloud"]
+     *
+     * @return list<string>
+     */
+    public function getTags(): array
+    {
+        return $this->data['tags'] ?? [];
+    }
+
+    /**
+     * Plugin names this plugin is incompatible with.
+     * e.g. ["OtherStoragePlugin"]
+     *
+     * @return list<string>
+     */
+    public function getConflicts(): array
+    {
+        return $this->data['conflicts'] ?? [];
+    }
+
+    /**
+     * Returns true if this is a v2 manifest (has at least one v2 field).
+     */
+    public function isV2(): bool
+    {
+        return isset($this->data['provides'])
+            || isset($this->data['tags'])
+            || isset($this->data['conflicts']);
+    }
+
+    public function toArray(): array
+    {
         return $this->data;
     }
 }

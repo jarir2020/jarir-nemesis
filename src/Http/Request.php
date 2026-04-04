@@ -1,60 +1,176 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 3 — Immutable Request attributes | Updated: 2026-04-02
+
 namespace Nemesis\Http;
 
-class Request {
-    protected $data;
-    protected $headers;
+class Request
+{
+    protected array $data;
+    protected array $headers;
 
-    public function __construct() {
-        $this->data = array_merge($_GET, $_POST, $this->getJsonInput());
+    /**
+     * Arbitrary attributes attached via middleware (e.g. authenticated user).
+     * Use withAttribute() to set; getAttribute() to read.
+     */
+    protected array $attributes = [];
+
+    public function __construct()
+    {
+        $this->data    = array_merge($_GET, $_POST, $this->getJsonInput());
         $this->headers = $this->getAllHeaders();
     }
 
-    protected function getAllHeaders() {
-        if (function_exists('getallheaders')) {
-            return getallheaders();
-        }
+    // -------------------------------------------------------------------------
+    // Immutable attribute bag — Phase 3
+    // Middleware attaches data (e.g. 'auth.user') without mutating the request.
+    // -------------------------------------------------------------------------
 
-        $headers = [];
-        foreach ($_SERVER as $name => $value) {
-            if (substr($name, 0, 5) == 'HTTP_') {
-                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-            }
-        }
-        return $headers;
+    /**
+     * Return a clone of this request with the given attribute set.
+     * Follows the immutable pattern — original is never changed.
+     */
+    public function withAttribute(string $key, mixed $value): static
+    {
+        $clone = clone $this;
+        $clone->attributes[$key] = $value;
+        return $clone;
     }
 
-    protected function getJsonInput() {
-        $input = file_get_contents('php://input');
-        return json_decode($input, true) ?? [];
+    /**
+     * Read a middleware-attached attribute.
+     */
+    public function getAttribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
     }
 
-    public function all() {
+    /**
+     * Return all attributes.
+     *
+     * @return array<string, mixed>
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    // -------------------------------------------------------------------------
+    // Input
+    // -------------------------------------------------------------------------
+
+    public function all(): array
+    {
         return $this->data;
     }
 
-    public function input($key, $default = null) {
+    public function input(string $key, mixed $default = null): mixed
+    {
         return $this->data[$key] ?? $default;
     }
 
-    public function header($key, $default = null) {
-        $key = str_replace('-', '_', strtoupper($key));
-        return $this->headers[$key] ?? $this->headers[str_replace('_', '-', $key)] ?? $default;
+    // -------------------------------------------------------------------------
+    // File uploads — Added: 2026-04-03
+    // -------------------------------------------------------------------------
+
+    /**
+     * Retrieve an uploaded file by input name.
+     * Returns null when the input is absent or had an upload error.
+     */
+    public function file(string $name): ?\Nemesis\Http\UploadedFile
+    {
+        return \Nemesis\Http\UploadedFile::fromGlobal($name);
     }
 
-    public function method() {
-        return $_SERVER['REQUEST_METHOD'];
+    /**
+     * True when the request contains a file with the given input name.
+     */
+    public function hasFile(string $name): bool
+    {
+        return isset($_FILES[$name])
+            && ($_FILES[$name]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
     }
 
-    public function uri() {
-        return $_SERVER['REQUEST_URI'];
+    /**
+     * Retrieve all uploaded files for a multi-file input.
+     *
+     * @return \Nemesis\Http\UploadedFile[]
+     */
+    public function files(string $name): array
+    {
+        return \Nemesis\Http\UploadedFile::fromGlobalAll($name);
     }
 
-    public function validate(array $rules) {
+    // -------------------------------------------------------------------------
+    // Headers
+    // -------------------------------------------------------------------------
+
+    public function header(string $key, mixed $default = null): mixed
+    {
+        $upper = str_replace('-', '_', strtoupper($key));
+        return $this->headers[$upper]
+            ?? $this->headers[str_replace('_', '-', $upper)]
+            ?? $default;
+    }
+
+    // -------------------------------------------------------------------------
+    // Request meta
+    // -------------------------------------------------------------------------
+
+    public function method(): string
+    {
+        return $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    }
+
+    public function uri(): string
+    {
+        return $_SERVER['REQUEST_URI'] ?? '/';
+    }
+
+    // -------------------------------------------------------------------------
+    // Validation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Validate the request data against the given rules.
+     * Throws ValidationException on failure; returns validated data on success.
+     *
+     * @param  array<string, string|array>  $rules
+     * @return array<string, mixed>
+     * @throws \Nemesis\Core\ValidationException
+     */
+    public function validate(array $rules): array
+    {
         $validator = new \Nemesis\Core\Validator();
         if (!$validator->validate($this->data, $rules)) {
             throw new \Nemesis\Core\ValidationException($validator->errors());
         }
         return $this->data;
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
+
+    protected function getAllHeaders(): array
+    {
+        if (function_exists('getallheaders')) {
+            return array_change_key_case((array) getallheaders(), CASE_UPPER);
+        }
+
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (str_starts_with($name, 'HTTP_')) {
+                $headers[substr($name, 5)] = $value;
+            }
+        }
+        return $headers;
+    }
+
+    protected function getJsonInput(): array
+    {
+        $input = file_get_contents('php://input');
+        return json_decode((string) $input, true) ?? [];
     }
 }

@@ -1,0 +1,13 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Events\Event;
+
+class {{ClassName}} extends Event
+{
+    public function __construct(
+        // public readonly ModelType $model,
+    ) {}
+}

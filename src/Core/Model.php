@@ -1,8 +1,12 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 2 — Model updates (toJson, findOrFail) | Updated: 2026-04-03
 
 namespace Nemesis\Core;
 
 use Nemesis\Core\Database;
+use Nemesis\Support\Collection;
 
 abstract class Model implements \ArrayAccess {
     protected $table;
@@ -159,16 +163,55 @@ abstract class Model implements \ArrayAccess {
         return $builder;
     }
 
-    public static function find($id) {
+    public static function find(mixed $id): ?static
+    {
         return static::query()->find($id);
     }
 
-    public static function all() {
+    /**
+     * Find by primary key or throw NotFoundException.
+     *
+     * @throws \Nemesis\Exceptions\NotFoundException
+     */
+    public static function findOrFail(mixed $id): static
+    {
+        return static::query()->findOrFail($id);
+    }
+
+    /** Return all rows as a Collection of hydrated Models. */
+    public static function all(): Collection
+    {
         return static::query()->get();
     }
 
-    public static function where($column, $operator, $value = null) {
+    public static function where(string $column, mixed $operator, mixed $value = null): Builder
+    {
         return static::query()->where($column, $operator, $value);
+    }
+
+    public static function whereNull(string $column): Builder
+    {
+        return static::query()->whereNull($column);
+    }
+
+    public static function whereNotNull(string $column): Builder
+    {
+        return static::query()->whereNotNull($column);
+    }
+
+    public static function whereIn(string $column, array $values): Builder
+    {
+        return static::query()->whereIn($column, $values);
+    }
+
+    public static function latest(string $column = 'created_at'): Builder
+    {
+        return static::query()->latest($column);
+    }
+
+    public static function oldest(string $column = 'created_at'): Builder
+    {
+        return static::query()->oldest($column);
     }
 
     public static function create(array $attributes = []) {
@@ -335,8 +378,19 @@ abstract class Model implements \ArrayAccess {
         return new BelongsToMany($instance, $this, $table, $foreignPivotKey, $relatedPivotKey);
     }
 
-    public function toArray() {
+    public function toArray(): array
+    {
         return array_merge($this->attributes, $this->relations);
+    }
+
+    public function toJson(int $flags = 0): string
+    {
+        return json_encode($this->toArray(), $flags);
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return $this->toArray();
     }
 
     public function getAttributes() {
@@ -375,15 +429,21 @@ abstract class Model implements \ArrayAccess {
         throw new \BadMethodCallException("Method {$method} does not exist.");
     }
 
-    public static function __callStatic($method, $parameters) {
+    public static function __callStatic(string $method, array $parameters): mixed
+    {
         $instance = new static();
-        
-        // Check for scope methods
+
+        // Delegate to Builder first — handles whereNull, whereIn, orderBy, etc.
+        if (method_exists(Builder::class, $method)) {
+            return call_user_func_array([static::query(), $method], $parameters);
+        }
+
+        // Check for scope methods on the model
         if (method_exists($instance, 'scope' . ucfirst($method))) {
             return call_user_func_array([$instance, 'scope' . ucfirst($method)], array_merge([static::query()], $parameters));
         }
- 
-        throw new \BadMethodCallException("Method {$method} does not exist.");
+
+        throw new \BadMethodCallException("Static method [{$method}] does not exist on " . static::class . '.');
     }
  
     // ArrayAccess Implementation
@@ -404,8 +464,5 @@ abstract class Model implements \ArrayAccess {
     }
 }
 
-function class_basename($class) {
-    $class = is_object($class) ? get_class($class) : $class;
-    return basename(str_replace('\\', '/', $class));
-}
+// class_basename() moved to src/Helpers/Helpers.php — 2026-04-02 (R3 fix)
 

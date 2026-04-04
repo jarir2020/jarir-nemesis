@@ -1,0 +1,16 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Core\Controller;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
+
+class {{ClassName}} extends Controller
+{
+    public function index(Request $request): Response
+    {
+        return Response::json(['message' => '{{ClassName}} works']);
+    }
+}

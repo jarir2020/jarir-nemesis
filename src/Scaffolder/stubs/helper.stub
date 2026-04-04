@@ -1,0 +1,11 @@
+<?php
+declare(strict_types=1);
+
+// {{FunctionPrefix}} helpers
+
+if (!function_exists('{{FunctionPrefix}}_example')) {
+    function {{FunctionPrefix}}_example(mixed $value): mixed
+    {
+        return $value;
+    }
+}

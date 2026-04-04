@@ -1,0 +1,12 @@
+<?php
+
+use Nemesis\Database\Seeder;
+use Nemesis\Core\Database;
+
+class {{ClassName}} extends Seeder
+{
+    public function run(): void
+    {
+        // Database::connect()->exec("INSERT INTO ...");
+    }
+}

@@ -1,217 +1,408 @@
 <?php
+declare(strict_types=1);
+
+// Nemesis 4.0.0 | Phase 2 — ORM/Fluent | Updated: 2026-04-03
+
 namespace Nemesis\Core;
 
-use PDOException;
-use Nemesis\Core\Database;
+use Nemesis\Support\Collection;
 
-class Fluent {
+class Fluent
+{
+    protected string $table;
+    protected string $baseQuery;          // FROM clause (set once in constructor)
+    protected array  $params        = [];
+    protected array  $whereParts    = []; // Individual WHERE conditions
+    protected array  $selectColumns = []; // Empty = SELECT *
+    protected array  $orderParts    = [];
+    protected ?int   $limitValue    = null;
+    protected ?int   $offsetValue   = null;
+    protected array  $joinParts     = [];
+    protected array  $groupByParts  = [];
+    protected string $havingClause  = '';
 
-    protected $table;
-    protected $query;
-    protected $params = [];
-    protected $whereClause;
-    // Constructor to set the table
-    public function __construct($table) {
-        $this->table = "`" . str_replace("`", "``", $table) . "`";
-        $this->query = "SELECT * FROM {$this->table}";
+    // -------------------------------------------------------------------------
+    // Construction
+    // -------------------------------------------------------------------------
+
+    public function __construct(string $table)
+    {
+        $this->table     = '`' . str_replace('`', '``', $table) . '`';
+        $this->baseQuery = "SELECT * FROM {$this->table}";
     }
 
-    // Static method to instantiate Fluent with the table
-    public static function table($table) {
-        return new self($table);
+    public static function table(string $table): static
+    {
+        return new static($table);
     }
 
-    public function getTable() {
+    public function getTable(): string
+    {
         return str_replace('`', '', $this->table);
     }
 
-    // Generic where method to replace specific ones
-    public function where($column, $operator, $value = null) {
+    // -------------------------------------------------------------------------
+    // Column selection
+    // -------------------------------------------------------------------------
+
+    public function select(array|string $columns): static
+    {
+        $this->selectColumns = is_array($columns) ? $columns : [$columns];
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // WHERE conditions
+    // -------------------------------------------------------------------------
+
+    public function where(string $column, mixed $operator, mixed $value = null): static
+    {
         if ($value === null) {
-            $value = $operator;
+            $value    = $operator;
             $operator = '=';
         }
-
-        if (empty($this->whereClause)) {
-            $this->whereClause = "WHERE {$column} {$operator} :where_{$column}";
-        } else {
-            $this->whereClause .= " AND {$column} {$operator} :where_{$column}";
-        }
-
-        $this->params["where_{$column}"] = $value;
+        $paramKey = 'w_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $this->whereParts[] = "{$column} {$operator} :{$paramKey}";
+        $this->params[$paramKey] = $value;
         return $this;
     }
 
-    // Deprecated methods for backward compatibility
-    public function whereGET($column, $operator, $value) { return $this->where($column, $operator, $value); }
-    public function whereDELETE($column, $operator, $value) { return $this->where($column, $operator, $value); }
-    public function whereUpdate($column, $operator, $value) { return $this->where($column, $operator, $value); }
-
-    // Add order by clause to the query
-    public function orderBy($column, $direction = 'ASC') {
-        $this->query .= " ORDER BY {$column} {$direction}";
+    public function orWhere(string $column, mixed $operator, mixed $value = null): static
+    {
+        if ($value === null) {
+            $value    = $operator;
+            $operator = '=';
+        }
+        $paramKey = 'or_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $this->whereParts[] = "OR {$column} {$operator} :{$paramKey}";
+        $this->params[$paramKey] = $value;
         return $this;
     }
 
-    // Add limit clause to the query
-    public function limit($limit) {
-        $this->query .= " LIMIT {$limit}";
+    public function whereNull(string $column): static
+    {
+        $this->whereParts[] = "{$column} IS NULL";
         return $this;
     }
 
-    // Add offset clause to the query
-    public function offset($offset) {
-        $this->query .= " OFFSET {$offset}";
+    public function whereNotNull(string $column): static
+    {
+        $this->whereParts[] = "{$column} IS NOT NULL";
         return $this;
     }
 
-    // Perform the select query
-    public function get() {
-        $sql = "SELECT * FROM {$this->table}";
-        
-        if (!empty($this->whereClause)) {
-            $sql .= " " . $this->whereClause;
+    public function whereIn(string $column, array $values): static
+    {
+        if (empty($values)) {
+            // Impossible condition — return zero rows
+            $this->whereParts[] = "1 = 0";
+            return $this;
         }
-        
-        // Extract any ORDER BY, LIMIT, OFFSET from the query
-        if (preg_match('/(ORDER BY .+?)(?=\s+LIMIT|\s+OFFSET|$)/i', $this->query, $orderMatch)) {
-            $sql .= " " . $orderMatch[1];
+        $placeholders = [];
+        foreach ($values as $i => $val) {
+            $paramKey = 'win_' . str_replace('.', '_', $column) . '_' . $i . '_' . count($this->params);
+            $placeholders[]          = ":{$paramKey}";
+            $this->params[$paramKey] = $val;
         }
-        if (preg_match('/(LIMIT \d+)/i', $this->query, $limitMatch)) {
-            $sql .= " " . $limitMatch[1];
-        }
-        if (preg_match('/(OFFSET \d+)/i', $this->query, $offsetMatch)) {
-            $sql .= " " . $offsetMatch[1];
-        }
-        
-        return Database::view($sql, $this->params);
+        $this->whereParts[] = "{$column} IN (" . implode(', ', $placeholders) . ")";
+        return $this;
     }
 
-    // Retrieve the first result of the query
-    public function first() {
+    public function whereNotIn(string $column, array $values): static
+    {
+        if (empty($values)) {
+            return $this;
+        }
+        $placeholders = [];
+        foreach ($values as $i => $val) {
+            $paramKey = 'wnin_' . str_replace('.', '_', $column) . '_' . $i . '_' . count($this->params);
+            $placeholders[]          = ":{$paramKey}";
+            $this->params[$paramKey] = $val;
+        }
+        $this->whereParts[] = "{$column} NOT IN (" . implode(', ', $placeholders) . ")";
+        return $this;
+    }
+
+    public function whereBetween(string $column, mixed $min, mixed $max): static
+    {
+        $minKey = 'wb_min_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $maxKey = 'wb_max_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $this->whereParts[]  = "{$column} BETWEEN :{$minKey} AND :{$maxKey}";
+        $this->params[$minKey] = $min;
+        $this->params[$maxKey] = $max;
+        return $this;
+    }
+
+    public function whereNotBetween(string $column, mixed $min, mixed $max): static
+    {
+        $minKey = 'wnb_min_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $maxKey = 'wnb_max_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $this->whereParts[]    = "{$column} NOT BETWEEN :{$minKey} AND :{$maxKey}";
+        $this->params[$minKey] = $min;
+        $this->params[$maxKey] = $max;
+        return $this;
+    }
+
+    // Backward-compat aliases removed in 3.x but kept as no-ops for safety
+    public function whereGET(string $column, mixed $operator, mixed $value): static    { return $this->where($column, $operator, $value); }
+    public function whereDELETE(string $column, mixed $operator, mixed $value): static { return $this->where($column, $operator, $value); }
+    public function whereUpdate(string $column, mixed $operator, mixed $value): static { return $this->where($column, $operator, $value); }
+
+    // -------------------------------------------------------------------------
+    // JOINs
+    // -------------------------------------------------------------------------
+
+    public function join(string $table, string $first, string $operator, string $second): static
+    {
+        $this->joinParts[] = "INNER JOIN {$table} ON {$first} {$operator} {$second}";
+        return $this;
+    }
+
+    public function leftJoin(string $table, string $first, string $operator, string $second): static
+    {
+        $this->joinParts[] = "LEFT JOIN {$table} ON {$first} {$operator} {$second}";
+        return $this;
+    }
+
+    public function rightJoin(string $table, string $first, string $operator, string $second): static
+    {
+        $this->joinParts[] = "RIGHT JOIN {$table} ON {$first} {$operator} {$second}";
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // ORDER BY / GROUP BY / HAVING
+    // -------------------------------------------------------------------------
+
+    public function orderBy(string $column, string $direction = 'ASC'): static
+    {
+        $direction          = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
+        $this->orderParts[] = "{$column} {$direction}";
+        return $this;
+    }
+
+    public function latest(string $column = 'created_at'): static
+    {
+        return $this->orderBy($column, 'DESC');
+    }
+
+    public function oldest(string $column = 'created_at'): static
+    {
+        return $this->orderBy($column, 'ASC');
+    }
+
+    public function groupBy(string $column): static
+    {
+        $this->groupByParts[] = $column;
+        return $this;
+    }
+
+    public function having(string $column, string $operator, mixed $value): static
+    {
+        $paramKey = 'hav_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $this->havingClause    = "HAVING {$column} {$operator} :{$paramKey}";
+        $this->params[$paramKey] = $value;
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // LIMIT / OFFSET
+    // -------------------------------------------------------------------------
+
+    public function limit(int $limit): static
+    {
+        $this->limitValue = max(0, $limit); // R7 fix: typed int — 2026-04-02
+        return $this;
+    }
+
+    public function offset(int $offset): static
+    {
+        $this->offsetValue = max(0, $offset); // R7 fix: typed int — 2026-04-02
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // SQL builder
+    // -------------------------------------------------------------------------
+
+    protected function buildSelectSql(): string
+    {
+        $cols = empty($this->selectColumns) ? '*' : implode(', ', $this->selectColumns);
+        $sql  = "SELECT {$cols} FROM {$this->table}";
+
+        if (!empty($this->joinParts)) {
+            $sql .= ' ' . implode(' ', $this->joinParts);
+        }
+        if (!empty($this->whereParts)) {
+            $sql .= ' WHERE ' . $this->compileWhere();
+        }
+        if (!empty($this->groupByParts)) {
+            $sql .= ' GROUP BY ' . implode(', ', $this->groupByParts);
+        }
+        if ($this->havingClause !== '') {
+            $sql .= ' ' . $this->havingClause;
+        }
+        if (!empty($this->orderParts)) {
+            $sql .= ' ORDER BY ' . implode(', ', $this->orderParts);
+        }
+        if ($this->limitValue !== null) {
+            $sql .= ' LIMIT ' . $this->limitValue;
+        }
+        if ($this->offsetValue !== null) {
+            $sql .= ' OFFSET ' . $this->offsetValue;
+        }
+        return $sql;
+    }
+
+    /**
+     * Compile WHERE parts: strip leading "OR" from first condition,
+     * join remaining parts with a space (they carry AND/OR prefix).
+     */
+    protected function compileWhere(): string
+    {
+        $parts = $this->whereParts;
+        // First part must not start with OR
+        if (!empty($parts)) {
+            $parts[0] = preg_replace('/^OR\s+/i', '', $parts[0]);
+        }
+        // Parts that don't start with OR get AND prepended (except first)
+        for ($i = 1; $i < count($parts); $i++) {
+            if (!preg_match('/^(OR|AND)\s/i', $parts[$i])) {
+                $parts[$i] = 'AND ' . $parts[$i];
+            }
+        }
+        return implode(' ', $parts);
+    }
+
+    // -------------------------------------------------------------------------
+    // READ operations  — all return Collection
+    // -------------------------------------------------------------------------
+
+    /**
+     * Execute SELECT and return a Collection of raw associative arrays.
+     * Phase 2: changed from plain array to Collection — 2026-04-03
+     */
+    public function get(): Collection
+    {
+        $rows = Database::view($this->buildSelectSql(), $this->params);
+        return new Collection($rows ?: []);
+    }
+
+    /** Return the first row as a plain array, or null. */
+    public function first(): mixed
+    {
         $result = $this->limit(1)->get();
-        return $result ? $result[0] : null;
+        return $result->first();
     }
 
-    // Find record by primary key
-    public function find($id, $column = 'id') {
+    /** Find a row by primary key (returns plain array or null). */
+    public function find(mixed $id, string $column = 'id'): mixed
+    {
         return $this->where($column, '=', $id)->first();
     }
 
-    // Get all records from the table
-    public function all() {
+    /** Alias of get() — returns Collection. */
+    public function all(): Collection
+    {
         return $this->get();
     }
 
-    // Count records
-    public function count() {
-        $sql = "SELECT COUNT(*) as count FROM {$this->table}";
-        if (!empty($this->whereClause)) {
-            $sql .= " " . $this->whereClause;
-        }
+    // -------------------------------------------------------------------------
+    // Aggregates
+    // -------------------------------------------------------------------------
+
+    public function count(): int
+    {
+        $cols = empty($this->selectColumns) ? '*' : implode(', ', $this->selectColumns);
+        $sql  = "SELECT COUNT({$cols}) as aggregate FROM {$this->table}";
+        if (!empty($this->joinParts))    $sql .= ' ' . implode(' ', $this->joinParts);
+        if (!empty($this->whereParts))   $sql .= ' WHERE ' . $this->compileWhere();
+        if (!empty($this->groupByParts)) $sql .= ' GROUP BY ' . implode(', ', $this->groupByParts);
         $result = Database::view($sql, $this->params);
-        return (int) ($result[0]['count'] ?? 0);
+        return (int) ($result[0]['aggregate'] ?? 0);
     }
 
-    // Insert data into the table and return last insert ID
-    public function insert($data) {
-        $columns = implode(', ', array_keys($data));
-        $placeholders = implode(', ', array_map(fn($item) => ":{$item}", array_keys($data)));
-        $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
+    public function max(string $column): mixed
+    {
+        $sql = "SELECT MAX({$column}) as aggregate FROM {$this->table}";
+        if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
+        $result = Database::view($sql, $this->params);
+        return $result[0]['aggregate'] ?? null;
+    }
+
+    public function min(string $column): mixed
+    {
+        $sql = "SELECT MIN({$column}) as aggregate FROM {$this->table}";
+        if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
+        $result = Database::view($sql, $this->params);
+        return $result[0]['aggregate'] ?? null;
+    }
+
+    public function sum(string $column): mixed
+    {
+        $sql = "SELECT SUM({$column}) as aggregate FROM {$this->table}";
+        if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
+        $result = Database::view($sql, $this->params);
+        return $result[0]['aggregate'] ?? 0;
+    }
+
+    public function avg(string $column): mixed
+    {
+        $sql = "SELECT AVG({$column}) as aggregate FROM {$this->table}";
+        if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
+        $result = Database::view($sql, $this->params);
+        return $result[0]['aggregate'] ?? 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // WRITE operations
+    // -------------------------------------------------------------------------
+
+    public function insert(array $data): int|string
+    {
+        $columns      = implode(', ', array_keys($data));
+        $placeholders = implode(', ', array_map(fn($k) => ":{$k}", array_keys($data)));
+        $sql          = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
         Database::create($sql, $data);
         return Database::connect()->lastInsertId();
     }
 
-    // Update data in the table
-    public function update($data) {
+    public function update(array $data): int
+    {
+        if (empty($this->whereParts)) {
+            throw new \RuntimeException("WHERE clause is required for update queries.");
+        }
         $set = [];
         foreach ($data as $column => $value) {
-            $set[] = "{$column} = :update_{$column}";
-            $this->params["update_{$column}"] = $value;
+            $paramKey = 'upd_' . $column . '_' . count($this->params);
+            $set[]    = "{$column} = :{$paramKey}";
+            $this->params[$paramKey] = $value;
         }
-    
-        if (!empty($this->whereClause)) {
-            $this->query = "UPDATE {$this->table} SET " . implode(', ', $set) . " {$this->whereClause}";
-        } else {
-            throw new \Exception("WHERE clause is missing in update query.");
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $set) . ' WHERE ' . $this->compileWhere();
+        return Database::update($sql, $this->params);
+    }
+
+    public function delete(): int
+    {
+        if (empty($this->whereParts)) {
+            throw new \RuntimeException("WHERE clause is required for delete queries.");
         }
-    
-        return Database::update($this->query, $this->params);
-    }
-    
-
-    // Delete records from the table
-    public function delete() {
-        if (empty($this->whereClause)) {
-            throw new \Exception("WHERE clause is missing in delete query.");
-        }
-    
-        $this->query = "DELETE FROM {$this->table} {$this->whereClause}";
-    
-        return Database::delete($this->query, $this->params);
-    }
-    
-
-    // Add an OR condition to the WHERE clause
-    public function orWhere($column, $operator, $value = null) {
-        if ($value === null) {
-            $value = $operator;
-            $operator = '=';
-        }
-
-        if (empty($this->whereClause)) {
-            $this->whereClause = "WHERE {$column} {$operator} :or_{$column}";
-        } else {
-            $this->whereClause .= " OR {$column} {$operator} :or_{$column}";
-        }
-        $this->params["or_{$column}"] = $value;
-        return $this;
+        $sql = "DELETE FROM {$this->table} WHERE " . $this->compileWhere();
+        return Database::delete($sql, $this->params);
     }
 
-    // Join another table with this one (INNER JOIN)
-    public function join($table, $first, $operator, $second) {
-        $this->query .= " INNER JOIN {$table} ON {$first} {$operator} {$second}";
-        return $this;
-    }
+    // -------------------------------------------------------------------------
+    // Pagination
+    // -------------------------------------------------------------------------
 
-    // Add GROUP BY clause to the query
-    public function groupBy($column) {
-        $this->query .= " GROUP BY {$column}";
-        return $this;
-    }
-
-    // Add HAVING clause to the query
-    public function having($column, $operator, $value) {
-        $this->whereClause .= " HAVING {$column} {$operator} :having_{$column}";
-        $this->params["having_{$column}"] = $value;
-        return $this;
-    }
-    
-    public function max($column) {
-        $sql = "SELECT MAX({$column}) as max_value FROM {$this->table}";
-        if (!empty($this->whereClause)) $sql .= " " . $this->whereClause;
-        $result = Database::view($sql, $this->params);
-        return $result && isset($result[0]['max_value']) ? (int) $result[0]['max_value'] : 0;
-    }
-
-    public function min($column) {
-        $sql = "SELECT MIN({$column}) as min_value FROM {$this->table}";
-        if (!empty($this->whereClause)) $sql .= " " . $this->whereClause;
-        $result = Database::view($sql, $this->params);
-        return $result && isset($result[0]['min_value']) ? (int) $result[0]['min_value'] : 0;
-    }
-
-    public function paginate($perPage = 15, $page = null) {
+    public function paginate(int $perPage = 15, int $page = null): Paginator
+    {
         if ($page === null) {
-            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
         }
-
-        $total = $this->count();
+        $total  = (clone $this)->count();
         $offset = ($page - 1) * $perPage;
-
-        $items = $this->limit($perPage)->offset($offset)->get();
-        
-        return new Paginator($items ?: [], $total, $perPage, $page);
+        $items  = (clone $this)->limit($perPage)->offset($offset)->get(); // Collection
+        return new Paginator($items, $total, $perPage, $page);
     }
-
 }

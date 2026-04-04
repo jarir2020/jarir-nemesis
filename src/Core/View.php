@@ -1,52 +1,96 @@
 <?php
+declare(strict_types=1);
 namespace Nemesis\Core;
 
-class View {
-    protected static $namespaces = [];
+use Nemesis\View\Engine;
+
+/**
+ * Nemesis View facade.
+ *
+ * Thin static wrapper around Engine — all real work is delegated there.
+ * Maintains backwards-compatibility with existing addNamespace() + render()
+ * call sites while transparently using the new Blade-compatible Engine.
+ *
+ * Phase 11 | Rewritten: 2026-04-03  (previous: plain require-based renderer)
+ */
+class View
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // Configuration
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Add a view namespace.
+     * Add a named view namespace.
      *
-     * @param string $namespace
-     * @param string $path
+     * @param string $namespace  Short alias, e.g. 'admin'
+     * @param string $path       Absolute directory path
      */
-    public static function addNamespace($namespace, $path) {
-        self::$namespaces[$namespace] = rtrim($path, '/\\');
+    public static function addNamespace(string $namespace, string $path): void
+    {
+        self::engine()->addNamespace($namespace, $path);
     }
 
     /**
-     * Render a view.
+     * Add an extra view search path.
      *
-     * @param string $view
-     * @param array $data
-     * @throws \Exception
+     * @param string $path  Absolute directory path
      */
-    public static function render($view, $data = []) {
-        $path = self::getViewPath($view);
+    public static function addPath(string $path): void
+    {
+        self::engine()->addPath($path);
+    }
 
-        if (!file_exists($path)) {
-            throw new \Exception("View [{$view}] not found at [{$path}].");
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Rendering
+    // ─────────────────────────────────────────────────────────────────────────
 
-        extract($data);
-        require $path;
+    /**
+     * Render a view and echo the result.
+     * Backwards-compatible with the original View::render() signature.
+     *
+     * @param string $view  Dot-notation view name or namespace::view
+     * @param array  $data  Variables to expose in the view
+     *
+     * @throws \RuntimeException if the view file cannot be found
+     */
+    public static function render(string $view, array $data = []): void
+    {
+        echo self::engine()->render($view, $data);
     }
 
     /**
-     * Get the actual path to a view file.
+     * Compile and render a view, returning the HTML as a string.
      *
      * @param string $view
+     * @param array  $data
      * @return string
      */
-    protected static function getViewPath($view) {
-        if (strpos($view, '::') !== false) {
-            list($namespace, $viewName) = explode('::', $view, 2);
-            if (isset(self::$namespaces[$namespace])) {
-                return self::$namespaces[$namespace] . '/' . str_replace('.', '/', $viewName) . '.php';
-            }
-        }
+    public static function make(string $view, array $data = []): string
+    {
+        return self::engine()->render($view, $data);
+    }
 
-        // Default path
-        return __DIR__ . "/../../app/Views/" . str_replace('.', '/', $view) . '.php';
+    /**
+     * Check whether a view file exists.
+     *
+     * @param string $view
+     * @return bool
+     */
+    public static function exists(string $view): bool
+    {
+        return self::engine()->exists($view);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Engine access
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Return the shared Engine singleton.
+     * Callers can reach the Engine directly for advanced configuration.
+     */
+    public static function engine(): Engine
+    {
+        return Engine::getInstance();
     }
 }

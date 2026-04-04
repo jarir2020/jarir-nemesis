@@ -1,0 +1,37 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Contracts\RepositoryInterface;
+
+class {{ClassName}} implements RepositoryInterface
+{
+    public function find(int|string $id): ?object
+    {
+        // return {{ModelName}}::find($id);
+        return null;
+    }
+
+    public function all(): array
+    {
+        // return {{ModelName}}::all();
+        return [];
+    }
+
+    public function create(array $data): object
+    {
+        // return {{ModelName}}::create($data);
+        return new \stdClass();
+    }
+
+    public function update(int|string $id, array $data): bool
+    {
+        return false;
+    }
+
+    public function delete(int|string $id): bool
+    {
+        return false;
+    }
+}

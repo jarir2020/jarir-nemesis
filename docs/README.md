@@ -1,125 +1,159 @@
 # Nemesis Framework Documentation
 
-Welcome to the Nemesis Framework documentation. This guide will help you understand and use all the features of the framework.
-
-## 📚 Table of Contents
-
-### 🚀 Getting Started
-- **[Installation](INSTALLATION.md)** - Setup and configuration
-- **[Directory Structure](STRUCTURE.md)** - Application organization
-- **[CLI Commands](CLI_COMMANDS.md)** - Command line reference
-
-### 🏗️ Architecture
-- **[Module System](MODULES.md)** - Build modular applications
-- **[Plugin System](PLUGINS.md)** - Extend the framework
-- **[Routing](ROUTING.md)** - URL routing (Web & API)
-- **[Middleware](MIDDLEWARE.md)** - Request filtering
-- **[Dependency Injection](DEPENDENCY_INJECTION.md)** - Service container
-- **[API Standards](API_STANDARDS.md)** - Response standards and CORS
-
-### 💾 Database
-- **[Database](DATABASE.md)** - Query builder and basics
-- **[Models (ORM)](MODELS.md)** - Eloquent-style ORM
-- **[Migrations](MIGRATIONS.md)** - Schema version control
-
-### 🛡️ Security
-- **[Authentication](AUTHENTICATION.md)** - User login and management
-- **[Authorization](AUTHORIZATION.md)** - Roles and Permissions (RBAC)
-- **[Security](SECURITY.md)** - Encryption, CSRF, and Protection
-
-### ⚡ Advanced Features
-- **[Queues](QUEUES.md)** - Background job processing
-- **[Task Scheduling](SCHEDULING.md)** - Cron jobs and tasks
-- **[WebSockets](WEBSOCKETS.md)** - Real-time communication
-- **[Multi-Tenancy](MULTI_TENANCY.md)** - SaaS application support
-- **[Media & Files](MEDIA.md)** - Uploads, Images, PDF, Excel
-- **[Validation](VALIDATION.md)** - Input validation
-
-### 🧪 Development
-- **[Testing](TESTING.md)** - Unit and feature testing
+**Version 5.0.0** — PHP 8.2+ | 769 tests passing
 
 ---
 
-## Quick Start
+## Table of Contents
 
-### Module System
+### Getting Started
+- **[Installation](INSTALLATION.md)** — Setup, environment, and configuration
+- **[Directory Structure](STRUCTURE.md)** — Application organisation
+- **[CLI Commands](CLI_COMMANDS.md)** — Full command reference
 
-Create self-contained, feature-based modules:
+### Architecture
+- **[Module System](MODULES.md)** — Build self-contained feature modules
+- **[Plugin System](PLUGINS.md)** — Extend the framework via sandboxed plugins
+- **[Routing](ROUTING.md)** — Web, API, named routes, model binding, subdomain
+- **[Middleware](MIDDLEWARE.md)** — Request pipeline and middleware groups
+- **[Dependency Injection](DEPENDENCY_INJECTION.md)** — PSR-11 service container
+- **[API Standards](API_STANDARDS.md)** — Consistent JSON response format and CORS
 
-```bash
-# Create a new module
-php nemesis make:module Blog
+### Views & Frontend
+- **[Template Engine](TEMPLATE_ENGINE.md)** — Blade-compatible templates, directives, layouts
+- **[Controllers](CONTROLLERS.md)** — Controller basics and response helpers
 
-# Module structure is auto-generated
-# Routes are auto-discovered
-# Views use namespaced syntax: blog::index
-```
-**[Read Module Documentation →](MODULES.md)**
+### Database
+- **[Database](DATABASE.md)** — Connection, query builder, multi-driver
+- **[Models (ORM)](MODELS.md)** — Fluent ORM, scopes, relationships
+- **[Relationships](RELATIONSHIPS.md)** — HasOne, HasMany, BelongsTo, BelongsToMany
+- **[Migrations](MIGRATIONS.md)** — Schema version control
+- **[Seeding](SEEDING.md)** — Seed test and sample data
+- **[Query Builder](QUERY_BUILDER.md)** — Raw query builder reference
+- **[Scopes](SCOPES.md)** — Reusable query constraints
+
+### Security
+- **[Authentication](AUTHENTICATION.md)** — JWT, sessions, OAuth2, TOTP
+- **[Authorization](AUTHORIZATION.md)** — Roles, permissions, policies (RBAC)
+- **[Security](SECURITY.md)** — CSRF, encryption, input sanitisation
+- **[CSRF Protection](CSRF.md)** — Token generation and verification
+
+### CMS & Content
+- **[CMS](CMS.md)** — Hooks, filters, content types, menus, revisions
+- **[Admin Panel & Media Library](ADMIN.md)** — Role-based admin UI, image processing
+
+### Advanced Features
+- **[Notifications](NOTIFICATIONS.md)** — Multi-channel: log, database, mail, broadcast, Slack, webhook
+- **[Full-Text Search](SEARCH.md)** — NullDriver, database LIKE, MeiliSearch
+- **[Queues](QUEUES.md)** — Background job processing, retry, batch
+- **[Task Scheduling](SCHEDULING.md)** — Cron-based task scheduler
+- **[WebSockets](WEBSOCKETS.md)** — Real-time broadcasting
+- **[Multi-Tenancy](MULTI_TENANCY.md)** — SaaS database-per-tenant support
+- **[Media & Files](MEDIA.md)** — Uploads, archive/zip drivers
+- **[Validation](VALIDATION.md)** — Input validation rules and custom validators
+- **[Encryption](ENCRYPTION.md)** — AES-256-GCM encryption helpers
+
+### E-Commerce
+- **[E-Commerce](ECOMMERCE.md)** — Payment gateways, catalog, cart, orders, inventory
+
+### Development
+- **[Testing](TESTING.md)** — TestCase, HTTP testing, fakes, database assertions
+- **[Dependency Injection](DEPENDENCY_INJECTION.md)** — Container and service providers
+
+### Plugins (Bundled)
+- **[DebugBar Plugin](PLUGIN_DEBUGBAR.md)**
+- **[Cloud Storage Plugin](PLUGIN_CLOUD.md)**
+- **[Swagger / OpenAPI Plugin](PLUGIN_SWAGGER.md)**
+- **[IDE Helper Plugin](PLUGIN_IDE.md)**
+- **[Audit Log Plugin](PLUGIN_AUDIT.md)**
 
 ---
 
-### Plugin System
+## Quick Examples
 
-Extend the framework with plugins:
-
-```bash
-# Create a new plugin
-php nemesis plugin:create Auth2FA
-
-# Enable a plugin
-php nemesis plugin:enable auth2fa
-```
-**[Read Plugin Documentation →](PLUGINS.md)**
-
----
-
-### API Standards
-
-Build consistent APIs with standardized responses:
+### Route → Controller → View
 
 ```php
-use Nemesis\Http\ApiResponse;
-
-// Success response
-ApiResponse::success($data, 'Operation successful');
-
-// Error responses
-ApiResponse::notFound('Resource not found');
+// routes/web.php
+$router->add('GET', '/posts', [\App\Controllers\PostController::class, 'index']);
 ```
-**[Read API Standards Documentation →](API_STANDARDS.md)**
+
+```php
+// app/Controllers/PostController.php
+class PostController extends Controller {
+    public function index() {
+        return $this->render('posts.index', ['posts' => Post::published()->get()]);
+    }
+}
+```
+
+```
+{{-- views/posts/index.nemesis.php --}}
+@extends('layouts.app')
+@section('content')
+    @foreach ($posts as $post)
+        <h2>{{ $post->title }}</h2>
+    @endforeach
+@endsection
+```
+
+### Notifications
+
+```php
+$user->notify(new OrderShipped($order));  // mail + database channels
+```
+
+### Full-Text Search
+
+```php
+$results = Post::search('nemesis framework')->limit(10)->get();
+```
+
+### Cart & Checkout
+
+```php
+$cart = Cart::instance();
+$cart->add(Product::find(1), qty: 2);
+Cart::registerCoupon('SAVE10', 'percent', 10);
+$cart->applyCoupon('SAVE10');
+
+$order  = Order::createFromCart($cart, auth()->id());
+$charge = PaymentManager::charge($order->grandTotalCents(), $token);
+$order->recordPayment($charge)->process();
+```
+
+### CMS Hooks
+
+```php
+addHook('post.published', fn($post) => SearchEngine::index(Post::class, $post->id, $post->toSearchArray()));
+```
 
 ---
 
-## 🏛️ Architecture Overview
+## Architecture Overview
 
 ```
-Nemesis Framework
-│
-├── Modules (Application Layer)
-│   └── Extend your application
-│       ├── Blog Module
-│       ├── Shop Module
-│       └── Forum Module
-│
-├── Plugins (Framework Layer)
-│   └── Extend the framework
-│       ├── Auth2FA Plugin
-│       ├── Cache Plugin
-│       └── Analytics Plugin
-│
-└── Core Framework
-    ├── Routing
-    ├── Database (ORM)
-    ├── Validation
-    ├── Middleware
-    └── API Standards
+Nemesis 5.0.0
+├── Core              — DI container (PSR-11), bootstrap, config, router
+├── ORM               — Fluent models, relationships, soft deletes, revisions
+├── HTTP              — Request/Response, pipeline, middleware groups
+├── Template Engine   — Blade-compatible compiler + view cache
+├── Auth              — JWT, sessions, OAuth2, TOTP, roles, policies
+├── Events            — Typed event dispatcher + hook/filter system
+├── Plugin System     — Sandboxed plugins with manifest v2
+├── CLI               — 40+ commands, Scaffolder, CommandBus, Scheduler
+├── Testing           — TestCase, HTTP client, fakes, DB assertions
+├── Assets            — Vite + Webpack manifests, HMR
+├── Queue             — Sync, database, Redis drivers; retry, batch, chain
+├── CMS               — Content types, taxonomies, menus, meta store
+├── Admin             — RBAC admin panel, dashboard widgets
+├── Media             — Upload, image resize, WebP, srcset
+├── Notifications     — 6 channels: log, database, mail, broadcast, Slack, webhook
+├── Search            — NullDriver, database, MeiliSearch
+└── E-Commerce        — Payments, catalog, cart, orders, inventory
 ```
 
 ---
 
-## Support
-
-For more information, visit the individual documentation files or check the framework source code.
-
-**Framework Version:** 3.0.0  
-**PHP Requirement:** >= 8.0
+**PHP Requirement:** >= 8.2
+**Test Suite:** 769 / 769 passing

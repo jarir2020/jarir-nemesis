@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Nemesis\Support;
 
@@ -97,5 +98,56 @@ class Arr {
             }
         }
         return $results;
+    }
+
+    // Added: 2026-04-03
+
+    /**
+     * Decode JSON-encoded string fields inside an array in place.
+     *
+     * Useful for bilingual / multi-locale models that store JSON in DB columns.
+     * $fieldsOrModel may be a plain array of field names, or a model class string
+     * that exposes a static getBilingualFields(): array method.
+     *
+     *   Arr::decodeJsonFields($row, ['name', 'description']);
+     *   Arr::decodeJsonFields($row, Post::class);   // Post::getBilingualFields()
+     */
+    public static function decodeJsonFields(array $data, array|string $fieldsOrModel): array
+    {
+        $fields = is_array($fieldsOrModel)
+            ? $fieldsOrModel
+            : (method_exists($fieldsOrModel, 'getBilingualFields')
+                ? $fieldsOrModel::getBilingualFields()
+                : []);
+
+        foreach ($fields as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $decoded = json_decode($data[$field], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $data[$field] = $decoded;
+                }
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Return a fixed label map for custom attribute types.
+     * Kept as a generic named-constant helper; callers can extend/override.
+     *
+     * @return array<string, string>
+     */
+    public static function customAttributeTypes(): array
+    {
+        return [
+            '1' => 'Single Line Text',
+            '2' => 'Multi Line Text',
+            '3' => 'Date',
+            '4' => 'Numeric',
+            '5' => 'File',
+            '6' => 'Yes/No',
+            '7' => 'Single Option',
+            '8' => 'Multi Option',
+        ];
     }
 }

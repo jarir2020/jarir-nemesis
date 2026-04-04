@@ -1,0 +1,13 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+class {{ClassName}}
+{
+    public function handle(mixed $payload): mixed
+    {
+        // Handle here
+        return $payload;
+    }
+}
