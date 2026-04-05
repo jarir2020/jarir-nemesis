@@ -45,7 +45,7 @@
         "post-create-project-cmd": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php bin/nemesis key:generate",
-            "@php -r \"echo '\\n✓ Nemesis project ready! Edit .env then run: php nemesis serve\\n';\""
+            "@php -r \"echo PHP_EOL . '✓ Nemesis project ready! Edit .env then run: php nemesis serve' . PHP_EOL;\""
         ]
     }
 }
