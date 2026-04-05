@@ -658,15 +658,31 @@ switch ($command) {
             }
         }
 
-        // 6. DB Connection
+        // 6. DB Connection — Updated: 2026-04-06 — driver-aware (sqlite/mysql/pgsql)
         echo "  [CHECK] Database connection... ";
         try {
             $config = require $projectRoot . '/config/config.php';
-            $db = new \PDO(
-                "mysql:host={$config['database']['host']};dbname={$config['database']['dbname']}",
-                $config['database']['user'],
-                $config['database']['password']
-            );
+            $dbcfg  = $config['database'];
+            $driver = strtolower($dbcfg['driver'] ?? 'sqlite');
+
+            if ($driver === 'sqlite') {
+                $path = $dbcfg['database'] ?? ':memory:';
+                if ($path !== ':memory:') {
+                    $dir = dirname($path);
+                    if (!is_dir($dir)) mkdir($dir, 0755, true);
+                }
+                $db = new \PDO("sqlite:{$path}");
+            } elseif ($driver === 'pgsql') {
+                $db = new \PDO(
+                    "pgsql:host={$dbcfg['host']};port={$dbcfg['port']};dbname={$dbcfg['dbname']}",
+                    $dbcfg['username'], $dbcfg['password']
+                );
+            } else {
+                $db = new \PDO(
+                    "mysql:host={$dbcfg['host']};port={$dbcfg['port']};dbname={$dbcfg['dbname']}",
+                    $dbcfg['username'], $dbcfg['password']
+                );
+            }
             echo "[OK]\n";
         } catch (\Exception $e) {
             echo "[FAIL]\n";
@@ -1383,6 +1399,7 @@ switch ($command) {
 }
 
 function updateEnv($key, $value) {
+    global $projectRoot;
     $path = $projectRoot . '/.env';
     if (!file_exists($path)) return;
 

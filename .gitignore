@@ -1,6 +1,9 @@
 # Nemesis Framework .gitignore
 /vendor/
 /.env
+/database/*.sqlite
+/database/*.sqlite-shm
+/database/*.sqlite-wal
 /storage/cache/*
 /storage/logs/*
 /storage/framework/views/*

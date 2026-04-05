@@ -122,9 +122,17 @@ class Database
 
     private static function connectSqlite(): PDO
     {
+        // Updated: 2026-04-06 — resolve path, auto-create parent directory
         $path = self::$config['database'] ?? self::$config['dbname'] ?? ':memory:';
-        $dsn  = "sqlite:{$path}";
-        return new PDO($dsn, '', '', self::pdoOptions());
+
+        if ($path !== ':memory:') {
+            $dir = dirname($path);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+        }
+
+        return new PDO("sqlite:{$path}", '', '', self::pdoOptions());
     }
 
     private static function pdoOptions(): array

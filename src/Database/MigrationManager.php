@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+
+// Nemesis 5.0.0 | Updated: 2026-04-06 — driver-aware migrations table (SQLite + MySQL)
+
 namespace Nemesis\Database;
 
 use Nemesis\Core\Database;
@@ -14,11 +17,22 @@ class MigrationManager {
     }
 
     protected function createMigrationsTable() {
-        $sql = "CREATE TABLE IF NOT EXISTS migrations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            migration VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=INNODB;";
+        $driver = Database::getDriverName();
+
+        if ($driver === 'sqlite') {
+            $sql = "CREATE TABLE IF NOT EXISTS migrations (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )";
+        } else {
+            $sql = "CREATE TABLE IF NOT EXISTS migrations (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                migration  VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=INNODB";
+        }
+
         Database::connect()->exec($sql);
     }
 
