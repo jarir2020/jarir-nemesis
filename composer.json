@@ -1,7 +1,7 @@
 {
     "name": "jarir/nemesis-framework",
     "description": "Nemesis: A High-Performance, Zero-Dependency PHP Framework for SaaS and APIs.",
-    "version": "5.1.0",
+    "version": "5.1.1",
     "type": "project",
     "require": {
         "php": ">=8.2",
