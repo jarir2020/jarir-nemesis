@@ -914,6 +914,65 @@ PHP,
         echo PHP_EOL . "✓ make:social-auth {$driverTitle} complete." . PHP_EOL;
         break;
 
+    case 'schedule:run':
+        // Phase 18 — run due scheduled tasks | 2026-04-06
+        define('NEMESIS_BASE_PATH', $projectRoot);
+        define('NEMESIS_BIN', 'php ' . escapeshellarg($projectRoot . '/nemesis'));
+
+        $kernelFile = $projectRoot . '/app/Console/Kernel.php';
+        if (!file_exists($kernelFile)) {
+            echo "No app/Console/Kernel.php found. Run `php nemesis make:schedule-kernel` to create one.\n";
+            break;
+        }
+
+        require_once $kernelFile;
+
+        $scheduler = new Nemesis\Console\Scheduler();
+        $kernel    = new App\Console\Kernel();
+        $kernel->schedule($scheduler);
+
+        $ran = $scheduler->run();
+        if ($ran === 0) {
+            echo '[' . date('Y-m-d H:i:s') . '] No tasks due.' . PHP_EOL;
+        }
+        break;
+
+    case 'schedule:list':
+        // Phase 18 — list all scheduled tasks | 2026-04-06
+        define('NEMESIS_BASE_PATH', $projectRoot);
+        define('NEMESIS_BIN', 'php ' . escapeshellarg($projectRoot . '/nemesis'));
+
+        $schedKernelFile = $projectRoot . '/app/Console/Kernel.php';
+        if (!file_exists($schedKernelFile)) {
+            echo "No app/Console/Kernel.php found.\n";
+            break;
+        }
+
+        require_once $schedKernelFile;
+
+        $schedScheduler = new Nemesis\Console\Scheduler();
+        $schedKernel    = new App\Console\Kernel();
+        $schedKernel->schedule($schedScheduler);
+
+        $tasks = $schedScheduler->getTasks();
+        if (empty($tasks)) {
+            echo "No scheduled tasks registered.\n";
+            break;
+        }
+
+        echo PHP_EOL;
+        printf("%-30s %-20s %-40s\n", 'Name', 'Expression', 'Description');
+        echo str_repeat('-', 92) . PHP_EOL;
+        foreach ($tasks as $task) {
+            $name = $task->getName() ?? '(anonymous)';
+            $expr = $task->getExpression();
+            $desc = $task->getDescription() ?? '';
+            printf("%-30s %-20s %-40s\n", $name, $expr, $desc);
+        }
+        echo PHP_EOL;
+        echo "Cron entry: * * * * * php {$projectRoot}/nemesis schedule:run >> /dev/null 2>&1" . PHP_EOL . PHP_EOL;
+        break;
+
     case 'auth:rotate':
         echo "Rotating Application Secrets...\n";
         $envFile = $projectRoot . '/.env';
@@ -1188,6 +1247,8 @@ PHP,
             'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
             'make:auth' => 'Scaffold auth controllers (Login, Register, 2FA) + route hints',
             'make:social-auth' => 'Scaffold social OAuth controller for a given driver (e.g. make:social-auth google)',
+            'schedule:run'    => 'Run all scheduled tasks that are due now (add to system cron: * * * * *)',
+            'schedule:list'   => 'List all registered scheduled tasks with their cron expressions',
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
             'db:seed' => 'Seed the database with records',
