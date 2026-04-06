@@ -18,6 +18,9 @@
 *.log
 .DS_Store
 *.txt
+!plan_v6.txt
+!phases_plan.txt
+!draft_Plan.txt
 .claude
 *.bak
 CLAUDE.md

@@ -1,0 +1,455 @@
+================================================================
+NEMESIS 6.0 — MASTER PLAN
+Theme: "Complete the Vision + Production Security"
+================================================================
+Based on audit of existing stubs and missing features.
+Written: 2026-04-06
+
+CURRENT STUB STATUS (files that exist but are shallow)
+-------------------------------------------------------
+Auth/JWT.php              83  lines  — stub
+Auth/OAuth2Provider.php  107  lines  — stub
+Auth/Totp.php             90  lines  — stub
+Broadcasting/WebSocketServer.php  63 lines — stub
+Broadcasting/Broadcaster.php       8 lines — barely exists
+Tenancy/TenantManager.php         16 lines — barely exists
+Tenancy/TenantScope.php           27 lines — stub
+Security/Crypt.php                24 lines — stub
+GraphQL/GraphQLServer.php         87 lines — stub
+Core/Cache/RedisCacheDriver.php   32 lines — stub
+Console/Scheduler.php            206 lines — exists but NOT wired to CLI
+
+MISSING ENTIRELY
+----------------
+- HTTP Client (fluent, no external dep)
+- Social Authentication (Google, GitHub, X, Facebook)
+- Memcached cache driver
+- MongoDB driver
+- Malicious shell upload scanner
+- DDoS detection + traffic redirection
+- Perl/CGI proxy support
+
+================================================================
+PHASE 1 — Authentication Suite
+================================================================
+Status: JWT/TOTP exist as 83–90 line stubs.
+Goal:   Full production-grade auth with 2FA and API keys.
+
+Deliverables:
+  - JWT: access + refresh tokens, refresh rotation, token blacklist
+    (Redis or DB), configurable TTL, RS256 + HS256 support
+  - TOTP 2FA: QR code URL generation (otpauth://), backup codes
+    (one-time use), enable/disable/reset flow
+  - API Key management: create, rotate, revoke, scope-limited keys
+    stored in DB, middleware to authenticate via X-Api-Key header
+  - `php nemesis make:auth` scaffold — generates controllers + routes
+    for login, register, forgot-password, 2FA verify
+
+Tests: tests/unit/Phase16Test.php
+Success: success-phase-16.md
+
+================================================================
+PHASE 2 — Social Authentication
+================================================================
+Status: OAuth2Provider.php is 107 lines — no actual providers.
+Goal:   Plug-and-play social login with major providers.
+
+Deliverables:
+  - Driver interface: SocialProviderInterface
+  - Drivers: Google, GitHub, X (Twitter), Facebook, LinkedIn
+  - Unified callback handler: find-or-create user, link accounts
+  - SocialUser DTO: id, name, email, avatar, token, rawData
+  - Socialable trait on User model
+  - Config: config/social.php (client_id, client_secret, redirect per driver)
+  - `php nemesis make:social-auth Google` scaffold
+
+Tests: tests/unit/Phase17Test.php
+Success: success-phase-17.md
+
+================================================================
+PHASE 3 — Task Scheduler
+================================================================
+Status: Console/Scheduler.php (206 lines) exists but is never
+        called by bin/nemesis. schedule:run is missing from CLI.
+Goal:   Full cron-style scheduler wired into the framework.
+
+Deliverables:
+  - Wire `schedule:run` to bin/nemesis (calls Scheduler::run())
+  - Wire `schedule:list` to bin/nemesis (table of pending jobs)
+  - Cron expression parser (no external dep, own parser)
+  - Overlap protection: file mutex per job name
+  - Per-job output capture → storage/logs/scheduler.log
+  - app/Console/Kernel.php where users register scheduled jobs:
+      $schedule->command('emails:send')->daily();
+      $schedule->call(fn() => Cache::flush())->hourly();
+      $schedule->job(new ReportJob())->cron('0 8 * * 1');
+  - Supported frequencies: everyMinute, hourly, daily, weekly,
+    monthly, cron(), between(), unlessBetween()
+  - System crontab entry: * * * * * php /path/to/nemesis schedule:run
+
+Tests: tests/unit/Phase18Test.php
+Success: success-phase-18.md
+
+================================================================
+PHASE 4 — HTTP Client
+================================================================
+Status: Missing entirely. No fluent HTTP client anywhere in src/.
+Goal:   Laravel Http-style fluent client, zero external deps
+        beyond Guzzle (already in composer.json).
+
+Deliverables:
+  - Nemesis\Http\Client — wraps Guzzle with fluent interface
+  - Http::get(url)->withToken(t)->retry(3)->json()
+  - Http::post(url)->asJson()->withBody([...])->throw()
+  - Http::withHeaders([...])->timeout(30)->get(url)
+  - Multipart: Http::attach('file', $contents, 'file.pdf')->post()
+  - Http::fake(['url' => Http::response([...], 200)]) for tests
+  - Async: Http::async()->get(url) — PHP Fibers, non-blocking pool
+  - Response: ->json(), ->body(), ->status(), ->ok(), ->throw()
+
+Tests: tests/unit/Phase19Test.php
+Success: success-phase-19.md
+
+================================================================
+PHASE 5 — Real-time / WebSockets
+================================================================
+Status: WebSocketServer.php is 63 lines (stub), Broadcaster.php
+        is 8 lines (barely exists). No channel logic.
+Goal:   Native PHP WebSocket server without Swoole.
+
+Deliverables:
+  - WebSocket server using PHP stream_socket_server + Fibers
+  - Public, private, presence channel types
+  - Pusher-compatible wire protocol (works with Laravel Echo)
+  - Authentication for private/presence channels via HTTP callback
+  - SSE fallback: Nemesis\Broadcasting\SseStream for environments
+    that block WS (firewalls, proxies)
+  - `php nemesis websocket:start [--host=] [--port=]`
+  - Client auth endpoint: POST /broadcasting/auth
+  - Frontend: compatible with laravel-echo + pusher-js
+
+Tests: tests/unit/Phase20Test.php
+Success: success-phase-20.md
+
+================================================================
+PHASE 6 — Multi-tenancy
+================================================================
+Status: TenantManager (16 lines), TenantScope (27 lines) — barely
+        started. No identification, no DB switching.
+Goal:   Full multi-tenancy with two strategies.
+
+Deliverables:
+  - Tenant identification: subdomain, path prefix, request header,
+    configurable priority order
+  - Strategy A — DB-per-tenant: switch PDO connection per request
+  - Strategy B — Shared DB: global TenantScope auto-injects
+    WHERE tenant_id = ? on every query via Model boot hook
+  - TenantMiddleware: bootstraps tenant context before controllers
+  - Tenant-aware: cache (prefix), queue (tenant_id in payload),
+    storage (separate disk path per tenant)
+  - CLI commands:
+      php nemesis tenant:create {name} {domain}
+      php nemesis tenant:migrate {tenant?}
+      php nemesis tenant:seed {tenant?}
+      php nemesis tenant:list
+
+Tests: tests/unit/Phase21Test.php
+Success: success-phase-21.md
+
+================================================================
+PHASE 7 — GraphQL
+================================================================
+Status: GraphQLServer.php is 87 lines (stub). No schema, no
+        resolvers, no type system.
+Goal:   Schema-first GraphQL with model auto-resolvers.
+
+Deliverables:
+  - Schema definition: app/GraphQL/schema.graphql (SDL)
+  - Type system: scalar, object, input, enum, union, interface
+  - Auto-resolvers generated from Nemesis ORM models
+  - Mutations with built-in validation (reuses Validator)
+  - N+1 prevention: DataLoader (batch + cache per request)
+  - Subscriptions over WebSocket (Phase 5 dependency)
+  - Introspection + playground UI at /graphql/playground (dev only)
+  - `php nemesis make:graphql-type User`
+  - `php nemesis make:graphql-mutation CreateUser`
+  - Rate limiting per query complexity score
+
+Tests: tests/unit/Phase22Test.php
+Success: success-phase-22.md
+
+================================================================
+PHASE 8 — Security Hardening
+================================================================
+Status: Security/Crypt.php is 24 lines (stub). No signed URLs,
+        no security headers middleware.
+Goal:   Production-grade cryptography + security headers.
+
+Deliverables:
+  - Crypt: AES-256-GCM encrypt/decrypt (PHP sodium extension),
+    HMAC-SHA256 signing, key rotation support
+  - Signed URLs with expiry:
+      URL::signedRoute('download', ['file' => 'x'], expiry: 3600)
+  - Security headers middleware (add to Kernel):
+      Content-Security-Policy (configurable policy builder)
+      Strict-Transport-Security (HSTS)
+      X-Frame-Options: SAMEORIGIN
+      X-Content-Type-Options: nosniff
+      Referrer-Policy: strict-origin-when-cross-origin
+      Permissions-Policy
+  - `php nemesis security:audit`:
+      - checks APP_DEBUG=false in production
+      - checks APP_KEY length
+      - checks for .env exposure
+      - scans composer.lock for known CVEs
+      - verifies storage/ is not web-accessible
+      - verifies no debug routes in production
+
+Tests: tests/unit/Phase23Test.php
+Success: success-phase-23.md
+
+================================================================
+PHASE 9 — Malicious Shell Upload Scanner & Immobilizer  [NEW]
+================================================================
+Status: Missing entirely. Critical for any framework accepting
+        file uploads.
+Goal:   Detect and neutralize uploaded webshells and malware.
+
+Deliverables:
+  - ShellScanner: scans uploaded files BEFORE they are saved
+  - Signature database (patterns): eval(base64_decode), system(),
+    exec(), passthru(), shell_exec(), popen(), proc_open(),
+    $_REQUEST/$_GET/$_POST used as code, obfuscated PHP tags,
+    <?php combined with base64/gzinflate/str_rot13 chains
+  - Entropy analysis: high-entropy strings often indicate
+    obfuscated shells (Shannon entropy threshold, configurable)
+  - MIME type double-check: verify real MIME vs extension
+    (finfo_file), reject PHP disguised as image/pdf
+  - Immobilizer actions (configurable, in order):
+      1. BLOCK  — reject the upload, return 422
+      2. QUARANTINE — move to storage/quarantine/ (not web-accessible)
+      3. DEFANG — rename to .suspected, strip execute permission
+      4. ALERT  — fire ShellUploadDetected event → Notification
+  - ShellScanMiddleware: wraps UploadedFile before it reaches
+    controllers (opt-in per route or global)
+  - `php nemesis security:scan {path}` — scan existing files on disk
+  - Config: config/security.php — entropy threshold, blocked
+    extensions, quarantine path, alert channels
+  - Hooks: ShellDetected event → log + notify admin
+
+Tests: tests/unit/Phase24Test.php
+Success: success-phase-24.md
+
+================================================================
+PHASE 10 — DDoS Detection + Traffic Redirection           [NEW]
+================================================================
+Status: Missing entirely. No rate-limit intelligence, no
+        automatic IP blocking, no attacker redirection.
+Goal:   Detect HTTP-layer DDoS, block IPs, redirect attackers
+        to high-capacity sinks to exhaust their bandwidth.
+
+Deliverables:
+
+  A. DETECTION
+  - Request rate tracking per IP (sliding window, Redis or file)
+  - Configurable thresholds (per second, per minute, per hour)
+  - Suspicious pattern detection:
+      - Same IP, high request rate
+      - Unusual User-Agent patterns (empty, known bot strings)
+      - Repetitive identical requests (hash-based dedup)
+      - Distributed detection: track subnet (/24) as a group
+  - Scoring system: each signal adds a threat score; above
+    threshold triggers action
+
+  B. ACTIONS (ordered by severity, configurable)
+  - RATE_LIMIT  — slow down (429 with Retry-After header)
+  - CAPTCHA     — redirect to challenge page (Phase TBD)
+  - BLOCK       — add IP to blocklist, return 403
+  - REDIRECT    — redirect attacker to bandwidth sink (see below)
+
+  C. BANDWIDTH SINK REDIRECTION
+  Redirect detected attackers to public Hetzner speed test servers.
+  These are legal, public endpoints designed for high-throughput
+  and can absorb the attack traffic, exhausting the attacker's
+  bandwidth:
+
+      https://nbg1-speed.hetzner.com/10GB.bin  (Nuremberg)
+      https://fsn1-speed.hetzner.com/10GB.bin  (Falkenstein)
+      https://hel1-speed.hetzner.com/10GB.bin  (Helsinki)
+      https://ash-speed.hetzner.com/10GB.bin   (Ashburn, VA)
+      https://hil-speed.hetzner.com/10GB.bin   (Hillsboro, OR)
+      https://sin-speed.hetzner.com/10GB.bin   (Singapore)
+
+  Sink selection: round-robin or geo-closest (by IP geolocation).
+  Response: HTTP 302 to selected sink URL.
+  Note: effective against HTTP-layer (L7) attacks where the
+  attacker's client follows redirects. Does NOT stop SYN floods
+  or UDP floods (those require firewall/upstream mitigation).
+
+  D. IP BLOCKLIST
+  - Persistent blocklist: Redis (TTL) or DB (expires_at)
+  - Auto-expire blocks after configurable duration
+  - `php nemesis ddos:blocklist` — view current blocked IPs
+  - `php nemesis ddos:unblock {ip}` — manually unblock
+  - `php nemesis ddos:stats` — request rates, top IPs, blocked count
+  - Webhook: fire DDoSDetected event → Slack/email notification
+
+  E. CONFIG (config/ddos.php)
+  - enabled: bool
+  - thresholds: [per_second: 20, per_minute: 200, per_hour: 1000]
+  - action: rate_limit | block | redirect
+  - sink_urls: array of Hetzner URLs
+  - sink_strategy: round_robin | geo_closest
+  - block_ttl: 3600 (seconds)
+  - whitelist: [127.0.0.1, ::1, your office IP]
+
+Tests: tests/unit/Phase25Test.php
+Success: success-phase-25.md
+
+================================================================
+PHASE 11 — Extended Database Drivers                       [NEW]
+================================================================
+Status:
+  - PostgreSQL: Grammar exists (PostgresGrammar.php) ✓
+    Connection exists in Database.php ✓
+    Needs: PGSQL-specific Schema Builder (JSONB, arrays, etc.)
+  - MongoDB: Missing entirely
+  - Redis: Cache driver is 32 lines (stub), Queue driver exists
+  - Memcached: Missing entirely
+
+Deliverables:
+
+  A. POSTGRESQL (complete what exists)
+  - Schema Builder: JSONB columns, array types, ENUM, CIDR, INET
+  - Full-text search with tsvector/tsquery (native PGSQL FTS)
+  - Upsert: INSERT ... ON CONFLICT DO UPDATE
+  - Advisory locks
+  - LISTEN/NOTIFY support (real-time from DB layer)
+  - Test against real Postgres in CI
+
+  B. MONGODB
+  - MongoDBDriver: wraps PHP mongodb extension
+  - Fluent query builder: filter(), sort(), limit(), project()
+  - ODM (Object Document Mapper) — MongoModel base class
+  - Aggregation pipeline support
+  - GridFS for large file storage
+  - Config: DB_DRIVER=mongodb, DB_HOST, DB_NAME, DB_USER, DB_PASS
+
+  C. REDIS (complete the stub)
+  - Expand RedisCacheDriver from 32 to full implementation
+  - Tags support (cache tags via Redis sets)
+  - Atomic operations: increment, decrement, setnx
+  - Redis pub/sub for Broadcasting fallback
+  - RedisSessionDriver
+
+  D. MEMCACHED
+  - MemcachedCacheDriver: full PSR-16 compliant
+  - Multiple server pool with weights
+  - Consistent hashing for key distribution
+  - Automatic failover if a node is down
+
+Tests: tests/unit/Phase26Test.php
+Success: success-phase-26.md
+
+================================================================
+PHASE 12 — Developer Experience                            [NEW]
+================================================================
+Status: CLI output is basic, no interactive prompts, no spinners.
+Goal:   Make Nemesis a joy to use locally.
+
+Deliverables:
+  - Interactive CLI prompts (uses Console/Output.php):
+      Output::ask('What is the model name?')
+      Output::select('Choose driver', ['mysql','sqlite','pgsql'])
+      Output::confirm('Run migrations? [y/N]')
+      Output::table([headers], [rows])
+      Output::progress(100, $callback)
+      Output::spinner('Installing...', $callback)
+  - Enhanced error pages (APP_DEBUG=true):
+      Stack trace with syntax-highlighted source preview
+      Request dump: method, URL, headers, body, session
+      Suggestion hints: "Did you mean X?" for class not found
+  - `php nemesis about` — framework version, PHP version,
+    loaded drivers (DB, cache, queue, mail), disk usage,
+    environment, installed plugins
+  - `php nemesis stub:publish` — copy all stubs to app/stubs/
+    so developers can customise scaffold templates
+  - `php nemesis ide-helper:generate` — regenerate _ide_helper.php
+
+Tests: tests/unit/Phase27Test.php
+Success: success-phase-27.md
+
+================================================================
+PHASE 13 — Performance & Deployment                        [NEW]
+================================================================
+Status: No compiled caches beyond view cache, no deployment
+        tooling, no Docker scaffold.
+Goal:   One command to go production-ready.
+
+Deliverables:
+  - Taggable cache: Cache::tags(['users','posts'])->flush()
+  - `php nemesis optimize` (single command that runs all below):
+      config:cache   — compiled config array → storage/bootstrap/
+      route:cache    — serialized route map → storage/bootstrap/
+      view:cache     — pre-compile all Blade views
+      autoload:dump  — composer dump-autoload --classmap-authoritative
+  - `php nemesis optimize:clear` — flush all compiled caches
+  - Response cache middleware: cache full HTTP responses (GET only)
+    with configurable TTL per route
+  - Dockerfile + docker-compose.yml scaffold:
+      php nemesis make:docker  — generates Dockerfile,
+      docker-compose.yml (PHP 8.3 + Nginx + MySQL + Redis),
+      .dockerignore
+  - Health check endpoint /up:
+      Returns 200 JSON with DB ping, cache ping, queue status
+      Used by load balancers, Docker HEALTHCHECK, Kubernetes probes
+  - Zero-downtime deploy hooks:
+      Events: BeforeDeploy, AfterDeploy, DeployFailed
+      php nemesis deploy:down  (maintenance mode with retry header)
+      php nemesis deploy:up
+
+Tests: tests/unit/Phase28Test.php
+Success: success-phase-28.md
+
+================================================================
+SKIPPED (requires external runtime — not feasible in PHP)
+================================================================
+- ASP / ASPX support: requires .NET runtime (IIS or Mono).
+  Cannot be implemented within a PHP framework. SKIP.
+
+- JSP support: requires Java servlet container (Tomcat/Jetty).
+  Cannot be implemented within a PHP framework. SKIP.
+
+================================================================
+DEFERRED (possible but complex — evaluate post v6 core)
+================================================================
+- Perl / CGI support: PHP can proxy CGI requests via proc_open()
+  and pass stdout back as HTTP response. Requires Perl installed
+  on server. Very niche use case. Defer to optional plugin.
+
+================================================================
+SUMMARY TABLE
+================================================================
+Phase | Feature                              | Builds On
+------|--------------------------------------|------------------
+  16  | Authentication Suite                 | Auth stubs
+  17  | Social Authentication                | Phase 16
+  18  | Task Scheduler                       | Console/Scheduler
+  19  | HTTP Client                          | Guzzle (existing)
+  20  | Real-time / WebSockets               | Broadcasting stubs
+  21  | Multi-tenancy                        | Tenancy stubs
+  22  | GraphQL                              | Phase 20 (WS subs)
+  23  | Security Hardening                   | Security/Crypt stub
+  24  | Shell Upload Scanner & Immobilizer   | Media/Upload system
+  25  | DDoS Detection + Redirection         | Middleware layer
+  26  | Extended DB Drivers (PG/Mongo/Redis) | Database layer
+  27  | Developer Experience                 | Console/Output
+  28  | Performance & Deployment             | All of the above
+
+Total new phases: 13
+Estimated new tests: ~520 (avg 40/phase)
+Cumulative after v6: ~1,289 tests
+
+================================================================
+END OF PLAN
+================================================================
