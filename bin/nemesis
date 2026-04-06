@@ -973,6 +973,38 @@ PHP,
         echo "Cron entry: * * * * * php {$projectRoot}/nemesis schedule:run >> /dev/null 2>&1" . PHP_EOL . PHP_EOL;
         break;
 
+    case 'websocket:start':
+        // Phase 20 — start WebSocket server | 2026-04-06
+        define('NEMESIS_BASE_PATH', $projectRoot);
+
+        // Parse --host and --port options
+        $wsHost = '127.0.0.1';
+        $wsPort = 6001;
+        foreach (array_slice($argv, 2) as $arg) {
+            if (str_starts_with($arg, '--host=')) $wsHost = substr($arg, 7);
+            if (str_starts_with($arg, '--port=')) $wsPort = (int) substr($arg, 7);
+        }
+
+        $wsAppKey    = (string) (getenv('WS_APP_KEY')    ?: 'nemesis-key');
+        $wsAppSecret = (string) (getenv('WS_APP_SECRET') ?: 'nemesis-secret');
+
+        $wsServer = new Nemesis\Broadcasting\WebSocketServer($wsHost, $wsPort, $wsAppKey, $wsAppSecret);
+
+        echo "Starting Nemesis WebSocket server..." . PHP_EOL;
+        echo "  Host:       {$wsHost}" . PHP_EOL;
+        echo "  Port:       {$wsPort}" . PHP_EOL;
+        echo "  App Key:    {$wsAppKey}" . PHP_EOL;
+        echo "  Auth URL:   POST /broadcasting/auth" . PHP_EOL . PHP_EOL;
+        echo "Frontend (pusher-js):" . PHP_EOL;
+        echo "  const pusher = new Pusher('{$wsAppKey}', {" . PHP_EOL;
+        echo "      wsHost: '{$wsHost}', wsPort: {$wsPort}," . PHP_EOL;
+        echo "      forceTLS: false, cluster: 'mt1'," . PHP_EOL;
+        echo "      authEndpoint: '/broadcasting/auth'," . PHP_EOL;
+        echo "  });" . PHP_EOL . PHP_EOL;
+
+        $wsServer->start();
+        break;
+
     case 'auth:rotate':
         echo "Rotating Application Secrets...\n";
         $envFile = $projectRoot . '/.env';
@@ -1247,8 +1279,9 @@ PHP,
             'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
             'make:auth' => 'Scaffold auth controllers (Login, Register, 2FA) + route hints',
             'make:social-auth' => 'Scaffold social OAuth controller for a given driver (e.g. make:social-auth google)',
-            'schedule:run'    => 'Run all scheduled tasks that are due now (add to system cron: * * * * *)',
-            'schedule:list'   => 'List all registered scheduled tasks with their cron expressions',
+            'schedule:run'      => 'Run all scheduled tasks that are due now (add to system cron: * * * * *)',
+            'schedule:list'     => 'List all registered scheduled tasks with their cron expressions',
+            'websocket:start'   => 'Start the WebSocket server [--host=127.0.0.1] [--port=6001]',
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
             'db:seed' => 'Seed the database with records',
