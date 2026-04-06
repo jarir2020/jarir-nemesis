@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Nemesis 4.0.0 | Phase 3 — Middleware groups & aliases | Updated: 2026-04-02
+// Nemesis 6.0 | Phase 16 — auth + api.key middleware registered | Updated: 2026-04-06
 
 namespace App\Http;
 
@@ -46,7 +46,8 @@ class Kernel
         'throttle' => \App\Http\Middleware\ThrottleRequests::class,
         'csrf'     => \App\Http\Middleware\VerifyCsrfToken::class,
         'session'  => \App\Http\Middleware\StartSession::class,
-        // 'auth'   => \App\Http\Middleware\Authenticate::class,
+        'auth'    => \App\Http\Middleware\Authenticate::class,
+        'api.key' => \App\Http\Middleware\ApiKeyAuthenticate::class,
         // 'guest'  => \App\Http\Middleware\RedirectIfAuthenticated::class,
         // 'role'   => \App\Http\Middleware\CheckRole::class,
 

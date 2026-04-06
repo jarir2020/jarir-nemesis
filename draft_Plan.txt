@@ -1,0 +1,1071 @@
+================================================================================
+  NEMESIS 4.0.0 - UPGRADE DRAFT PLAN
+  Written by Claude | Last Updated: 2026-04-01
+  Status: DRAFT v2 - Decisions locked, ready for implementation planning
+================================================================================
+
+
+--------------------------------------------------------------------------------
+  SECTION 1: PHILOSOPHY & GOALS
+--------------------------------------------------------------------------------
+
+  Nemesis 4.0.0 is a clean-break release. No dead weight, no backwards
+  compatibility shims. The goal is a tighter, faster, more expressive framework
+  that takes full advantage of modern PHP (8.2+).
+
+  Guiding principles:
+    - Strict types everywhere
+    - Expressive over clever
+    - Less magic, more explicit
+    - Plugin/Module system stays — it's a core strength
+    - Zero new third-party dependencies unless absolutely necessary
+    - Clear public API vs internal boundaries (see Section 17)
+
+  Note: Ghost.js (owner's custom JS framework, D:\Project Ghost.js) is a
+  candidate for deep frontend integration. Tracked for a future update session.
+
+
+--------------------------------------------------------------------------------
+  SECTION 2: PHP VERSION FLOOR
+--------------------------------------------------------------------------------
+
+  DECISION: PHP 8.2 minimum. No PHP 7.x support.
+
+  Reasons:
+    - Readonly classes → clean DTOs and value objects
+    - Enums → status codes, driver names, HTTP methods
+    - Fibers → foundation for future async support
+    - Named arguments → expressive constructors
+    - Intersection types → stronger DI type safety
+    - Never return type → dead-end methods
+    - PHP 7.x has been EOL since December 2022 (no security patches)
+    - Supporting 7.x would prevent using ALL of the above features
+
+  Impact: Drop support for 8.0 and 8.1. Document clearly in CHANGELOG.
+  Hosting note: Most shared hosts now support PHP 8.2+. Document minimum
+  server requirements clearly in INSTALLATION.md.
+
+
+--------------------------------------------------------------------------------
+  SECTION 3: ORM / DATABASE LAYER (Biggest Breaking Change)
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - Fluent::get() returns plain arrays, not model instances
+    - Model::find() sometimes returns array, sometimes object — inconsistent
+    - No schema builder (raw SQL in migrations is error-prone)
+    - MySQL-only in Database.php core
+
+  CHANGES:
+
+  3.1  Hydrated Results Always
+       - Fluent should always return Model instances (or a Collection of them)
+       - Remove the array-return behavior entirely
+       - Add a ->toArray() method for when arrays are explicitly needed
+
+  3.2  Schema Builder DSL
+       - Add a Schema class with a fluent table-building API
+       - Example:
+           Schema::create('users', function(Blueprint $table) {
+               $table->id();
+               $table->string('name');
+               $table->string('email')->unique();
+               $table->timestamps();
+           });
+       - Blueprint methods: id, string, integer, boolean, text,
+         timestamps, softDeletes, foreign, unique, index, nullable, default, etc.
+       - Old raw SQL migrations still work (no forced migration)
+
+  3.3  Multi-Database Support
+       - Database.php currently hardcodes MySQL
+       - Add driver abstraction: MySQL, PostgreSQL, SQLite
+       - Driver resolved from DB_DRIVER in .env
+       - Grammar classes per driver (different SQL dialects for schema builder)
+
+  3.4  Collection Class
+       - Fluent results return a Collection, not a plain array
+       - Collection methods: map, filter, first, last, pluck, groupBy,
+         chunk, each, count, isEmpty, toArray, toJson
+       - Already have Support/Collection.php — expand it
+
+  3.5  Soft Deletes
+       - Move SoftDelete from a Model flag to a proper Trait
+       - Trait: SoftDeletes — adds deleted_at, withTrashed(), onlyTrashed()
+
+
+--------------------------------------------------------------------------------
+  SECTION 4: ROUTING
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - Route caching is basic
+    - No route model binding
+    - No subdomain routing
+    - No built-in error page routing
+
+  CHANGES:
+
+  4.1  Route Model Binding
+       - Automatic model injection from route params
+       - GET /users/{user} auto-resolves User::find($user)
+       - Explicit: Route::bind('user', fn($id) => User::findOrFail($id))
+
+  4.2  Named Route Helpers
+       - route('user.profile', ['id' => 1]) global helper
+       - Already have named routes, just needs the helper function
+
+  4.3  Controller Attribute Routing (opt-in)
+       - #[Route('/users')] on controller class
+       - #[Get('/profile')], #[Post('/store')] on methods
+       - File-based routing in routes/route.php stays as primary option
+
+  4.4  Subdomain Routing
+       - Route::domain('{tenant}.app.com')->group(...)
+
+  4.5  Fallback Route
+       - Route::fallback(FallbackController::class)
+
+  4.6  Custom Error Pages (per HTTP code)
+       - Dedicated views: views/errors/404.php, 403.php, 500.php, 422.php, etc.
+       - Framework renders matching view automatically based on exception type
+       - Fallback to a generic error view if specific one not found
+       - Developer can override any error view by creating the file
+       - See also Section 9.5
+
+
+--------------------------------------------------------------------------------
+  SECTION 5: MIDDLEWARE
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - Middleware base class is minimal (barely any contract)
+    - No typed Request/Response in handle()
+    - Before/after behavior is unclear
+    - Short-circuit behavior is undocumented
+
+  CHANGES:
+
+  5.1  Typed Middleware Interface
+       - interface MiddlewareInterface:
+           handle(Request $request, callable $next): Response
+       - Before logic: code before $next($request)
+       - After logic: code after, acting on $response
+       - Short-circuit: return a Response directly without calling $next
+       - Breaking: existing middleware must implement this interface
+
+  5.2  Middleware Groups & Aliases
+       - Define groups in Kernel.php: 'api' => [...], 'web' => [...]
+       - Alias in routes: Route::middleware('auth') not full class name
+       - Document: global middleware runs first, then route middleware
+
+  5.3  Terminable Middleware
+       - Optional: terminate(Request $req, Response $res): void
+       - Called after response is sent to client (logging, cleanup)
+
+  5.4  Middleware Order Documentation
+       - Document the full execution order in framework docs
+       - Global → Group → Route-specific → Controller-level
+
+
+--------------------------------------------------------------------------------
+  SECTION 6: DEPENDENCY INJECTION / CONTAINER
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - No contextual binding
+    - Interface-to-implementation binding is undocumented
+    - No lazy/deferred binding
+
+  CHANGES:
+
+  6.1  Contextual Binding
+       - $container->when(OrderController::class)
+                   ->needs(PaymentInterface::class)
+                   ->give(StripePayment::class);
+
+  6.2  Tagged Bindings
+       - $container->tag([Driver1::class, Driver2::class], 'cache.drivers')
+       - $container->tagged('cache.drivers') returns array of instances
+
+  6.3  ServiceProvider Deferred Loading
+       - Mark a ServiceProvider as deferred (loaded only when needed)
+       - Reduces bootstrap time for large apps
+
+  6.4  Container as PSR-11
+       - Implement Psr\Container\ContainerInterface (has/get)
+       - Enables compatibility with third-party libraries expecting PSR-11
+
+
+--------------------------------------------------------------------------------
+  SECTION 7: REQUEST / RESPONSE
+--------------------------------------------------------------------------------
+
+  CHANGES:
+
+  7.1  Immutable Request
+       - Request object is immutable after construction
+       - withAttribute() creates a modified copy
+
+  7.2  Request Validation Inline
+       - $request->validate(['email' => 'required|email'])
+       - Throws ValidationException automatically on failure
+
+  7.3  Typed Response Factory
+       - Response::json($data, 200)
+       - Response::redirect('/login')
+       - Response::download($path)
+       - Response::stream($callback)
+       - Response::view('home', $data)
+
+  7.4  PSR-7 Compatibility (Low Priority / Optional)
+       - Consider PSR-7 compliance for third-party middleware support
+
+
+--------------------------------------------------------------------------------
+  SECTION 8: CONFIGURATION SYSTEM
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - Config is loaded but not validated or typed
+    - Missing required keys fail deep at runtime, not on boot
+
+  CHANGES:
+
+  8.1  Typed Config Classes
+       - readonly DTO classes populated from .env/config files
+       - $config = app(DatabaseConfig::class); $config->host;
+       - Config::get() remains for simple access, not deprecated
+
+  8.2  Config Validation on Boot
+       - Validate required env keys at bootstrap
+       - Fail fast: "Missing required .env key: DB_HOST"
+
+  8.3  Config Caching Improvement
+       - Include .env values in compiled cache
+       - Invalidate automatically when .env or config files change (mtime check)
+
+
+--------------------------------------------------------------------------------
+  SECTION 9: ERROR HANDLING & EXCEPTIONS
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - One generic ErrorHandler catches everything
+    - No custom exception hierarchy
+    - No custom error views
+
+  CHANGES:
+
+  9.1  Exception Hierarchy
+       - NemesisException (base)
+         ├── HttpException
+         │   ├── NotFoundException (404)
+         │   ├── ForbiddenException (403)
+         │   ├── UnauthorizedException (401)
+         │   ├── MethodNotAllowedException (405)
+         │   └── TooManyRequestsException (429)
+         ├── ValidationException (already exists, keep)
+         ├── DatabaseException
+         ├── ConfigurationException
+         └── PluginException
+
+  9.2  Renderable Exceptions
+       - Interface: RenderableException with render(Request): Response
+       - Handler calls render() if exception implements it
+
+  9.3  Reportable Exceptions
+       - Interface: ReportableException
+       - Handler sends to logger / external service (Sentry, etc.)
+       - dontReport() to suppress per exception type
+
+  9.4  HTTP Exception Helpers (global functions)
+       - abort(404, 'Page not found')
+       - abort_if($condition, 403)
+       - abort_unless($condition, 401)
+
+  9.5  Custom Error Views (per HTTP code)
+       - views/errors/404.php, 403.php, 500.php, 422.php, etc.
+       - ErrorHandler renders matching view automatically
+       - Falls back to views/errors/generic.php if specific not found
+       - In debug mode: show detailed stack trace instead of error view
+       - Consistent with Section 4.6
+
+  9.6  DebugBar Plugin
+       - NOTE: DebugBar already exists as plugins/DebugBar/ in 3.x
+       - Action: Review, improve, and document it properly for 4.0
+       - Possible additions: memory profiling, query count warnings,
+         middleware trace, event timeline
+
+
+--------------------------------------------------------------------------------
+  SECTION 10: PLUGIN SYSTEM
+--------------------------------------------------------------------------------
+
+  The plugin system is a core strength. Changes are additive.
+
+  10.1  Plugin Versioning & Conflict Detection
+        - Detect version conflicts between plugins at discovery time
+        - Plugin can declare: "conflicts": ["other-plugin"]
+
+  10.2  Typed Plugin Events / Hooks
+        - Typed event objects instead of string event names
+        - Plugin::on(UserCreated::class, function(UserCreated $e) { ... })
+
+  10.3  Plugin CLI Commands Auto-Discovery
+        - If plugin has a Commands/ folder, auto-register all classes
+        - No need to manually register in bootstrap.php
+
+  10.4  Plugin Testing Support
+        - TestCase::withPlugin('DebugBar') helper
+        - Loads plugin in test environment cleanly
+
+  10.5  Plugin Manifest v2 Schema
+        - Add "provides" key (service bindings the plugin registers)
+        - Add "tags" key (categorization: storage, auth, debug, etc.)
+        - Add "conflicts" key (incompatible plugins)
+
+
+--------------------------------------------------------------------------------
+  SECTION 11: CONSOLE / CLI
+--------------------------------------------------------------------------------
+
+  CHANGES:
+
+  11.1  Typed Command Input/Output
+        - $input->argument('name'), $input->option('force')
+        - $output->info(), $output->error(), $output->table()
+        - $output->progressBar($total)
+
+  11.2  Interactive Prompts
+        - $output->ask('What is your name?')
+        - $output->confirm('Run migration?')
+        - $output->choice('Driver?', ['mysql', 'pgsql', 'sqlite'])
+
+  11.3  Command Scheduling
+        - Schedule::command('cache:clear')->daily()
+        - Schedule::call(fn() => ...)->hourly()
+        - Cron entry: * * * * * php nemesis schedule:run
+
+  11.4  Expanded Make Commands
+        Every new app/ folder has a matching make: command.
+        Usage: php nemesis make:<type> <Name>
+
+        Existing (keep):
+        - make:controller, make:model, make:middleware
+        - make:migration, make:seeder, make:job, make:policy
+
+        New (matching Section 15 app/ folders):
+        - make:trait          → app/Traits/NameTrait.php
+        - make:repository     → app/Repositories/NameRepository.php
+        - make:entity         → app/Entities/Name.php
+        - make:dto            → app/DTOs/NameDTO.php
+        - make:transformer    → app/Transformers/NameTransformer.php
+        - make:manager        → app/Managers/NameManager.php
+        - make:handler        → app/Handlers/NameHandler.php
+        - make:interface      → app/Interfaces/NameInterface.php
+        - make:factory        → app/Factory/NameFactory.php
+        - make:filter         → app/Filters/NameFilter.php
+        - make:widget         → app/Widgets/Name/ (folder + view + class)
+        - make:library        → app/Libraries/Name.php
+        - make:helper         → app/Helpers/name_helper.php
+        - make:event          → app/Events/NameEvent.php
+        - make:listener       → app/Listeners/NameListener.php
+        - make:module         → app/Modules/Name/ (full scaffold)
+        - make:plugin         → plugins/Name/ (manifest + bootstrap)
+
+  11.5  CLI Binary Location
+        - Move from root `nemesis` to `bin/nemesis` (Symfony convention)
+        - Add to composer.json bin entry
+        - Backwards: symlink or wrapper at root for existing users
+
+
+--------------------------------------------------------------------------------
+  SECTION 12: EVENTS SYSTEM
+--------------------------------------------------------------------------------
+
+  PROBLEM IN 3.x:
+    - Model events exist but no general application event system
+    - Plugin hooks are string-based
+
+  CHANGES:
+
+  12.1  Typed Event Classes
+        - class UserRegistered { public function __construct(public User $user) {} }
+        - Event::dispatch(new UserRegistered($user))
+
+  12.2  Event Listeners
+        - class SendWelcomeEmail implements ListenerInterface
+              handle(UserRegistered $event): void { ... }
+
+  12.3  Event Discovery
+        - Auto-discover listeners from app/Listeners/ folder
+        - Or explicit map in EventServiceProvider
+
+  12.4  Async Listeners (via Queue)
+        - Listener implements ShouldQueue → dispatched to queue automatically
+
+
+--------------------------------------------------------------------------------
+  SECTION 13: TESTING FRAMEWORK
+--------------------------------------------------------------------------------
+
+  CHANGES:
+
+  13.1  HTTP Test Client
+        - $response = $this->get('/users')
+        - $response->assertStatus(200)
+        - $response->assertJson(['name' => 'John'])
+        - $response->assertRedirect('/login')
+
+  13.2  Database Assertions
+        - $this->assertDatabaseHas('users', ['email' => 'john@example.com'])
+        - $this->assertDatabaseMissing('users', ['id' => 99])
+
+  13.3  Mocking / Faking
+        - Event::fake() — assert events were dispatched
+        - Queue::fake() — assert jobs were pushed
+        - Mail::fake() — assert emails were sent
+
+  13.4  TestCase Traits
+        - RefreshDatabase — rollback after each test
+        - WithFaker — generate fake data
+        - ActingAs — authenticate a user for the test
+
+  13.5  Test Coverage Areas (Priority Order)
+        - Request lifecycle (high risk)
+        - Container resolution
+        - Route dispatch
+        - Model relationships
+        - Middleware chain
+        - Auth/session
+        - Error handling
+        - Regression tests for known bugs
+        - Integration tests alongside unit tests
+
+  13.6  Test Directory Structure (CI Style)
+        - tests/unit/          — isolated unit tests
+        - tests/database/      — database interaction tests
+        - tests/session/       — session handling tests
+        - tests/mocks/         — shared mock objects
+        - tests/response/      — HTTP response tests (Mezzio style)
+        - tests/_support/      — shared helpers, base classes
+
+
+--------------------------------------------------------------------------------
+  SECTION 14: GLOBAL HELPERS & UTILITIES
+--------------------------------------------------------------------------------
+
+  14.1  Global Helper Functions
+        - app($class) — resolve from container
+        - config($key, $default) — get config value
+        - env($key, $default) — get env value
+        - route($name, $params) — generate named route URL
+        - view($name, $data) — render a view
+        - abort($code, $message) — throw HTTP exception
+        - now() — return current DateTime
+        - collect($array) — wrap array in Collection
+        - dd($var) / dump($var) — debug helpers
+        - flash($key, $value) — set flash message
+        - old($key) — get old form input
+
+  14.2  Strict Types
+        - declare(strict_types=1) on ALL framework files
+        - Return types on every public method
+        - never return type for methods that always throw
+
+  14.3  Deprecation Layer
+        - Nemesis::deprecate('OldClass', 'Use NewClass instead')
+        - Logs a deprecation warning with replacement pointer
+
+  14.4  Health Check Endpoint
+        - Built-in: GET /_health
+        - Returns: DB, cache, queue, disk space status
+        - Configurable in config/health.php
+
+  14.5  Base Converters (Fuel Style)
+        - Base56Converter — encode/decode in base 56 (URL-safe)
+        - AnyBaseConverter — convert between arbitrary bases
+        - Location: src/Support/ or Helper/
+
+
+--------------------------------------------------------------------------------
+  SECTION 15: APPLICATION STRUCTURE (NEW FOLDERS)
+--------------------------------------------------------------------------------
+
+  New folders to add to the app/ and src/ directories.
+  All are opt-in — empty folders with a .gitkeep are scaffolded on install.
+
+  APP LAYER (app/): (CLI For Auto Generation of these, example: php nemesis make:trait TestTrait)
+  -----------------
+  app/Traits/          — Reusable PHP traits for models, controllers, etc.
+  app/Repositories/    — Data access pattern; abstracts DB queries from logic
+  app/Entities/        — Domain objects / DDD-style rich models
+  app/DTOs/            — Data Transfer Objects (readonly classes in PHP 8.2)
+  app/Transformers/    — Data transformation; extends JsonResource
+  app/Managers/        — Complex service orchestration (e.g. PaymentManager)
+  app/Handlers/        — Command/event handlers (pairs with Reactor)
+  app/Interfaces/      — Contracts and interfaces for public APIs (Slim style)
+  app/Factory/         — Object creation factories (Slim style)
+  app/Language/        — i18n/l10n translation files (CI style)
+                         e.g. app/Language/en/validation.php
+  app/Filters/         — Output/input filters; distinct from middleware
+                         e.g. sanitize HTML output, format dates
+  app/Widgets/         — Reusable self-contained UI components (Yii style)
+                         Each Widget has its own view, logic, and assets
+                         Widget::render('UserCard', ['user' => $user])
+  app/Libraries/       — Custom app-specific libraries (CI style)
+  app/Helpers/         — Global helper functions loaded automatically
+  views/errors/        — Custom error views per HTTP code (see Section 9.5)
+  views/demo_templates/— Starter templates / example layouts (CakePHP style)
+
+  SRC LAYER (src/):
+  -----------------
+  src/Interceptors/    — AOP-style interceptors for cross-cutting concerns
+                         Intercept method calls before/after execution
+                         Use cases: logging, caching, authorization
+                         (Spiral style)
+  src/Reactor/         — Event/command bus for CQRS-style architecture
+                         CommandBus, EventBus, QueryBus
+                         (Spiral style)
+  src/Scaffolder/      — Code generation engine backing make: commands
+                         Template-based class/file generation
+                         (Spiral style)
+  src/Serializer/      — Serialize/deserialize objects to JSON, XML, etc.
+                         (Spiral style)
+  src/Tokenizer/       — Lexer/tokenizer for the custom template engine
+                         (Spiral style; needed for Section 18)
+  src/Telemetry/       — Metrics, tracing, performance monitoring
+                         Pairs with the health check endpoint
+                         (Spiral style)
+
+  HELPER LAYER (Helper/):
+  -----------------------
+  Helper/Flash/        — Flash message system (store-once, read-once)
+  Helper/Filter/       — Data filtering and sanitization utilities
+  Helper/Paginator/    — Pagination (already have Paginator.php, reorganize)
+  Helper/Datamapper/   — Map raw data arrays to typed objects
+  Helper/Annotations/  — PHP attribute/annotation reader (Phalcon style)
+  Helper/Optimizers/   — Query/cache/asset optimization utilities
+                         (Phalcon style)
+
+  NOTE: App/Thirdparty, App/Container, App/Resolver, Vagrant, bundles,
+  all Magento-style folders, Tasks (use Queue/Jobs), and src/Prototypes
+  are excluded — they overlap with existing structures or are platform-specific.
+
+
+--------------------------------------------------------------------------------
+  SECTION 16: FRONTEND INTEGRATION
+--------------------------------------------------------------------------------
+
+  Strategy: Nemesis provides a build pipeline abstraction. Developers choose
+  their stack. Nemesis wires it in via config.
+
+  16.1  Build Pipeline
+        - Vite (primary / recommended): nemesis vite:init
+        - Webpack (legacy support): nemesis webpack:init
+        - Config: config/assets.php — entry points, output paths, manifest
+
+  16.2  Frontend Stacks (opt-in, installable via nemesis frontend:install)
+
+        RECOMMENDED:
+        - Inertia.js     — SPA without API; PHP controller → JS component
+        - Alpine.js      — Lightweight reactivity, no build step required
+        - Livewire       — Reactive PHP UI components (Vite)
+        - Ghost.js       — Owner's custom JS framework (D:\Project Ghost.js)
+                           Deep integration planned when Ghost.js is updated
+
+        SUPPORTED:
+        - jQuery         — Legacy apps, still widely deployed
+        - Ember.js       — Niche use case support
+
+        NOT INCLUDED (deprecated/dead):
+        - Moment.js      — Officially deprecated; use Day.js instead
+        - Angular.js     — Angular 1.x EOL since 2021; dead
+        - Backbone.js    — ~2010 era; effectively unmaintained
+
+  16.3  Asset Management
+        - nemesis asset:publish — copy plugin/module assets to public/
+        - Versioned asset URLs: asset('app.js') → /public/app.js?v=abc123
+        - Vendor Shredder (see Section 18.2)
+
+
+--------------------------------------------------------------------------------
+  SECTION 17: QUEUE SYSTEM (Improvement, Not New)
+--------------------------------------------------------------------------------
+
+  NOTE: Queue already exists in 3.x (src/Queue/). Needs improvement.
+
+  Planned improvements:
+  - Failed job tracking — store failed jobs, retry them
+  - Delayed dispatch — Queue::later(60, new Job())
+  - Job chaining — $jobA->then(new JobB())
+  - Job batching — dispatch many jobs, callback when all done
+  - Queue dashboard (via plugin) — view pending/failed/completed jobs
+  - Drivers already exist: Sync, Database, Redis — review and stabilize
+
+
+--------------------------------------------------------------------------------
+  SECTION 18: BIG FEATURES (Each needs its own sub-plan)
+--------------------------------------------------------------------------------
+
+  18.1  Custom Template Engine (Twig/Blade-like)
+        - This is a major undertaking — treat as a separate project
+        - Nemesis-branded name TBD (not "Blade", not "Twig")
+        - Core: src/Tokenizer/ (lexer) + src/Compiler/ (AST → PHP)
+        - Syntax goals:
+            {{ $variable }}          — echo escaped
+            {!! $raw !!}             — echo unescaped
+            @if / @else / @endif     — control structures
+            @foreach / @endforeach
+            @include('partial')
+            @extends('layout') / @section / @yield
+        - Compile to plain PHP, cache compiled files
+        - Plain PHP views (.php) remain supported as fallback
+
+  18.2  Vendor Shredder
+        - Compress/optimize the vendor folder for production
+        - Steps: remove dev dependencies, strip docs/tests from packages,
+          run Composer's classmap optimization, optional: single-file phar
+        - Command: nemesis vendor:shrink
+        - Inspired by React/Vue production builds
+
+  18.3  Password Strength Calculator
+        - Utility class: PasswordStrength::score($password)
+        - Returns: score (0-4), label (weak/fair/good/strong/very strong),
+          suggestions array
+        - Location: src/Security/ or src/Support/
+        - No third-party dependency (implement zxcvbn-style rules in-house)
+
+  18.4  Internationalization (i18n)
+        - app/Language/{locale}/*.php files
+        - __('auth.login_failed') helper
+        - Pluralization: __n('message.item', $count)
+        - Locale detection from browser, session, or URL prefix
+
+
+--------------------------------------------------------------------------------
+  SECTION 19: API CLARITY (Public vs Internal)
+--------------------------------------------------------------------------------
+
+  PROBLEM: Developers don't know which classes are safe to extend/use
+  and which are internal implementation details.
+
+  CHANGES:
+
+  19.1  Namespace Contracts
+        - Nemesis\Contracts\  — stable interfaces developers can depend on
+        - Nemesis\Internal\   — internal classes, no stability guarantee
+
+  19.2  Marking Strategy
+        - #[InternalApi] attribute on internal classes
+        - #[StableApi] attribute on public extension points
+        - Document in framework: "only depend on Contracts\ namespace"
+
+  19.3  Contracts to Define
+        - ContainerInterface, MiddlewareInterface, ListenerInterface
+        - ModelInterface, RepositoryInterface
+        - CacheInterface, QueueInterface
+        - CommandInterface, EventInterface
+
+
+--------------------------------------------------------------------------------
+  SECTION 20: DEVELOPER EXPERIENCE
+--------------------------------------------------------------------------------
+
+  20.1  Better Error Messages
+        - "Class Foo not found" → "Class Foo not found. Did you run
+          'nemesis make:controller Foo'? Check app/Controllers/."
+        - Missing dependency: show which class needs it and why
+        - Invalid route: show all registered routes in a table
+        - Config failure: show exactly which key is missing and where to add it
+
+  20.2  CLI Improvements
+        - nemesis --help shows grouped, colored command list
+        - Every command has a --help flag with examples
+        - nemesis about — show framework version, PHP version, env, drivers
+
+  20.3  Starter Templates
+        - nemesis new:app — minimal skeleton
+        - nemesis new:api — API-only skeleton (no views)
+        - nemesis new:full — full-stack skeleton with example module
+        - views/demo_templates/ — pre-built page layouts
+
+  20.4  Example Application
+        - A built-in Blog module (already exists) as the canonical example
+        - Demonstrates: routing, models, relationships, events, middleware,
+          auth, API endpoints, queue jobs
+
+
+--------------------------------------------------------------------------------
+  SECTION 21: CHANGELOG REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  Every entry in CHANGELOG.txt must include:
+    - What changed (feature name, class, method)
+    - What broke (old behavior)
+    - What replaced it (new behavior / new class name)
+    - Migration example (before/after code snippet)
+
+  Format:
+    [BREAKING] Fluent::get() now returns Collection instead of array
+      Before: $users = User::all(); // array
+      After:  $users = User::all(); // Collection — call ->toArray() if needed
+
+    [NEW] Schema Builder DSL for migrations
+    [IMPROVED] DebugBar plugin — added query count warnings
+    [REMOVED] PHP 7.x support
+
+
+--------------------------------------------------------------------------------
+  SECTION 22: THINGS TO KEEP FROM 3.x (DO NOT CHANGE)
+--------------------------------------------------------------------------------
+
+  - Plugin sandbox architecture (unique and solid)
+  - Module system structure (app/Modules/*)
+  - Container/DI core — reflection-based autowiring
+  - Middleware pipeline — Chain of Responsibility
+  - Model events + observer pattern
+  - Relationship classes (HasMany, BelongsTo, BelongsToMany, HasOne)
+  - CLI `nemesis` executable style
+  - .env based configuration
+  - Storage and Cache driver abstraction
+  - Auth system (JWT, OAuth2, TOTP, Gate, Policy)
+  - Broadcasting / WebSocket foundation
+
+
+--------------------------------------------------------------------------------
+  SECTION 23: BREAKING CHANGE SUMMARY (for CHANGELOG)
+--------------------------------------------------------------------------------
+
+  [ ] PHP minimum version raised to 8.2
+  [ ] Fluent query builder returns Collection/Model, not plain array
+  [ ] Middleware must implement MiddlewareInterface (typed handle method)
+  [ ] Migrations: Schema Builder DSL replaces raw SQL (old migrations still run)
+  [ ] Exception hierarchy introduced (catch specific types)
+  [ ] Plugin manifest v2 schema (new required fields)
+  [ ] Database.php MySQL-only removed, DB_DRIVER required in .env
+  [ ] CLI binary moved to bin/nemesis
+
+
+================================================================================
+  SECTION 24: CMS-INSPIRED GIANT FEATURES
+  Source: WordPress, Drupal, Joomla, Magento, Sylius, October CMS, Craft CMS
+  Priority: HIGH = core, MEDIUM = plugin, LOW = future
+================================================================================
+
+  ── FROM WORDPRESS ──────────────────────────────────────────────────────────
+
+  WP-1  Hook & Filter System (HIGH)
+        - do_action() / apply_filters() equivalents via EventDispatcher
+        - Named hook points throughout framework lifecycle
+        - Plugin authors register hooks; core calls them at the right moment
+        - Why: WordPress's single biggest adoption driver — infinite extensibility
+        - src/Hooks/HookDispatcher.php + hook() / filter() / addHook() helpers
+
+  WP-2  Custom Post Types / Content Types (HIGH)
+        - ContentType::register('portfolio', [...]) fluent definition
+        - Automatic CRUD routes, admin panel, REST API endpoint per type
+        - Meta fields (key-value store per content type, any driver)
+        - Taxonomies: Tag::attach('portfolio'), Category::for('portfolio')
+        - src/CMS/ContentType.php, Taxonomy.php, MetaStore.php
+
+  WP-3  Admin Panel (HIGH — sub-project)
+        - Auto-generated CRUD UI for any registered model / content type
+        - Role-based access: admin, editor, author, contributor, subscriber
+        - Dashboard widgets (stats, recent items, activity log)
+        - Media Library integration (see WP-4)
+        - views/admin/ + src/Admin/AdminPanel.php
+
+  WP-4  Media Library (HIGH)
+        - File upload, resize, crop, WebP conversion
+        - Attachment model with driver-backed storage (local, S3, R2)
+        - Automatic thumbnail generation (configurable sizes)
+        - Image srcset/lazy-load view helpers
+        - src/Media/MediaLibrary.php, ImageProcessor.php
+
+  WP-5  Shortcodes / Directives (MEDIUM)
+        - [gallery id=5] → rendered HTML
+        - Template engine integration: {{ @gallery(id=5) }}
+        - Registered via Shortcode::register('gallery', fn($attrs) => ...)
+        - src/CMS/Shortcode.php
+
+  WP-6  Widget System (MEDIUM)
+        - Sidebar areas: Sidebar::register('footer', 3 columns)
+        - Widget::register('recent_posts', RecentPostsWidget::class)
+        - Drag-drop order stored in DB/config
+        - src/CMS/Widget.php, Sidebar.php
+
+  WP-7  Multisite / Multi-tenant (LOW)
+        - Single installation, multiple domains/subdomains
+        - Database prefix isolation per site
+        - Shared users table or site-isolated
+        - src/Multisite/SiteResolver.php, TenantMiddleware.php
+
+  WP-8  REST API Auto-generation (HIGH)
+        - Model::exposeApi(['index','show','store','update','destroy'])
+        - Automatic /api/v1/{model} routes with JSON responses
+        - Versioning, rate limiting, auth middleware applied per model
+        - src/Api/ModelApiGenerator.php
+
+  ── FROM DRUPAL ─────────────────────────────────────────────────────────────
+
+  D-1   Field API / Entity Field System (HIGH)
+        - Strongly typed fields attached to any entity/model
+        - FieldType: Text, Image, File, Reference, Date, Boolean, Number, JSON
+        - Validation rules per field, not per form
+        - src/Fields/FieldDefinition.php, FieldStorage.php
+
+  D-2   View Modes (MEDIUM)
+        - Entity rendered differently depending on context (full, teaser, card)
+        - $post->render('teaser') vs $post->render('full')
+        - src/CMS/ViewMode.php
+
+  D-3   Block & Layout System (HIGH)
+        - Page layout composed of draggable blocks
+        - Block regions: header, sidebar, content, footer
+        - Block::register('search_form', SearchBlock::class)
+        - Config stored in DB; overridable per page/route
+        - src/Layout/BlockManager.php, Region.php
+
+  D-4   Config Management / Import-Export (HIGH)
+        - Full site config exportable as YAML/JSON
+        - php nemesis config:export → config/exported/
+        - php nemesis config:import → writes to DB
+        - Diff two config states before deploying
+        - src/Config/ConfigManager.php + CLI commands
+
+  D-5   Path Alias System (MEDIUM)
+        - /node/42 aliased to /blog/my-post-title
+        - PathAlias model: source, alias, language
+        - Auto-generated from sluggable fields
+        - Middleware resolves alias before routing
+        - src/CMS/PathAlias.php, SlugMiddleware.php
+
+  D-6   Revision / Content Versioning (HIGH)
+        - Every save creates a revision row
+        - Rollback to any revision
+        - Diff view between revisions
+        - RevisionsTrait on any model — adds revisions table auto-creation
+        - src/Core/Traits/HasRevisions.php
+
+  D-7   Translation / Multilingual Content (MEDIUM)
+        - Content entity has language column + translation table
+        - $post->translate('fr')->title
+        - Language switcher middleware sets app locale
+        - src/I18n/ContentTranslation.php (extends existing __ helper)
+
+  D-8   Permissions Matrix (HIGH)
+        - Fine-grained permission nodes: 'edit own post', 'delete any post'
+        - Assigned to roles, roles assigned to users
+        - Permission::check('edit own post') in controllers
+        - Extends existing RBAC: src/Auth/Permission.php
+
+  ── FROM JOOMLA ─────────────────────────────────────────────────────────────
+
+  J-1   Component Architecture (MEDIUM)
+        - Each major feature is a "component" (com_content, com_users)
+        - Installable ZIP package: component + views + language files + SQL
+        - php nemesis make:component Blog
+        - src/Component/ComponentLoader.php, ComponentInstaller.php
+
+  J-2   Module Positions (MEDIUM)
+        - Template positions: position-1, position-2
+        - Modules assigned to positions via admin
+        - {loadmodule position-1} in templates
+        - src/CMS/ModulePosition.php
+
+  J-3   Menu Manager (HIGH)
+        - Hierarchical menus stored in DB
+        - Menu item types: URL, content page, component view, alias
+        - menu('main') view helper returns rendered nav
+        - src/CMS/Menu.php, MenuItem.php + migrations
+
+  J-4   Template Override System (HIGH)
+        - Core template in src/Views/ — overridable in app/Views/
+        - Child themes: inherit parent, override specific files
+        - php nemesis theme:install {zip}
+        - src/Theme/ThemeLoader.php, ThemeOverride.php
+
+  J-5   Access Control Levels (MEDIUM)
+        - Public, Registered, Special, Custom groups
+        - Content visibility per group (not just per role)
+        - src/Auth/AccessLevel.php
+
+  ── FROM MAGENTO / E-COMMERCE ────────────────────────────────────────────────
+
+  M-1   Product Catalog Engine (HIGH — plugin)
+        - Product, Category, Attribute, AttributeSet models
+        - Configurable products (size/colour variants)
+        - Price rules, discount engine
+        - plugins/Catalog/
+
+  M-2   Cart & Checkout (HIGH — plugin)
+        - Session/DB cart, coupon codes, tax rules
+        - Checkout steps: address → shipping → payment → confirm
+        - plugins/Cart/, plugins/Checkout/
+
+  M-3   Payment Gateway Abstraction (HIGH — plugin)
+        - PaymentInterface: charge(), refund(), webhook()
+        - Stripe, PayPal, manual drivers
+        - plugins/Payment/
+
+  M-4   Order Management (HIGH — plugin)
+        - Order model, status machine (pending→processing→shipped→complete)
+        - Invoice generation, PDF export
+        - plugins/Orders/
+
+  M-5   Inventory & Stock (MEDIUM — plugin)
+        - StockItem per product/variant
+        - Low-stock alerts, backorder support
+        - plugins/Inventory/
+
+  ── FROM OCTOBER CMS / LARAVEL CMS ──────────────────────────────────────────
+
+  O-1   Template Engine (HIGH — Phase 9 sub-project)
+        - Blade-compatible: {{ }}, {!! !!}, @if, @foreach, @include, @extends, @section
+        - Compiled to plain PHP, cached
+        - src/Tokenizer/, src/Stempler/ (already in Phase 9 plan)
+
+  O-2   AJAX Framework (MEDIUM)
+        - data-request="onSearch" on HTML element
+        - Server handler: public function onSearch() { return [...] }
+        - Partial re-render via data-request-update
+        - src/Ajax/AjaxHandler.php + JS snippet
+
+  O-3   Rainlab-style Pages Plugin (MEDIUM — plugin)
+        - Static pages stored in flat files (Markdown + YAML front matter)
+        - CMS editor for non-developer content editing
+        - plugins/Pages/
+
+  O-4   Form Builder (MEDIUM — plugin)
+        - Drag-drop form builder stored in DB
+        - Auto-generates validation rules, email notifications
+        - plugins/FormBuilder/
+
+  ── FROM CRAFT CMS ──────────────────────────────────────────────────────────
+
+  C-1   Matrix Field (HIGH)
+        - Repeatable block content inside a field (like Gutenberg blocks)
+        - Matrix::define([TextBlock::class, ImageBlock::class, QuoteBlock::class])
+        - Stored as JSON or pivot table
+        - src/Fields/MatrixField.php
+
+  C-2   Element Query API (HIGH)
+        - Craft's biggest DX feature — unified query language across all types
+        - Entry::find()->section('blog')->limit(5)->orderBy('date')->all()
+        - src/CMS/ElementQuery.php (wraps Builder with content-type awareness)
+
+  C-3   Live Preview / Draft System (MEDIUM)
+        - Content has draft + published state
+        - Preview URL with token shows draft
+        - DraftsTrait → drafts table, getDraft(), publishDraft()
+        - src/Core/Traits/HasDrafts.php
+
+  C-4   Global Sets (MEDIUM)
+        - Site-wide config entries editable via admin (contact email, social links)
+        - Global::get('social.twitter')
+        - src/CMS/GlobalSet.php
+
+  ── CROSS-CMS FEATURES (best of all) ────────────────────────────────────────
+
+  X-1   Full-Text Search (HIGH)
+        - SearchIndex model → indexes any model's fields
+        - Search::query('keyword')->in([Post::class, Page::class])->get()
+        - Drivers: database FULLTEXT, MeiliSearch, Typesense, Elasticsearch
+        - src/Search/SearchEngine.php, Drivers/
+
+  X-2   Activity / Audit Log (HIGH — already planned as plugin)
+        - Log who did what, when, to what entity
+        - activity('created post')->by($user)->on($post)->log()
+        - src/Activity/ already exists — expand to full CMS-grade log
+
+  X-3   Scheduled Publishing (MEDIUM)
+        - publish_at / expire_at timestamps on any model
+        - ScheduledPublishingTrait + cron worker
+        - src/Core/Traits/ScheduledPublishing.php
+
+  X-4   Comments System (MEDIUM — plugin)
+        - Polymorphic comments on any model
+        - Threaded, moderation queue, spam detection hook
+        - plugins/Comments/
+
+  X-5   Notification Center (HIGH)
+        - In-app, email, SMS, push notifications
+        - Notification::send($user, new OrderShipped($order))
+        - Channels: mail, database, broadcast, Slack, webhook
+        - src/Notifications/ (distinct from existing Broadcasting)
+
+  X-6   Social Auth (MEDIUM — plugin)
+        - OAuth2 login: Google, GitHub, Facebook, Twitter/X
+        - Already have OAuth2Provider base — expand drivers
+        - plugins/SocialAuth/
+
+  X-7   Two-Factor Authentication (HIGH — plugin)
+        - TOTP already exists (src/Auth/Totp.php) — wire to login flow
+        - Backup codes, remember-device cookie
+        - plugins/TwoFactor/
+
+  X-8   Full Backup System (HIGH)
+        - php nemesis backup:run → DB dump + files zip → S3/local
+        - php nemesis backup:restore {file}
+        - Scheduled backups via Scheduler
+        - src/Database/DatabaseDumper.php already exists — extend
+        - src/Backup/BackupManager.php
+
+  X-9   Import / Export (MEDIUM)
+        - CSV/Excel import-export for any model
+        - php nemesis export:users, import:products {file}
+        - src/Import/Importer.php, Export/Exporter.php
+        - Already have Spreadsheet plugin — promote to core
+
+  X-10  Job Board / Custom Tables Builder (LOW)
+        - Admin UI to create custom DB tables without code
+        - Like WordPress Custom Fields on steroids (ACF)
+        - src/Admin/TableBuilder.php
+
+  X-11  API Documentation Auto-generation (HIGH)
+        - Already have Swagger plugin — promote and expand
+        - Auto-generate from route definitions + docblocks
+        - OpenAPI 3.x spec output
+        - plugins/Swagger/ → src/Api/OpenApiGenerator.php
+
+  X-12  Rate Limiting & Throttling (HIGH — already partial)
+        - Per-route, per-user, per-IP rate limits
+        - ThrottleRequests middleware already exists — add Redis-backed store
+        - Configurable: 100 req/min for API, 10 req/min for login
+
+  X-13  GraphQL Layer (LOW — plugin)
+        - Auto-generate GraphQL schema from Model definitions
+        - Query: { posts { id title author { name } } }
+        - plugins/GraphQL/ using a lightweight PHP GraphQL library
+
+  X-14  Realtime / WebSocket (MEDIUM — already partial)
+        - Broadcasting already exists (src/Broadcasting/)
+        - Add presence channels, private channels auth
+        - WebSocket server improvements: reconnection, heartbeat
+
+  X-15  Static Site Generator Mode (LOW)
+        - php nemesis build → renders all routes to static HTML
+        - Deploy to Cloudflare Pages, Netlify, GitHub Pages
+        - src/StaticSite/StaticBuilder.php
+
+  ── IMPLEMENTATION ORDER SUGGESTION ─────────────────────────────────────────
+
+  After Phase 9, prioritise in this order:
+    1.  Template Engine (O-1)           — needed for everything else
+    2.  Admin Panel (WP-3)              — biggest productivity win
+    3.  Hook & Filter System (WP-1)     — plugin authors need this first
+    4.  Media Library (WP-4)            — every CMS needs it
+    5.  Menu Manager (J-3)              — universal need
+    6.  Content Types (WP-2)            — core CMS feature
+    7.  Revision System (D-6)           — editorial workflow
+    8.  Notification Center (X-5)       — expected by users
+    9.  Full-Text Search (X-1)          — competitive differentiator
+   10.  REST API Auto-generation (WP-8) — developer API consumers
+   11.  Form Builder (O-4)              — no-code power users
+   12.  E-Commerce Suite (M-1 → M-5)   — separate plugin bundle
+
+
+================================================================================
+  END OF DRAFT v2
+================================================================================

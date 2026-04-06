@@ -1,0 +1,375 @@
+================================================================================
+  NEMESIS 5.0.0 - PHASED IMPLEMENTATION PLAN (CMS + Frontend)
+  Generated: 2026-04-02 | Updated: 2026-04-03
+  Workflow: Build → Test → success-phase-X.md → Next Phase
+================================================================================
+
+PHASE OVERVIEW
+--------------
+  Phase 1  | Foundation & Infrastructure     | DONE ✓ (68/68 tests pass)
+  Phase 2  | ORM & Database Layer            | DONE ✓ 2026-04-03 — see success-phase-2.md
+  Phase 3  | Middleware & Request/Response   | DONE ✓ 2026-04-02 — see success-phase-3.md
+  Phase 4  | Routing Enhancements            | DONE ✓ 2026-04-02 — see success-phase-4.md
+  Phase 5  | Error Handling & Custom Views   | DONE ✓ 2026-04-02
+  Phase 6  | Container & DI Improvements    | DONE ✓ 2026-04-02 — see success-phase-6.md
+  Phase 7  | Events, Plugin System & CLI    | DONE ✓ 2026-04-03 — see success-phase-7.md
+  Phase 8  | Testing Infrastructure          | DONE ✓ 2026-04-03 — see success-phase-8.md
+  Phase 9  | Config, Queue & Big Features   | DONE ✓ 2026-04-03 — see success-phase-9.md
+  Phase 10 | Frontend — Vite/Webpack         | DONE ✓ 2026-04-03 — see success-phase-10.md
+  Phase 11 | Template Engine (Blade-compat.) | DONE ✓ 2026-04-03 — see success-phase-11.md
+  Phase 12 | Core CMS — Hooks, ContentTypes  | DONE ✓ 2026-04-03 — see success-phase-12.md
+  Phase 13 | Admin Panel + Media Library     | DONE ✓ 2026-04-03 — see success-phase-13.md
+  Phase 14 | Notifications + Full-Text Search| DONE ✓ 2026-04-04 — see success-phase-14.md
+  Phase 15 | E-Commerce Plugin Bundle        | DONE ✓ 2026-04-04 — see success-phase-15.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 1 — Foundation & Infrastructure
+  Sections: 2, 6.4, 9.1-9.4, 14.1-14.2, 19, 15 (folders)
+  Status: [x] DONE — 2026-04-02 — see success-phase-1.md
+--------------------------------------------------------------------------------
+  Goal: Add all structural scaffolding every later phase depends on.
+        Zero behaviour changes. App stays fully functional after this phase.
+
+  Deliverables:
+    [ ] composer.json     — PHP >=8.2, new namespace autoloads
+    [ ] src/Contracts/    — 9 stable interface files (PSR-11 + Nemesis contracts)
+    [ ] src/Exceptions/   — Full exception hierarchy (11 classes + 2 concern interfaces)
+    [ ] src/Attributes/   — InternalApi.php, StableApi.php
+    [ ] src/Helpers/      — 12 new global helper functions added
+    [ ] strict_types      — declare(strict_types=1) on all src/ files
+    [ ] Folder scaffold   — All new app/, src/, Helper/, views/, tests/ folders
+
+  Tests: tests/unit/Phase1Test.php
+  Success file: success-phase-1.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 2 — ORM & Database Layer
+  Sections: 3.1-3.5
+  Status: [x] DONE — 2026-04-03 — see success-phase-2.md
+--------------------------------------------------------------------------------
+  Goal: Fluent/Model always returns Collection of hydrated objects.
+        Schema Builder DSL for migrations. Multi-driver DB support.
+
+  Risk: HIGH — any code using array access on query results needs review.
+        Model already implements ArrayAccess, so $model['col'] still works.
+        Break point: code checking is_array() on query results.
+
+  Deliverables:
+    [ ] src/Core/Fluent.php          — get() returns Collection of Models
+    [ ] src/Support/Collection.php   — Expand: pluck, groupBy, chunk, isEmpty, toJson
+    [ ] src/Database/Schema.php      — Schema::create/drop/alter
+    [ ] src/Database/Blueprint.php   — Fluent table definition DSL
+    [ ] src/Database/Grammars/       — MySQL, PostgreSQL, SQLite grammar classes
+    [ ] src/Core/Database.php        — Driver abstraction (not MySQL-only)
+    [ ] src/Core/Model.php           — SoftDeletes as a proper Trait
+
+  Tests: tests/database/Phase2Test.php
+  Success file: success-phase-2.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 3 — Middleware & Request/Response
+  Sections: 5, 7
+  Status: [x] DONE — 2026-04-02 — see success-phase-3.md
+--------------------------------------------------------------------------------
+  Goal: Formalise typed middleware contract. Immutable Request.
+        Typed Response factory. Middleware groups/aliases. Terminable middleware.
+
+  Risk: MEDIUM — existing app middleware must add `implements MiddlewareInterface`.
+        Pipeline::handle() already calls handle($request, $next) — compatible.
+
+  Deliverables:
+    [ ] All app/Http/Middleware/*.php  — add implements MiddlewareInterface
+    [ ] src/Http/Pipeline.php          — enforce MiddlewareInterface, add terminate()
+    [ ] src/Http/Request.php           — immutable + withAttribute() + validate()
+    [ ] src/Http/Response.php          — add download(), stream(), view() factories
+    [ ] app/Http/Kernel.php            — middleware groups & aliases
+
+  Tests: tests/unit/Phase3Test.php
+  Success file: success-phase-3.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 4 — Routing Enhancements
+  Sections: 4.1-4.6, 14.4
+  Status: [x] DONE — 2026-04-02 — see success-phase-4.md
+--------------------------------------------------------------------------------
+  Goal: Route model binding, named route helper (real implementation),
+        attribute routing, subdomain routing, fallback, health check endpoint.
+
+  Risk: LOW — all additive.
+
+  Deliverables:
+    [ ] src/Router/Router.php          — model binding, subdomain, attribute scan
+    [ ] src/Router/RouteModelBinder.php
+    [ ] src/Helpers/Helpers.php        — route() helper real implementation
+    [ ] routes/route.php               — /_health endpoint registered
+    [ ] src/Http/HealthCheck.php       — DB/cache/queue/disk status
+
+  Tests: tests/unit/Phase4Test.php
+  Success file: success-phase-4.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 5 — Error Handling & Custom Views
+  Sections: 9.5, 9.6, 4.6
+  Status: [x] DONE — 2026-04-02
+--------------------------------------------------------------------------------
+  Goal: Wire exception hierarchy into ErrorHandler. Custom error views per code.
+        Debug vs production rendering. Improve DebugBar plugin.
+
+  Risk: LOW — additive changes to ErrorHandler.
+
+  Deliverables:
+    [ ] src/Core/ErrorHandler.php    — uses exception hierarchy, renders views
+    [ ] views/errors/404.php         — custom 404 view
+    [ ] views/errors/403.php
+    [ ] views/errors/500.php
+    [ ] views/errors/generic.php     — fallback
+    [ ] plugins/DebugBar/            — review + query count warnings
+
+  Tests: tests/unit/Phase5Test.php
+  Success file: success-phase-5.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 6 — Container & DI Improvements
+  Sections: 6.1-6.4
+  Status: [x] DONE — 2026-04-02 — see success-phase-6.md
+--------------------------------------------------------------------------------
+  Goal: Contextual binding, tagged bindings, deferred ServiceProviders,
+        Container implements ContainerInterface (PSR-11).
+
+  Risk: LOW — Container is extended, not replaced.
+
+  Deliverables:
+    [ ] src/Core/Container.php  — implements ContainerInterface, contextual/tagged/deferred
+
+  Tests: tests/unit/Phase6Test.php
+  Success file: success-phase-6.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 7 — Events, Plugin System & CLI
+  Sections: 10, 11, 12
+  Status: [x] DONE — 2026-04-03 — see success-phase-7.md
+--------------------------------------------------------------------------------
+  Goal: Typed event dispatch. Plugin manifest v2. CLI Input/Output objects.
+        Command scheduling. All new make: commands backed by Scaffolder.
+
+  Risk: MEDIUM — plugin manifest v2 fields must be optional for backwards compat.
+
+  Deliverables:
+    [ ] src/Events/EventDispatcher.php
+    [ ] src/Events/Event.php (base)
+    [ ] src/Reactor/CommandBus.php
+    [ ] src/Scaffolder/Scaffolder.php + stubs/
+    [ ] src/Core/PluginManager.php   — manifest v2, conflict detection
+    [ ] src/Console/Input.php, Output.php
+    [ ] src/Console/Scheduler.php
+    [ ] All new make: commands (17 total per Section 11.4)
+
+  Tests: tests/unit/Phase7Test.php
+  Success file: success-phase-7.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 8 — Testing Infrastructure
+  Sections: 13
+  Status: [x] DONE — 2026-04-03 — see success-phase-8.md
+--------------------------------------------------------------------------------
+  Goal: HTTP test client, DB assertions, Event/Queue/Mail faking,
+        TestCase traits, structured test directories.
+
+  Risk: LOW — purely additive alongside existing tests.
+
+  Deliverables:
+    [ ] src/Testing/HttpTestClient.php
+    [ ] src/Testing/DatabaseAssertions.php (trait)
+    [ ] src/Testing/Fakes/EventFake.php, QueueFake.php, MailFake.php
+    [ ] src/Testing/Concerns/RefreshDatabase.php (trait)
+    [ ] src/Testing/Concerns/ActingAs.php (trait)
+    [ ] src/Testing/Concerns/WithFaker.php (trait)
+    [ ] tests/unit/, tests/database/, tests/session/,
+        tests/mocks/, tests/response/, tests/_support/  (reorganise)
+
+  Tests: tests/unit/Phase8Test.php (tests the test framework itself)
+  Success file: success-phase-8.md
+
+
+--------------------------------------------------------------------------------
+  PHASE 9 — Config, Queue & Big Features
+  Sections: 8, 17, 18, 16, 20
+  Status: [x] DONE ✓ 2026-04-03
+--------------------------------------------------------------------------------
+  Goal: Typed config DTOs. Config boot validation. Queue improvements.
+        i18n. Password strength. Vendor Shredder command.
+        Template engine (SEPARATE sub-plan — flagged as large).
+
+  Risk: HIGH for template engine (treat as its own project, implement last).
+
+  Deliverables:
+    [ ] src/Config/DatabaseConfig.php (readonly DTO)
+    [ ] src/Config/MailConfig.php, CacheConfig.php, etc.
+    [ ] Config validation on Bootstrap::check()
+    [ ] Queue: failed jobs table, retry, delay, chain, batch
+    [ ] app/Language/{locale}/*.php + __() helper
+    [ ] src/Security/PasswordStrength.php
+    [ ] Console command: vendor:shrink
+    [ ] src/Tokenizer/, src/Stempler/  [TEMPLATE ENGINE — sub-plan required]
+
+  Tests: tests/unit/Phase9Test.php
+  Success file: success-phase-9.md
+
+
+================================================================================
+  KNOWN RISKS (cross-phase)
+================================================================================
+
+  R1  RESOLVED 2026-04-02 — Dead import removed. ErrorHandler fully rewritten:
+      exception hierarchy aware, renders views/errors/{code}.php, debug page,
+      JSON/HTML detection, converts PHP errors to ErrorException.
+
+  R2  Fluent::get() returns plain arrays. Phase 2 changes this.
+      Audit tests/ for is_array() checks before Phase 2.
+
+  R3  RESOLVED 2026-04-02 — class_basename() removed from Model.php,
+      now lives in src/Helpers/Helpers.php with function_exists guard.
+
+  R4  route() helper is a stub in Phase 1. Returns '#' until Phase 4.
+      Views using route() will render '#' links — expected and safe.
+
+  R5  Plugin manifest v2 fields must be optional.
+      Phase 7 must not make 'provides', 'tags', 'conflicts' required.
+
+  R6  PHP 8.2 floor: hosting environment must be upgraded before Phase 1.
+
+  R7  RESOLVED 2026-04-02 — Fluent::limit() and offset() now typed as
+      int and use max(0, $value) — eliminates SQL injection via string concat.
+
+================================================================================
+  ROUTE ORGANISATION (done 2026-04-03)
+================================================================================
+
+  routes/route.php    — legacy catch-all, kept for backwards compat
+  routes/web.php      — browser-facing routes, middleware group 'web'
+  routes/api.php      — JSON API routes, middleware group 'api' + cors
+  routes/console.php  — CLI-only scheduled commands (not loaded on HTTP)
+  routes/channels.php — WebSocket broadcasting channel auth
+
+  public/index.php loads: route.php → web.php → api.php (console+channels skipped)
+  CorsMiddleware is applied per-group in api.php; hardcoded headers removed from index.php
+  Config: config/cors.php — origins/methods/headers/credentials/max_age
+
+================================================================================
+  CONFIG FILES (done 2026-04-02/03)
+================================================================================
+
+  config/app.php      — name, env, debug, url, timezone, locale, key, cipher
+  config/cache.php    — default store, stores (file/redis/database/array), ttl
+  config/cors.php     — CORS origins, methods, headers, credentials, max_age
+  config/logging.php  — channels (single/daily/stderr/null)
+  config/mail.php     — mailers (smtp/log/array), from address
+  config/queue.php    — connections (sync/database/redis), failed jobs table
+  config/session.php  — driver, lifetime, cookie, secure, same_site
+
+================================================================================
+  REMINDER — JS Framework Integration (future)
+================================================================================
+
+  !! TO DO LATER — Integrate React/Vue via webpack or Vite !!
+  - Add webpack.config.js or vite.config.js at project root
+  - npm init + install @vitejs/plugin-react or vue plugin
+  - Entry point: resources/js/app.js → compiled to public/js/app.js
+  - Hot reload in dev, hashed manifests in prod
+  - Blade/View helper: asset() should resolve manifest hashes
+
+--------------------------------------------------------------------------------
+  PHASE 10 — Frontend / Asset Pipeline (Vite & Webpack)
+  Source: Section 16 of draft_Plan.txt
+  Status: [x] DONE ✓ 2026-04-03 — see success-phase-10.md
+--------------------------------------------------------------------------------
+  Goal: Wire Nemesis to Vite (primary) and Webpack (legacy).
+        Versioned asset URLs, HMR, CLI scaffolding, frontend stack installer.
+
+  Deliverables:
+  - src/Assets/ManifestInterface.php
+  - src/Assets/ViteManifest.php     — manifest.json reader, HMR, tags()
+  - src/Assets/WebpackManifest.php  — mix-manifest.json reader, tags()
+  - src/Assets/AssetManager.php     — unified facade, singleton
+  - config/assets.php               — driver, vite{}, webpack{}, entries{}
+  - resources/js/app.js             — JS entry stub
+  - resources/css/app.css           — CSS entry stub
+  - src/Scaffolder/stubs/vite.config.stub
+  - src/Scaffolder/stubs/webpack.config.stub
+  - src/Scaffolder/stubs/package.vite.stub
+  - src/Scaffolder/stubs/package.webpack.stub
+  - Helpers: asset(), vite(), mix(), asset_tags()
+  - CLI: vite:init, webpack:init, asset:publish, frontend:install
+  - Tests: 53 tests, all passing (total suite: 457/457)
+
+--------------------------------------------------------------------------------
+  PHASE 11 — Template Engine (Blade-Compatible)
+  Source: Section O-1 of draft_Plan.txt
+  Status: [ ] PENDING
+--------------------------------------------------------------------------------
+  Goal: Blade-compatible template engine compiled to cached PHP.
+        Required by Admin Panel (Phase 13) and all CMS view rendering.
+
+  Planned deliverables:
+  - src/Tokenizer/ — lexer + token types
+  - src/View/Compiler.php — tokenise → PHP → cache
+  - src/View/Engine.php — load compiled view, inject data
+  - Directives: {{ }}, {!! !!}, @if/@elseif/@else/@endif,
+                @foreach/@for/@while/@endforeach/@endfor/@endwhile,
+                @extends/@section/@yield/@endsection/@include,
+                @csrf, @method, @vite, @asset, @component
+  - Storage: compiled views cached in storage/views/
+  - src/Core/View.php — updated to delegate to new Engine
+
+--------------------------------------------------------------------------------
+  PHASE 12 — Core CMS Foundation
+  Source: Sections WP-1, WP-2, J-3, D-6 of draft_Plan.txt
+  Status: [x] DONE — 2026-04-03 — see success-phase-12.md (60 tests)
+--------------------------------------------------------------------------------
+  - Hook & Filter system (WP-1): hook(), filter(), addHook(), removeHook()
+  - Content Types (WP-2): ContentType::register(), meta fields, taxonomies
+  - Menu Manager (J-3): hierarchical DB menus, menu() helper
+  - Revision System (D-6): HasRevisions trait, rollback, diff
+
+--------------------------------------------------------------------------------
+  PHASE 13 — Admin Panel + Media Library
+  Source: Sections WP-3, WP-4 of draft_Plan.txt
+  Status: [x] DONE — 2026-04-03 — see success-phase-13.md (57 tests)
+--------------------------------------------------------------------------------
+  - Auto-CRUD admin UI from registered models / content types
+  - Role-based access: admin, editor, author
+  - Dashboard widgets
+  - Promote src/Media/ to full Media Library (upload, resize, WebP, srcset)
+
+--------------------------------------------------------------------------------
+  PHASE 14 — Notifications + Full-Text Search
+  Source: Sections X-5, X-1 of draft_Plan.txt
+  Status: [x] DONE — 2026-04-04 — see success-phase-14.md (40 tests)
+--------------------------------------------------------------------------------
+  - Notification Center: mail, DB, broadcast, Slack, webhook channels
+  - Full-Text Search: DB FULLTEXT + MeiliSearch / Typesense drivers
+
+--------------------------------------------------------------------------------
+  PHASE 15 — E-Commerce Plugin Bundle
+  Source: Sections M-1 to M-5 of draft_Plan.txt
+  Status: [ ] PENDING
+--------------------------------------------------------------------------------
+  - Promote src/Payment/ to full Payment Gateway abstraction
+  - Catalog (products, variants, attributes)
+  - Cart & Checkout
+  - Order Management + Invoice PDF
+  - Inventory & Stock
+
+  Status: [x] DONE ✓ 2026-04-04 — 86 tests, 769/769 total passing
+
+================================================================================
+  END OF PHASES PLAN
+================================================================================

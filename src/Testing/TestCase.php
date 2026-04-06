@@ -254,4 +254,33 @@ abstract class TestCase
             throw new \Exception($message ?: "Failed asserting that array does NOT have key {$key}.");
         }
     }
+
+    // Added: 2026-04-06 — extended assertion helpers for Phase 16+
+    protected function assertStringStartsWith(string $prefix, string $string, string $message = ''): void
+    {
+        if (!str_starts_with($string, $prefix)) {
+            throw new \Exception($message ?: "Failed asserting that '{$string}' starts with '{$prefix}'.");
+        }
+    }
+
+    protected function assertStringEndsWith(string $suffix, string $string, string $message = ''): void
+    {
+        if (!str_ends_with($string, $suffix)) {
+            throw new \Exception($message ?: "Failed asserting that '{$string}' ends with '{$suffix}'.");
+        }
+    }
+
+    protected function assertMatchesRegularExpression(string $pattern, string $string, string $message = ''): void
+    {
+        if (!preg_match($pattern, $string)) {
+            throw new \Exception($message ?: "Failed asserting that '{$string}' matches pattern '{$pattern}'.");
+        }
+    }
+
+    protected function assertIsNumeric(mixed $actual, string $message = ''): void
+    {
+        if (!is_numeric($actual)) {
+            throw new \Exception($message ?: 'Failed asserting that value is numeric.');
+        }
+    }
 }

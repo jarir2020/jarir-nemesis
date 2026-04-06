@@ -114,9 +114,33 @@ class Request
             ?? $default;
     }
 
+    /** Extract Bearer token from Authorization header. Added: 2026-04-06 */
+    public function bearerToken(): ?string
+    {
+        $auth = $this->header('Authorization', '');
+        if (is_string($auth) && str_starts_with($auth, 'Bearer ')) {
+            return substr($auth, 7);
+        }
+        return null;
+    }
+
     // -------------------------------------------------------------------------
     // Request meta
     // -------------------------------------------------------------------------
+
+    /** @var array<string, mixed> */
+    private array $meta = [];
+
+    /** Store arbitrary metadata on the request (e.g. auth payload). Added: 2026-04-06 */
+    public function setMeta(string $key, mixed $value): void
+    {
+        $this->meta[$key] = $value;
+    }
+
+    public function getMeta(string $key, mixed $default = null): mixed
+    {
+        return $this->meta[$key] ?? $default;
+    }
 
     public function method(): string
     {

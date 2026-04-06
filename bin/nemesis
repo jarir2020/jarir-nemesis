@@ -1,6 +1,6 @@
 <?php
 
-// Nemesis 4.0.0 | CLI entry — canonical file | Updated: 2026-04-04
+// Nemesis 6.0.0 | CLI entry — canonical file | Updated: 2026-04-04
 // When invoked via bin/nemesis, $projectRoot is the project root (parent of bin/).
 // When invoked directly from the project root, dirname(__FILE__) IS the project root.
 $projectRoot = is_dir(dirname(__FILE__) . '/../vendor')
@@ -697,6 +697,154 @@ switch ($command) {
         }
         break;
 
+    case 'make:auth':
+        // Phase 16 — scaffold auth controllers + routes | 2026-04-06
+        $authControllerDir = $projectRoot . '/app/Controllers/Auth';
+        if (!is_dir($authControllerDir)) mkdir($authControllerDir, 0755, true);
+
+        $controllers = [
+            'LoginController' => <<<'PHP'
+<?php
+declare(strict_types=1);
+namespace App\Controllers\Auth;
+
+use Nemesis\Auth\AuthManager;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
+
+class LoginController
+{
+    public function login(Request $request): Response
+    {
+        $data   = $request->validate(['email' => 'required|email', 'password' => 'required']);
+        $tokens = AuthManager::attempt($data);
+        if (!$tokens) {
+            return Response::json(['error' => 'Invalid credentials.'], 401);
+        }
+        return Response::json($tokens);
+    }
+
+    public function refresh(Request $request): Response
+    {
+        $refresh = $request->input('refresh_token');
+        if (!$refresh) return Response::json(['error' => 'refresh_token required.'], 422);
+        try {
+            $payload = ['sub' => 0]; // reload from DB in production
+            return Response::json(AuthManager::refresh($refresh, $payload));
+        } catch (\Throwable $e) {
+            return Response::json(['error' => $e->getMessage()], 401);
+        }
+    }
+
+    public function logout(Request $request): Response
+    {
+        AuthManager::logout($request);
+        return Response::json(['message' => 'Logged out successfully.']);
+    }
+}
+PHP,
+            'RegisterController' => <<<'PHP'
+<?php
+declare(strict_types=1);
+namespace App\Controllers\Auth;
+
+use Nemesis\Core\Database;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
+
+class RegisterController
+{
+    public function register(Request $request): Response
+    {
+        $data = $request->validate([
+            'name'                  => 'required|min:2',
+            'email'                 => 'required|email',
+            'password'              => 'required|min:8',
+            'password_confirmation' => 'required',
+        ]);
+
+        if ($data['password'] !== $data['password_confirmation']) {
+            return Response::json(['error' => 'Passwords do not match.'], 422);
+        }
+
+        $exists = Database::view("SELECT id FROM users WHERE email = ? LIMIT 1", [$data['email']]);
+        if ($exists) return Response::json(['error' => 'Email already registered.'], 409);
+
+        Database::statement(
+            "INSERT INTO users (name, email, password, created_at) VALUES (?, ?, ?, ?)",
+            [$data['name'], $data['email'], password_hash($data['password'], PASSWORD_BCRYPT), date('Y-m-d H:i:s')]
+        );
+
+        return Response::json(['message' => 'Registration successful.'], 201);
+    }
+}
+PHP,
+            'TwoFactorController' => <<<'PHP'
+<?php
+declare(strict_types=1);
+namespace App\Controllers\Auth;
+
+use Nemesis\Auth\Totp;
+use Nemesis\Auth\AuthManager;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
+
+class TwoFactorController
+{
+    public function setup(Request $request): Response
+    {
+        $user  = AuthManager::user($request);
+        $totp  = new Totp(issuer: getenv('APP_NAME') ?: 'Nemesis', label: $user['email'] ?? '');
+        return Response::json([
+            'secret'      => $totp->getSecret(),
+            'qr_uri'      => $totp->getProvisioningUri(),
+        ]);
+    }
+
+    public function verify(Request $request): Response
+    {
+        $data = $request->validate(['secret' => 'required', 'code' => 'required']);
+        $totp = new Totp($data['secret']);
+        if (!$totp->verify($data['code'])) {
+            return Response::json(['error' => 'Invalid TOTP code.'], 422);
+        }
+        return Response::json(['message' => '2FA verified successfully.']);
+    }
+
+    public function backupCodes(Request $request): Response
+    {
+        $user  = AuthManager::user($request);
+        $codes = Totp::generateBackupCodes($user['id']);
+        return Response::json(['backup_codes' => $codes, 'warning' => 'Store these safely. They will not be shown again.']);
+    }
+}
+PHP,
+        ];
+
+        foreach ($controllers as $name => $stub) {
+            $path = "{$authControllerDir}/{$name}.php";
+            if (!file_exists($path)) {
+                file_put_contents($path, $stub);
+                echo "Created: app/Controllers/Auth/{$name}.php\n";
+            } else {
+                echo "Skipped (exists): app/Controllers/Auth/{$name}.php\n";
+            }
+        }
+
+        // Append auth routes hint
+        $routeFile = $projectRoot . '/routes/api.php';
+        $hint = "\n// --- Auth routes (generated by make:auth) ---\n"
+              . "// \$router->post('/auth/login',    [App\\Controllers\\Auth\\LoginController::class, 'login']);\n"
+              . "// \$router->post('/auth/refresh',  [App\\Controllers\\Auth\\LoginController::class, 'refresh']);\n"
+              . "// \$router->post('/auth/logout',   [App\\Controllers\\Auth\\LoginController::class, 'logout'])->middleware('auth');\n"
+              . "// \$router->post('/auth/register', [App\\Controllers\\Auth\\RegisterController::class, 'register']);\n"
+              . "// \$router->post('/auth/2fa/setup',[App\\Controllers\\Auth\\TwoFactorController::class, 'setup'])->middleware('auth');\n";
+
+        file_put_contents($routeFile, $hint, FILE_APPEND);
+        echo "\nAuth routes hint appended to routes/api.php\n";
+        echo "✓ make:auth complete. Uncomment routes in routes/api.php to activate.\n";
+        break;
+
     case 'auth:rotate':
         echo "Rotating Application Secrets...\n";
         $envFile = $projectRoot . '/.env';
@@ -969,6 +1117,7 @@ switch ($command) {
             'make:plugin'      => 'Create a new plugin scaffold (v2 manifest)',
             'make:module' => 'Create a new module structure',
             'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
+            'make:auth' => 'Scaffold auth controllers (Login, Register, 2FA) + route hints',
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
             'db:seed' => 'Seed the database with records',

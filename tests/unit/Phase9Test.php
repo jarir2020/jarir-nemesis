@@ -79,11 +79,17 @@ class Phase9ConfigTest extends TestCase
 
     public function testDatabaseConfigRequiredKeys(): void
     {
+        // Updated 2026-04-06: required() is now driver-aware.
+        // SQLite only needs DB_DRIVER; MySQL/pgsql need host + credentials.
         $required = DatabaseConfig::required();
         $this->assertContains('DB_DRIVER', $required);
-        $this->assertContains('DB_HOST',   $required);
-        $this->assertContains('DB_NAME',   $required);
-        $this->assertContains('DB_USER',   $required);
+        // For non-sqlite drivers the host/name/user are also required
+        $driver = strtolower((string) (getenv('DB_DRIVER') ?: 'sqlite'));
+        if ($driver !== 'sqlite') {
+            $this->assertContains('DB_HOST', $required);
+            $this->assertContains('DB_NAME', $required);
+            $this->assertContains('DB_USER', $required);
+        }
     }
 
     public function testDatabaseConfigToArray(): void
