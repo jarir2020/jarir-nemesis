@@ -1668,6 +1668,188 @@ PHP,
         echo "WARNING: Run 'composer dump-autoload' if autoloading breaks.\n";
         break;
 
+    // Phase 21: tenant:create — provision a new tenant | 2026-04-06
+    case 'tenant:create':
+        $tenantName   = $argv[2] ?? null;
+        $tenantDomain = $argv[3] ?? '';
+        $tenantSlug   = $argv[4] ?? '';
+
+        if (!$tenantName) {
+            die("Usage: php nemesis tenant:create \"Tenant Name\" [domain] [slug]\n");
+        }
+
+        try {
+            $tenant = \Nemesis\Tenancy\TenantManager::create([
+                'name'   => $tenantName,
+                'domain' => $tenantDomain,
+                'slug'   => $tenantSlug ?: \Nemesis\Tenancy\TenantManager::slugify($tenantName),
+            ]);
+            echo "Tenant created:\n";
+            echo "  ID:     {$tenant->id}\n";
+            echo "  Name:   {$tenant->name}\n";
+            echo "  Slug:   {$tenant->slug}\n";
+            echo "  Domain: " . ($tenant->domain ?: '(none)') . "\n";
+            echo "  Active: " . ($tenant->active ? 'yes' : 'no') . "\n";
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    // Phase 21: tenant:list — display all tenants | 2026-04-06
+    case 'tenant:list':
+        try {
+            $tenants = \Nemesis\Tenancy\TenantManager::all();
+            if (empty($tenants)) {
+                echo "No tenants found.\n";
+                break;
+            }
+            printf("%-5s %-20s %-20s %-30s %-6s\n", 'ID', 'Name', 'Slug', 'Domain', 'Active');
+            echo str_repeat('-', 85) . "\n";
+            foreach ($tenants as $t) {
+                printf(
+                    "%-5s %-20s %-20s %-30s %-6s\n",
+                    $t->id,
+                    mb_strimwidth($t->name, 0, 19, '…'),
+                    mb_strimwidth($t->slug, 0, 19, '…'),
+                    mb_strimwidth($t->domain ?: '—', 0, 29, '…'),
+                    $t->active ? 'yes' : 'no'
+                );
+            }
+            echo "\nTotal: " . count($tenants) . " tenant(s)\n";
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    // Phase 21: tenant:activate / tenant:deactivate | 2026-04-06
+    case 'tenant:activate':
+    case 'tenant:deactivate':
+        $tenantId = isset($argv[2]) ? (int) $argv[2] : 0;
+        if (!$tenantId) die("Usage: php nemesis {$command} {id}\n");
+
+        try {
+            if ($command === 'tenant:activate') {
+                \Nemesis\Tenancy\TenantManager::activate($tenantId);
+                echo "Tenant #{$tenantId} activated.\n";
+            } else {
+                \Nemesis\Tenancy\TenantManager::deactivate($tenantId);
+                echo "Tenant #{$tenantId} deactivated.\n";
+            }
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    // Phase 21: tenant:delete — remove a tenant record | 2026-04-06
+    case 'tenant:delete':
+        $tenantId = isset($argv[2]) ? (int) $argv[2] : 0;
+        if (!$tenantId) die("Usage: php nemesis tenant:delete {id}\n");
+
+        echo "Are you sure you want to delete tenant #{$tenantId}? [y/N] ";
+        $confirm = strtolower(trim((string) fgets(STDIN)));
+        if ($confirm !== 'y') {
+            echo "Aborted.\n";
+            break;
+        }
+
+        try {
+            \Nemesis\Tenancy\TenantManager::delete($tenantId);
+            echo "Tenant #{$tenantId} deleted.\n";
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    // Phase 21: tenant:migrate — run migrations scoped to a tenant (DB-per-tenant) | 2026-04-06
+    case 'tenant:migrate':
+        $tenantSlug = $argv[2] ?? null;
+
+        try {
+            $tenants = $tenantSlug
+                ? array_filter(
+                    \Nemesis\Tenancy\TenantManager::all(),
+                    fn($t) => $t->slug === $tenantSlug
+                )
+                : \Nemesis\Tenancy\TenantManager::all();
+
+            if (empty($tenants)) {
+                echo $tenantSlug ? "Tenant '{$tenantSlug}' not found.\n" : "No tenants found.\n";
+                break;
+            }
+
+            foreach ($tenants as $tenant) {
+                echo "Migrating tenant: {$tenant->name} ({$tenant->slug})...\n";
+
+                // For DB-per-tenant strategy, switch connection first.
+                $strategy = getenv('TENANCY_STRATEGY') ?: 'shared_database';
+                if ($strategy === 'database_per_tenant') {
+                    \Nemesis\Tenancy\TenantManager::switchConnection($tenant);
+                } else {
+                    \Nemesis\Tenancy\TenantManager::setCurrent($tenant);
+                }
+
+                // Run the app's migration runner if available.
+                $migratorClass = '\Nemesis\Database\Migrator';
+                if (class_exists($migratorClass)) {
+                    $migrator = new $migratorClass(\Nemesis\Core\Database::getPdo());
+                    $migrator->run($projectRoot . '/database/migrations');
+                    echo "  [ok] Migrations applied for {$tenant->slug}.\n";
+                } else {
+                    echo "  [skip] No Migrator class found — implement Nemesis\\Database\\Migrator.\n";
+                }
+            }
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    // Phase 21: tenant:seed — run seeders for tenant(s) | 2026-04-06
+    case 'tenant:seed':
+        $tenantSlug  = $argv[2] ?? null;
+        $seederClass = $argv[3] ?? 'DatabaseSeeder';
+
+        try {
+            $tenants = $tenantSlug
+                ? array_filter(
+                    \Nemesis\Tenancy\TenantManager::all(),
+                    fn($t) => $t->slug === $tenantSlug
+                )
+                : \Nemesis\Tenancy\TenantManager::all();
+
+            if (empty($tenants)) {
+                echo $tenantSlug ? "Tenant '{$tenantSlug}' not found.\n" : "No tenants found.\n";
+                break;
+            }
+
+            foreach ($tenants as $tenant) {
+                echo "Seeding tenant: {$tenant->name} ({$tenant->slug})...\n";
+
+                $strategy = getenv('TENANCY_STRATEGY') ?: 'shared_database';
+                if ($strategy === 'database_per_tenant') {
+                    \Nemesis\Tenancy\TenantManager::switchConnection($tenant);
+                } else {
+                    \Nemesis\Tenancy\TenantManager::setCurrent($tenant);
+                }
+
+                $fqcn = "\\App\\Database\\Seeders\\{$seederClass}";
+                if (!class_exists($fqcn)) {
+                    echo "  [skip] Seeder class {$fqcn} not found.\n";
+                    continue;
+                }
+                (new $fqcn())->run();
+                echo "  [ok] Seeded {$tenant->slug} with {$seederClass}.\n";
+            }
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
     default:
         // Phase 7: try CommandBus first (app/Console/Commands + plugin commands) | 2026-04-03
         $bus = \Nemesis\Reactor\CommandBus::getInstance();
