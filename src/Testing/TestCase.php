@@ -283,4 +283,18 @@ abstract class TestCase
             throw new \Exception($message ?: 'Failed asserting that value is numeric.');
         }
     }
+
+    // Added: 2026-04-06 — Phase 17 shorthand aliases + exception message assertion
+    protected function assertStringContains(string $needle, string $haystack, string $message = ''): void
+    {
+        $this->assertStringContainsString($needle, $haystack, $message);
+    }
+
+    protected function expectExceptionMessageContains(string $substring): void
+    {
+        $this->_expectedExceptionMessageSubstring = $substring;
+    }
+
+    /** @internal Used by expectExceptionMessageContains mechanism */
+    public string $_expectedExceptionMessageSubstring = '';
 }

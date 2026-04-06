@@ -52,6 +52,10 @@ class TestRunner {
 
                         // Reset expectedException before each test | 2026-04-03
                         $instance->_expectedException = '';
+                        // Reset expectExceptionMessageContains | 2026-04-06
+                        if (property_exists($instance, '_expectedExceptionMessageSubstring')) {
+                            $instance->_expectedExceptionMessageSubstring = '';
+                        }
 
                         try {
                             if (method_exists($instance, 'setUp')) $instance->setUp();
@@ -72,10 +76,16 @@ class TestRunner {
                                 $passedTests++;
                             }
                         } catch (\Throwable $e) {
-                            // If this is the expected exception class, it's a PASS
-                            if ($instance->_expectedException !== ''
-                                && $e instanceof $instance->_expectedException
-                            ) {
+                            // Check exception class match
+                            $classMatch = $instance->_expectedException !== ''
+                                && $e instanceof $instance->_expectedException;
+                            // Check message substring match (if declared)
+                            $msgSubstr  = property_exists($instance, '_expectedExceptionMessageSubstring')
+                                ? $instance->_expectedExceptionMessageSubstring
+                                : '';
+                            $msgMatch   = $msgSubstr === '' || str_contains($e->getMessage(), $msgSubstr);
+
+                            if ($classMatch && $msgMatch) {
                                 echo "\033[32mPASS\033[0m\n";
                                 $passedTests++;
                             } else {
