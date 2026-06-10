@@ -1301,16 +1301,16 @@
         },
         {
             "name": "jarir-ahmed/uncensored-search",
-            "version": "v1.1.0",
+            "version": "v1.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-uncensored-search.git",
-                "reference": "e73490574a8e30413f9098bf75a173f623e01be6"
+                "reference": "47918e05be48a2c535b4b4d87c05dd005dcc0eaa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-uncensored-search/zipball/e73490574a8e30413f9098bf75a173f623e01be6",
-                "reference": "e73490574a8e30413f9098bf75a173f623e01be6",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-uncensored-search/zipball/47918e05be48a2c535b4b4d87c05dd005dcc0eaa",
+                "reference": "47918e05be48a2c535b4b4d87c05dd005dcc0eaa",
                 "shasum": ""
             },
             "require": {
@@ -1362,9 +1362,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/tree/v1.1.0"
+                "source": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/tree/v1.1.1"
             },
-            "time": "2026-06-10T17:58:19+00:00"
+            "time": "2026-06-10T18:08:36+00:00"
         },
         {
             "name": "jarir-ahmed/universal-cors",
