@@ -1,7 +1,6 @@
 {
     "name": "jarir/nemesis-framework",
-    "description": "Nemesis: A High-Performance, Zero-Dependency PHP Framework for SaaS and APIs.",
-    "version": "6.1.0",
+    "description": "Nemesis: A High-Performance PHP Framework for SaaS and APIs.",
     "type": "project",
     "require": {
         "php": ">=8.2",
@@ -9,7 +8,10 @@
         "league/flysystem": "^3.31",
         "league/flysystem-aws-s3-v3": "^3.31",
         "aws/aws-sdk-php": "^3.372.0",
-        "zircote/swagger-php": "^6.0"
+        "zircote/swagger-php": "^6.0",
+        "jarir-ahmed/cache": "^1.0",
+        "jarir-ahmed/uncensored-search": "^1.0",
+        "jarir-ahmed/php-llm": "^1.0"
     },
     "license": "MIT",
     "autoload": {
@@ -33,7 +35,6 @@
     "keywords": [
         "framework",
         "php",
-        "zero-dependency",
         "orm",
         "mvc",
         "api"
@@ -41,6 +42,7 @@
     "homepage": "https://github.com/jarir2020/jarir-nemesis",
     "bin": ["bin/nemesis"],
     "minimum-stability": "stable",
+    "prefer-stable": true,
     "scripts": {
         "post-create-project-cmd": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
