@@ -598,16 +598,16 @@
         },
         {
             "name": "jarir-ahmed/cache",
-            "version": "v1.0.0",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-cache.git",
-                "reference": "263cc999ed60effeda5da5928b18e447507e5adb"
+                "reference": "61a2615922419d6b993effe5e6075bb97dc7cfb4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-cache/zipball/263cc999ed60effeda5da5928b18e447507e5adb",
-                "reference": "263cc999ed60effeda5da5928b18e447507e5adb",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-cache/zipball/61a2615922419d6b993effe5e6075bb97dc7cfb4",
+                "reference": "61a2615922419d6b993effe5e6075bb97dc7cfb4",
                 "shasum": ""
             },
             "require": {
@@ -635,6 +635,13 @@
                 "psr/http-server-middleware": "Required for the PSR-15 CacheMiddleware."
             },
             "type": "library",
+            "extra": {
+                "nemesis": {
+                    "providers": [
+                        "JarirAhmed\\Cache\\Bridge\\NemesisServiceProvider"
+                    ]
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "JarirAhmed\\Cache\\": "src/"
@@ -664,9 +671,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-cache/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-cache/tree/v1.0.0"
+                "source": "https://github.com/jarir2020/jarir-ahmed-cache/tree/v1.1.0"
             },
-            "time": "2026-06-10T17:24:10+00:00"
+            "time": "2026-06-10T17:56:38+00:00"
         },
         {
             "name": "jarir-ahmed/data-encryption-utility",
@@ -1020,16 +1027,16 @@
         },
         {
             "name": "jarir-ahmed/php-llm",
-            "version": "v1.0.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-php-llm.git",
-                "reference": "6f5868f7dee6be7e3fc97125be581fd8bd70bb01"
+                "reference": "1af5bc04aa0cfbbab40915ac04bd974311108f14"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-php-llm/zipball/6f5868f7dee6be7e3fc97125be581fd8bd70bb01",
-                "reference": "6f5868f7dee6be7e3fc97125be581fd8bd70bb01",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-php-llm/zipball/1af5bc04aa0cfbbab40915ac04bd974311108f14",
+                "reference": "1af5bc04aa0cfbbab40915ac04bd974311108f14",
                 "shasum": ""
             },
             "require": {
@@ -1046,6 +1053,13 @@
                 "vlucas/phpdotenv": "Load a .env file so the packaged config picks up provider API keys automatically."
             },
             "type": "library",
+            "extra": {
+                "nemesis": {
+                    "providers": [
+                        "JarirAhmed\\PhpLlm\\Bridge\\NemesisServiceProvider"
+                    ]
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "JarirAhmed\\PhpLlm\\": "src/"
@@ -1081,9 +1095,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-php-llm/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-php-llm/tree/v1.0.1"
+                "source": "https://github.com/jarir2020/jarir-ahmed-php-llm/tree/v1.1.0"
             },
-            "time": "2026-06-10T17:41:53+00:00"
+            "time": "2026-06-10T17:57:30+00:00"
         },
         {
             "name": "jarir-ahmed/registration-data-checker",
@@ -1287,16 +1301,16 @@
         },
         {
             "name": "jarir-ahmed/uncensored-search",
-            "version": "v1.0.0",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jarir2020/jarir-ahmed-uncensored-search.git",
-                "reference": "54cc680bcaa29b628776c190bb7c261f226802a7"
+                "reference": "e73490574a8e30413f9098bf75a173f623e01be6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-uncensored-search/zipball/54cc680bcaa29b628776c190bb7c261f226802a7",
-                "reference": "54cc680bcaa29b628776c190bb7c261f226802a7",
+                "url": "https://api.github.com/repos/jarir2020/jarir-ahmed-uncensored-search/zipball/e73490574a8e30413f9098bf75a173f623e01be6",
+                "reference": "e73490574a8e30413f9098bf75a173f623e01be6",
                 "shasum": ""
             },
             "require": {
@@ -1310,6 +1324,13 @@
                 "ext-curl": "Required by CurlHttpClient to reach the search provider APIs"
             },
             "type": "library",
+            "extra": {
+                "nemesis": {
+                    "providers": [
+                        "JarirAhmed\\UncensoredSearch\\Bridge\\NemesisServiceProvider"
+                    ]
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "JarirAhmed\\UncensoredSearch\\": "src/"
@@ -1341,9 +1362,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/issues",
-                "source": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/tree/v1.0.0"
+                "source": "https://github.com/jarir2020/jarir-ahmed-uncensored-search/tree/v1.1.0"
             },
-            "time": "2026-06-10T17:29:53+00:00"
+            "time": "2026-06-10T17:58:19+00:00"
         },
         {
             "name": "jarir-ahmed/universal-cors",

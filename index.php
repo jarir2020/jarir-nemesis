@@ -40,6 +40,30 @@ $container->singleton(\Nemesis\Http\Request::class);
 $container->singleton(\Nemesis\Router\Router::class);
 $container->singleton(\Nemesis\Services\Mailer::class);
 
+// Auto-discover service providers shipped by installed packages (extra.nemesis).
+// Providers only register lazy container bindings, so unused packages stay
+// dormant in vendor/ until the app actually resolves them.
+$packageProviders = [];
+foreach ((new \Nemesis\Core\PackageManifest(__DIR__))->providers() as $providerClass) {
+    if (! class_exists($providerClass)) {
+        continue;
+    }
+    try {
+        $provider = new $providerClass($container);
+        $provider->register();
+        $packageProviders[] = $provider;
+    } catch (\Throwable $e) {
+        error_log("Nemesis package provider register failed [{$providerClass}]: " . $e->getMessage());
+    }
+}
+foreach ($packageProviders as $provider) {
+    try {
+        $provider->boot();
+    } catch (\Throwable $e) {
+        error_log('Nemesis package provider boot failed [' . get_class($provider) . ']: ' . $e->getMessage());
+    }
+}
+
 // App Debug Check
 $appDebug = getenv('APP_DEBUG') === 'true';
 if ($appDebug) {
