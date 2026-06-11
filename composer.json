@@ -16,6 +16,7 @@
         "jarir-ahmed/form-generator": "^1.0",
         "jarir-ahmed/hash-helper": "^1.0",
         "jarir-ahmed/http-response": "^1.0",
+        "jarir-ahmed/message-broker": "^1.0",
         "jarir-ahmed/notification-system": "^1.0",
         "jarir-ahmed/password-generator": "^1.0",
         "jarir-ahmed/php-llm": "^1.0",

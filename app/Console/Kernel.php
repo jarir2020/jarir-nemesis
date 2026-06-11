@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Nemesis 6.0 | Phase 18 — Console Kernel (task scheduler) | 2026-04-06
+// Nemesis 6.2.1 | Phase 18 — Console Kernel (task scheduler) | 2026-04-06
 
 namespace App\Console;
 

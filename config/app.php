@@ -1,5 +1,5 @@
 <?php
-// Nemesis 4.0.0 | Added: 2026-04-02
+// Nemesis 6.2.1 | Added: 2026-04-02
 
 return [
     'name'     => env('APP_NAME', 'Nemesis'),
