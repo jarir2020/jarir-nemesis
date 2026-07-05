@@ -27,7 +27,8 @@
         "jarir-ahmed/uncensored-search": "^1.0",
         "jarir-ahmed/universal-cors": "^1.0",
         "jarir-ahmed/universal-spa": "^1.0",
-        "jarir-ahmed/user-info-capture": "^1.0"
+        "jarir-ahmed/user-info-capture": "^1.0",
+        "jarir-ahmed/auth-microservice": "dev-main@dev"
     },
     "license": "MIT",
     "autoload": {
