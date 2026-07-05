@@ -26,3 +26,8 @@
 CLAUDE.md
 /tests/*.md
 /tests/**/*.md
+success-phase-*
+*_PLAN.*
+PLANS_*
+plan_*
+draft_*

@@ -78,6 +78,34 @@ $uri = $totp->getProvisioningUri(); // Use this to generate a QR code image
 $isValid = $totp->verify($userInputCode);
 ```
 
+### Auth Microservice Bridge
+
+Nemesis can optionally delegate auth operations to an external microservice package. When the package client is not available, you can still use the bridge with an injected transport callback in tests or local development.
+
+```php
+use Nemesis\Auth\MicroserviceBridge;
+
+MicroserviceBridge::configure([
+    'base_url' => 'https://auth.example.com',
+    'token' => 'service-token',
+]);
+
+$result = MicroserviceBridge::authenticate([
+    'email' => 'user@example.com',
+    'password' => 'secret',
+]);
+```
+
+```php
+MicroserviceBridge::setTransport(function (string $action, array $payload, array $config): array {
+    return [
+        'action' => $action,
+        'payload' => $payload,
+        'base_url' => $config['base_url'] ?? '',
+    ];
+});
+```
+
 ---
 
 ## Password Security

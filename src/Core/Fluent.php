@@ -143,6 +143,65 @@ class Fluent
         return $this;
     }
 
+    public function whereLike(string $column, mixed $value, string $boolean = 'AND'): static
+    {
+        $paramKey = 'wl_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $clause = "{$column} LIKE :{$paramKey}";
+        if (strtoupper($boolean) === 'OR') {
+            $clause = 'OR ' . $clause;
+        }
+
+        $this->whereParts[] = $clause;
+        $this->params[$paramKey] = $value;
+        return $this;
+    }
+
+    public function whereNotLike(string $column, mixed $value, string $boolean = 'AND'): static
+    {
+        $paramKey = 'wnl_' . str_replace('.', '_', $column) . '_' . count($this->params);
+        $clause = "{$column} NOT LIKE :{$paramKey}";
+        if (strtoupper($boolean) === 'OR') {
+            $clause = 'OR ' . $clause;
+        }
+
+        $this->whereParts[] = $clause;
+        $this->params[$paramKey] = $value;
+        return $this;
+    }
+
+    public function orWhereLike(string $column, mixed $value): static
+    {
+        return $this->whereLike($column, $value, 'OR');
+    }
+
+    public function orWhereNotLike(string $column, mixed $value): static
+    {
+        return $this->whereNotLike($column, $value, 'OR');
+    }
+
+    /**
+     * Group nested WHERE conditions with parentheses.
+     */
+    public function whereNested(callable $callback, string $boolean = 'AND'): static
+    {
+        $nested = new static($this->getTable());
+        $nested->params = $this->params;
+        $callback($nested);
+
+        if (empty($nested->whereParts)) {
+            return $this;
+        }
+
+        $group = '(' . $nested->compileWhere() . ')';
+        if (!empty($this->whereParts)) {
+            $group = strtoupper($boolean) === 'OR' ? 'OR ' . $group : 'AND ' . $group;
+        }
+
+        $this->whereParts[] = $group;
+        $this->params = $nested->params;
+        return $this;
+    }
+
     // Backward-compat aliases removed in 3.x but kept as no-ops for safety
     public function whereGET(string $column, mixed $operator, mixed $value): static    { return $this->where($column, $operator, $value); }
     public function whereDELETE(string $column, mixed $operator, mixed $value): static { return $this->where($column, $operator, $value); }

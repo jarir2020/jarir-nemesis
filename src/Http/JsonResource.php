@@ -30,4 +30,34 @@ abstract class JsonResource {
     public function toJson() {
         return json_encode($this->toArray());
     }
+
+    public function response(string $message = 'Success', int $status = 200): Response
+    {
+        return ResourceResponse::success($this, $message, $status);
+    }
+
+    public function created(string $message = 'Created'): Response
+    {
+        return ResourceResponse::created($this, $message);
+    }
+
+    public function updated(string $message = 'Updated'): Response
+    {
+        return ResourceResponse::updated($this, $message);
+    }
+
+    public function deleted(string $message = 'Deleted'): Response
+    {
+        return ResourceResponse::deleted($message);
+    }
+
+    public static function collectionResponse($resource, string $message = 'Success', int $status = 200): Response
+    {
+        return ResourceResponse::success(static::collection($resource), $message, $status);
+    }
+
+    public static function paginatedResponse(\Nemesis\Core\Paginator $paginator, string $message = 'Success'): Response
+    {
+        return ResourceResponse::paginated($paginator, $message);
+    }
 }

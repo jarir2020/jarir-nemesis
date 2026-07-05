@@ -84,4 +84,12 @@ trait Notifiable
     {
         return (string) ($this->slack_webhook_url ?? '');
     }
+
+    /**
+     * Override to supply a phone number for SMS notifications.
+     */
+    public function routeNotificationForSms(): string
+    {
+        return (string) ($this->phone ?? '');
+    }
 }

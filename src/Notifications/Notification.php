@@ -96,6 +96,16 @@ abstract class Notification
     }
 
     /**
+     * Build the SMS channel payload.
+     *
+     * @return array{to?:string,message?:string}
+     */
+    public function toSms(object $notifiable): array
+    {
+        return [];
+    }
+
+    /**
      * Build the webhook channel payload.
      * Keys: url (required), method (default POST), data (array), headers (optional)
      *

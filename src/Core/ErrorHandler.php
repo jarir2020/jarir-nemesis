@@ -10,6 +10,8 @@ namespace Nemesis\Core;
 use Nemesis\Exceptions\HttpException;
 use Nemesis\Exceptions\Concerns\RenderableException;
 use Nemesis\Exceptions\Concerns\ReportableException;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
 
 class ErrorHandler
 {
@@ -49,10 +51,24 @@ class ErrorHandler
 
         http_response_code($statusCode);
 
-        // If exception can render itself, let it (Phase 3: will pass Request)
+        $request = PHP_SAPI === 'cli' ? null : new Request();
+
+        // If exception can render itself, let it handle the response.
         if ($exception instanceof RenderableException) {
-            // TODO Phase 3: pass typed Request object here
-            // For now: fall through to default rendering
+            try {
+                $response = $request instanceof Request
+                    ? $exception->render($request)
+                    : null;
+
+                if ($response instanceof Response) {
+                    $response->send();
+                    exit;
+                }
+            } catch (\Throwable $renderException) {
+                Log::error('Renderable exception failed to render: ' . $renderException->getMessage(), [
+                    'exception' => get_class($renderException),
+                ]);
+            }
         }
 
         // JSON requests (API / AJAX)
@@ -117,7 +133,7 @@ class ErrorHandler
             ];
         }
 
-        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         exit;
     }
 

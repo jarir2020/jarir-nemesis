@@ -9,6 +9,7 @@ namespace Nemesis\Notifications;
 use Nemesis\Notifications\Channels\DatabaseChannel;
 use Nemesis\Notifications\Channels\LogChannel;
 use Nemesis\Notifications\Channels\MailChannel;
+use Nemesis\Notifications\Channels\SmsChannel;
 use Nemesis\Notifications\Channels\BroadcastChannel;
 use Nemesis\Notifications\Channels\SlackChannel;
 use Nemesis\Notifications\Channels\WebhookChannel;
@@ -34,6 +35,7 @@ class NotificationManager
         // Register built-in channels
         $this->channels = [
             'mail'      => new MailChannel(),
+            'sms'       => new SmsChannel(),
             'database'  => new DatabaseChannel(),
             'log'       => new LogChannel(),
             'broadcast' => new BroadcastChannel(),
@@ -66,6 +68,7 @@ class NotificationManager
         static::$instance = null;
         DatabaseChannel::reset();
         LogChannel::reset();
+        SmsChannel::reset();
     }
 
     // -------------------------------------------------------------------------

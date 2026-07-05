@@ -91,6 +91,12 @@ class Phase3Test extends TestCase
     public function testResponseJsonEncodesData(): void
     {
         $r = Response::json(['x' => 1]);
+        $this->assertEquals("{\n    \"x\": 1\n}", $r->getContent());
+    }
+
+    public function testResponseJsonCanBeBriefed(): void
+    {
+        $r = Response::json(['x' => 1], 200, [], false);
         $this->assertEquals('{"x":1}', $r->getContent());
     }
 

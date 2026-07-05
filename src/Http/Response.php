@@ -51,9 +51,14 @@ class Response
     /**
      * JSON response — sets Content-Type: application/json.
      */
-    public static function json(mixed $data, int $status = 200, array $headers = []): static
+    public static function json(mixed $data, int $status = 200, array $headers = [], ?bool $pretty = null): static
     {
-        $r = new static(json_encode($data), $status, $headers);
+        $options = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        if (self::shouldPrettyJson($pretty)) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+
+        $r = new static((string) json_encode($data, $options), $status, $headers);
         $r->headers['Content-Type'] = 'application/json';
         return $r;
     }
@@ -173,6 +178,11 @@ class Response
         return $this->redirectUrl !== null;
     }
 
+    public function getRedirectUrl(): ?string
+    {
+        return $this->redirectUrl;
+    }
+
     // -------------------------------------------------------------------------
     // Output — called by index.php (or tests) to flush the response
     // -------------------------------------------------------------------------
@@ -223,5 +233,22 @@ class Response
             header("{$name}: {$value}");
         }
         echo $this->content;
+    }
+
+    protected static function shouldPrettyJson(?bool $override = null): bool
+    {
+        if ($override !== null) {
+            return $override;
+        }
+
+        if (function_exists('config')) {
+            return (bool) \config('api.pretty_json', \config('app.json_pretty', true));
+        }
+
+        if (function_exists('env')) {
+            return (bool) \env('APP_JSON_PRETTY', true);
+        }
+
+        return true;
     }
 }

@@ -8,13 +8,15 @@ use Nemesis\Core\Validator;
 use JarirAhmed\HTTPResponse\HTTPResponse;
 use JarirAhmed\TimeHelper\TimeHelper;
 use Nemesis\Helpers\Helpers;
+use Nemesis\Http\Request;
+use Nemesis\Http\Response;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 class UserController {
 
-    public function login() {
-        $data = Helpers::getInput();
+    public function login(Request $request) {
+        $data = $request->all();
 
         // Validate input data
         if (empty($data['email']) || empty($data['password'])) {
@@ -26,10 +28,8 @@ class UserController {
             return;
         }
     
-        $user = new User();
-        
         // Get user by email
-        $userData = $user->getByEmail($data['email']);
+        $userData = $this->findUserByEmail($data['email']);
         
         if (!$userData) {
             HTTPResponse::unauthorized();
@@ -51,10 +51,10 @@ class UserController {
         }
     
         // Generate auth token
-        $authToken = $user->generateAuthToken();
+        $authToken = $this->generateAuthToken();
     
         // Update auth token in the database
-        $updateResult = $user->updateAuthToken($userData['id'], $authToken);
+        $updateResult = $this->persistAuthToken($userData['id'], $authToken);
         if (!$updateResult) {
             HTTPResponse::internalServerError();
             Helpers::json([
@@ -64,16 +64,50 @@ class UserController {
             return;
         }
     
-        // Return successful login response
-        Helpers::json([
+        $dashboardUrl = function_exists('route') ? route('dashboard.page') : '/dashboard';
+        if ($dashboardUrl === '#' || $dashboardUrl === '') {
+            $dashboardUrl = '/dashboard';
+        }
+
+        $accept = strtolower((string) $request->header('Accept', ''));
+        $wantsHtml = str_contains($accept, 'text/html') || $accept === '';
+
+        // Browser form submits should land on the dashboard page.
+        if ($wantsHtml) {
+            return Response::redirect($dashboardUrl);
+        }
+
+        return Response::json([
             'success' => true,
             'message' => 'Login successful.',
             'auth_token' => $authToken,
+            'redirect_to' => $dashboardUrl,
             'user' => [
                 'id' => $userData['id'],
                 'email' => $userData['email']
             ]
         ]);
+    }
+
+    /**
+     * Hook points for tests and future auth providers.
+     */
+    protected function findUserByEmail(string $email): ?array
+    {
+        $user = new User();
+        return $user->getByEmail($email);
+    }
+
+    protected function persistAuthToken(int|string $userId, string $authToken): mixed
+    {
+        $user = new User();
+        return $user->updateAuthToken($userId, $authToken);
+    }
+
+    protected function generateAuthToken(): string
+    {
+        $user = new User();
+        return $user->generateAuthToken();
     }
     
 

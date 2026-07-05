@@ -70,10 +70,14 @@ class ApiResponse {
     /**
      * Send a custom JSON response
      */
-    public static function json($data, $code = 200) {
+    public static function json($data, $code = 200, ?bool $pretty = null) {
         http_response_code($code);
         header('Content-Type: application/json');
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $options = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        if (self::shouldPrettyJson($pretty)) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+        echo json_encode($data, $options);
         exit;
     }
 
@@ -88,5 +92,22 @@ class ApiResponse {
             'data' => $data['data'],
             'meta' => $data['meta']
         ], 200);
+    }
+
+    protected static function shouldPrettyJson(?bool $override = null): bool
+    {
+        if ($override !== null) {
+            return $override;
+        }
+
+        if (function_exists('config')) {
+            return (bool) \config('api.pretty_json', \config('app.json_pretty', true));
+        }
+
+        if (function_exists('env')) {
+            return (bool) \env('APP_JSON_PRETTY', true);
+        }
+
+        return true;
     }
 }

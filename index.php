@@ -24,8 +24,10 @@ require "vendor/autoload.php";
 
 use Nemesis\Core\Config;
 use Nemesis\Core\Database;
+use Nemesis\Core\View;
 
 Config::load(__DIR__);
+View::addPath(base_path('views'));
 
 // Load plugins early in boot process
 $pluginManager = \Nemesis\Core\PluginManager::getInstance();
@@ -109,6 +111,6 @@ if (PHP_SAPI !== 'cli') {
                 $uri = '/' . $uri;
             }
 
-            return $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+            return $router->dispatch($uri, $request->method());
         });
 }

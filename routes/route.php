@@ -2,6 +2,7 @@
 use Nemesis\Router\Router;
 use App\Controllers\ProductController;
 use App\Controllers\UserController;
+use App\Controllers\FrontendController;
 use Nemesis\Helpers\Helpers;
 use App\Controllers\EmailController;
 use App\Controllers\ApplicationsController;
@@ -26,6 +27,30 @@ $productController = new ProductController();
 $userController = new UserController();
 $emailController = new EmailController();
 $applicationsController = new ApplicationsController();
+$frontendController = new FrontendController();
+
+$router->frontendGroup('react', 'layouts.app', function (Router $router) use ($frontendController): void {
+    $router->add('GET', '/login', [$frontendController, 'login'], ['web'])->name('login.page');
+    $router->add('GET', '/profile', [$frontendController, 'profile'], ['web'])->name('profile.page');
+}, ['middleware' => 'web']);
+
+$router->frontendGroup('vue', 'layouts.app', function (Router $router) use ($frontendController): void {
+    $router->add('GET', '/dashboard', [$frontendController, 'dashboard'], ['web'])->name('dashboard.page');
+    $router->add('GET', '/settings', [$frontendController, 'settings'], ['web'])->name('settings.page');
+}, ['middleware' => 'web']);
+
+$router->frontendGroup('server', 'layouts.app', function (Router $router) use ($frontendController, $userController): void {
+    $router->add('GET', '/admin', [$frontendController, 'admin'], ['web'])->name('admin.dashboard');
+    $router->add('POST', '/logout', [$userController, 'logout'], ['web'])->name('logout');
+}, ['middleware' => 'web']);
+
+$router->frontendGroup('ghost', 'layouts.app', function (Router $router) use ($frontendController): void {
+    $router->add('GET', '/ghost-preview', [$frontendController, 'preview'], ['web'])->name('ghost.preview');
+}, ['middleware' => 'web']);
+
+$router->frontendGroup('alpine', 'layouts.app', function (Router $router) use ($frontendController): void {
+    $router->add('GET', '/alpine-preview', [$frontendController, 'preview'], ['web'])->name('alpine.preview');
+}, ['middleware' => 'web']);
 
 $router->add('GET', '/framework-test', [TestController::class, 'index']);
 $router->add('GET', '/view-test', [TestController::class, 'viewTest']);
@@ -47,8 +72,7 @@ $router->add('GET', '/product/{id}', [$productController, 'view']);
 $router->add('PUT', '/product/{id}', [$productController, 'update']);
 $router->add('DELETE', '/product/{id}', [$productController, 'delete']);
 
-$router->add('POST', '/login', [$userController, 'login']);
-$router->add('POST', '/logout', [$userController, 'logout']);
+$router->add('POST', '/login', [$userController, 'login'], ['web'])->name('login.submit');
 $router->add('POST', '/register', [$userController, 'register']);
 
 $router->add('GET', '/application', [$applicationsController, 'viewAll']);

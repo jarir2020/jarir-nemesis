@@ -144,7 +144,19 @@ class Request
 
     public function method(): string
     {
-        return $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+        if ($method === 'POST') {
+            $override = $this->input('_method', $this->header('X-HTTP-Method-Override', null));
+            if (is_string($override) && $override !== '') {
+                $override = strtoupper(trim($override));
+                if (in_array($override, ['PUT', 'PATCH', 'DELETE', 'OPTIONS'], true)) {
+                    return $override;
+                }
+            }
+        }
+
+        return $method;
     }
 
     public function uri(): string

@@ -6,6 +6,9 @@ declare(strict_types=1);
 
 namespace Nemesis\Admin;
 
+use Nemesis\Support\Form;
+use Nemesis\Support\Table;
+
 /**
  * AdminPanel — register models/content-types for auto-CRUD and manage the admin area.
  *
@@ -57,6 +60,17 @@ class AdminPanel
     /** @var array<string, array> Admin nav items keyed by slug */
     private static array $navItems   = [];
 
+    /** @var array<string, array> Dashboard configuration */
+    private static array $dashboardConfig = [
+        'title' => 'Admin Dashboard',
+        'subtitle' => 'Manage content, users, and settings.',
+        'columns' => 3,
+        'layout' => 'views/admin/layout.php',
+    ];
+
+    /** @var array<string, array> CRUD configuration keyed by slug */
+    private static array $crudConfig = [];
+
     /** Prefix for all admin routes (default '/admin'). */
     private static string $prefix    = '/admin';
 
@@ -82,10 +96,18 @@ class AdminPanel
     {
         static::$registered = [];
         static::$navItems   = [];
+        static::$crudConfig  = [];
+        static::$dashboardConfig = [
+            'title' => 'Admin Dashboard',
+            'subtitle' => 'Manage content, users, and settings.',
+            'columns' => 3,
+            'layout' => 'views/admin/layout.php',
+        ];
         static::$prefix     = '/admin';
         static::$minRole    = self::ROLE_AUTHOR;
         static::$instance   = null;
         DashboardWidget::reset();
+        AdminComponent::reset();
     }
 
     // -------------------------------------------------------------------------
@@ -100,7 +122,7 @@ class AdminPanel
      */
     public static function register(string $slug, array $config = []): void
     {
-        static::$registered[$slug] = array_merge([
+        $normalized = array_merge([
             'slug'       => $slug,
             'label'      => ucwords(str_replace(['-', '_'], ' ', $slug)),
             'model'      => null,
@@ -109,14 +131,36 @@ class AdminPanel
             'roles'      => [self::ROLE_EDITOR, self::ROLE_ADMIN],
             'icon'       => 'fa-list',
             'per_page'   => 20,
+            'form_fields' => [],
+            'table_columns' => [],
+            'layout'     => static::$dashboardConfig['layout'],
+            'component'  => null,
         ], $config, ['slug' => $slug]);
+
+        static::$registered[$slug] = $normalized;
+        static::$crudConfig[$slug] = array_merge([
+            'per_page' => $normalized['per_page'],
+            'columns' => $normalized['columns'],
+            'searchable' => $normalized['searchable'],
+            'form_fields' => $normalized['form_fields'],
+            'table_columns' => $normalized['table_columns'],
+            'layout' => $normalized['layout'],
+        ], static::$crudConfig[$slug] ?? []);
 
         // Auto-add to nav
         static::$navItems[$slug] = [
-            'label' => static::$registered[$slug]['label'],
+            'label' => $normalized['label'],
             'url'   => static::$prefix . '/' . $slug,
-            'icon'  => static::$registered[$slug]['icon'],
+            'icon'  => $normalized['icon'],
         ];
+    }
+
+    /**
+     * Register a reusable admin component.
+     */
+    public static function component(string $name, callable $renderer, array $meta = []): AdminComponent
+    {
+        return AdminComponent::register($name, $renderer, $meta);
     }
 
     /**
@@ -162,6 +206,79 @@ class AdminPanel
     public static function widgets(): array
     {
         return DashboardWidget::all();
+    }
+
+    /**
+     * Return all registered admin components.
+     */
+    public static function components(): array
+    {
+        return AdminComponent::all();
+    }
+
+    /**
+     * Get or update the dashboard configuration.
+     *
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
+    public static function dashboard(array $config = []): array
+    {
+        if ($config !== []) {
+            static::$dashboardConfig = array_merge(static::$dashboardConfig, $config);
+        }
+
+        return static::$dashboardConfig;
+    }
+
+    /**
+     * Get or update CRUD defaults for a registered entity.
+     *
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
+    public static function crud(string $slug, array $config = []): array
+    {
+        if (!isset(static::$crudConfig[$slug])) {
+            static::$crudConfig[$slug] = [
+                'per_page' => 20,
+                'columns' => ['id', 'created_at'],
+                'searchable' => [],
+                'form_fields' => [],
+                'table_columns' => [],
+                'layout' => static::$dashboardConfig['layout'],
+            ];
+        }
+
+        if ($config !== []) {
+            static::$crudConfig[$slug] = array_merge(static::$crudConfig[$slug], $config);
+        }
+
+        return static::$crudConfig[$slug];
+    }
+
+    public static function formFor(string $slug, array $values = []): Form
+    {
+        $config = static::crud($slug);
+        $form = Form::make(static::$prefix . '/' . $slug, 'POST')
+            ->attr('class', 'admin-form admin-form-' . $slug);
+
+        foreach ($config['form_fields'] ?: $config['columns'] as $field) {
+            if (!is_string($field) || $field === '') {
+                continue;
+            }
+
+            $form->text($field, $values[$field] ?? '');
+        }
+
+        return $form;
+    }
+
+    public static function tableFor(string $slug, array $rows = []): Table
+    {
+        $config = static::crud($slug);
+        $headers = $config['table_columns'] ?: $config['columns'];
+        return Table::make($headers, $rows)->attr('class', 'admin-table admin-table-' . $slug);
     }
 
     // -------------------------------------------------------------------------
@@ -261,5 +378,15 @@ class AdminPanel
     public static function getPrefix(): string
     {
         return static::$prefix;
+    }
+
+    /**
+     * Return the registered CRUD config snapshot.
+     *
+     * @return array<string, array>
+     */
+    public static function crudConfig(): array
+    {
+        return static::$crudConfig;
     }
 }

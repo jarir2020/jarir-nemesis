@@ -37,6 +37,34 @@ AdminPanel::register('user', [
 ]);
 ```
 
+### Dashboard and CRUD Helpers
+
+```php
+// Update dashboard metadata
+AdminPanel::dashboard([
+    'title' => 'Operations',
+    'subtitle' => 'Keep the admin shell focused.',
+    'columns' => 4,
+]);
+
+// Register reusable admin components
+AdminPanel::component('stats_card', fn(array $meta) => '<section>' . ($meta['label'] ?? 'Stats') . '</section>', [
+    'label' => 'Stats',
+    'section' => 'dashboard',
+]);
+
+// Seed CRUD defaults from admin metadata
+AdminPanel::register('post', [
+    'columns' => ['title', 'status'],
+    'form_fields' => ['title', 'status'],
+    'table_columns' => ['title', 'status'],
+]);
+
+// Build a ready-to-render form or table from the registered entity
+$form  = AdminPanel::formFor('post', ['title' => 'Hello']);
+$table = AdminPanel::tableFor('post', [['title' => 'Hello', 'status' => 'draft']]);
+```
+
 ### Access Checks
 
 ```php
@@ -109,6 +137,23 @@ DashboardWidget::register('recent-posts', function () {
 DashboardWidget::register('stats', fn() => '<p>Total users: ' . User::count() . '</p>')
     ->title('Site Stats')
     ->order(5);
+```
+
+### Admin Components
+
+Admin components are lightweight reusable blocks for the dashboard shell and CRUD screens.
+
+```php
+use Nemesis\Admin\AdminComponent;
+
+AdminComponent::register('quick-links', fn(array $meta) => '<div>' . ($meta['title'] ?? 'Links') . '</div>', [
+    'title' => 'Quick Links',
+    'section' => 'dashboard',
+]);
+
+foreach (AdminComponent::all() as $component) {
+    echo $component->render();
+}
 ```
 
 ### Render All Widgets

@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace Nemesis\View;
 
+use Nemesis\Frontend\FrontendManager;
+
 /**
  * Nemesis Template Engine.
  *
@@ -90,6 +92,7 @@ class Engine
     public function findView(string $view): string
     {
         $extensions = ['.blade.php', '.php'];
+        $frameworkPath = FrontendManager::getInstance()->currentViewPath();
 
         // Namespaced: foo::bar.baz
         if (str_contains($view, '::')) {
@@ -104,6 +107,14 @@ class Engine
         }
 
         $rel = str_replace('.', '/', $view);
+
+        // Frontend-specific view directory for the active framework.
+        if ($frameworkPath !== null) {
+            foreach ($extensions as $ext) {
+                $path = $frameworkPath . '/' . $rel . $ext;
+                if (file_exists($path)) return $path;
+            }
+        }
 
         // Registered paths
         foreach ($this->paths as $base) {

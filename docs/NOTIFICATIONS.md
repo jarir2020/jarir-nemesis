@@ -188,6 +188,31 @@ public function routeNotificationForSlack(): string
 }
 ```
 
+### SMS Channel
+
+Nemesis now includes a built-in SMS channel with fake/test helpers. Implement `toSms()` on the notification and optionally `routeNotificationForSms()` on the notifiable model.
+
+```php
+public function via(object $notifiable): array
+{
+    return ['sms'];
+}
+
+public function toSms(object $notifiable): array
+{
+    return ['message' => 'Your code is 123456'];
+}
+```
+
+```php
+public function routeNotificationForSms(): string
+{
+    return $this->phone;
+}
+```
+
+Use `Nemesis\Notifications\Channels\SmsChannel::fake()` in tests to capture outgoing SMS payloads.
+
 ### Webhook Channel
 
 POST (or PUT) a JSON payload to any URL:

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+$routeDiagnostics = $routeDiagnostics ?? null;
+$showDiagnostics = false;
 echo <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +50,32 @@ echo <<<HTML
         .btn:hover {
             background-color: #2980b9;
         }
+        .debug {
+            margin-top: 24px;
+            text-align: left;
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 760px;
+            font-size: 14px;
+            color: #374151;
+        }
+        .debug h2 {
+            margin: 0 0 12px;
+            font-size: 18px;
+            color: #111827;
+        }
+        .debug code, .debug pre {
+            font-family: Consolas, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .debug ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +83,30 @@ echo <<<HTML
         <h1>404</h1>
         <p>Oops! The page you are looking for doesn't exist.</p>
         <a href="/" class="btn">Go Back to Home</a>
+HTML;
+
+if (is_array($routeDiagnostics)) {
+    $showDiagnostics = filter_var(getenv('APP_DEBUG') ?: false, FILTER_VALIDATE_BOOLEAN);
+}
+
+if (!empty($showDiagnostics) && is_array($routeDiagnostics)) {
+    $requested = $routeDiagnostics['requested'] ?? [];
+    $checked = $routeDiagnostics['checked_routes'] ?? [];
+    echo '<div class="debug">';
+    echo '<h2>Route Diagnostics</h2>';
+    echo '<pre>' . htmlspecialchars(json_encode($requested, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), ENT_QUOTES) . '</pre>';
+    echo '<ul>';
+    foreach ($checked as $candidate) {
+        $status = !empty($candidate['matched']) ? 'matched' : 'missed';
+        $reasons = !empty($candidate['reasons']) ? implode(', ', (array) $candidate['reasons']) : 'match';
+        $label = trim(($candidate['method'] ?? 'GET') . ' ' . ($candidate['uri'] ?? '/') . ' - ' . $status . ' (' . $reasons . ')');
+        echo '<li><code>' . htmlspecialchars($label, ENT_QUOTES) . '</code></li>';
+    }
+    echo '</ul>';
+    echo '</div>';
+}
+
+echo <<<HTML
     </div>
 </body>
 </html>

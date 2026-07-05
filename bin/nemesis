@@ -13,6 +13,14 @@ define('NEMESIS_CONSOLE', true);
 
 // Load configuration and environment
 \Nemesis\Core\Config::load($projectRoot);
+$apiFormatExampleLines = [
+    'php nemesis api:format status --json --brief',
+    'php nemesis api:format status --json --pretty',
+    'php nemesis api:format status --json --source --brief',
+    'php nemesis api:format status --json --source --pretty',
+    'php nemesis api:format on',
+    'php nemesis api:format off',
+];
 
 // Command-line argument parsing
 $command = $argv[1] ?? null;
@@ -380,6 +388,117 @@ switch ($command) {
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generate('helper', $name);
             echo "Helper created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:view':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:view path/to/view [--blade]\n");
+        $blade = in_array('--blade', $argv, true);
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generateView($name, $blade);
+            echo "View created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:layout':
+        $framework = $argv[2] ?? null;
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generateLayout($framework);
+            echo "Layout created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:admin-view':
+        $framework = $argv[2] ?? 'server';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generateAdminView($framework);
+            echo "Admin view created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:profile-view':
+        $framework = $argv[2] ?? 'react';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generateProfileView($framework);
+            echo "Profile view created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:settings-view':
+        $framework = $argv[2] ?? 'vue';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generateSettingsView($framework);
+            echo "Settings view created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:frontend-component':
+        $framework = $argv[2] ?? null;
+        $name = $argv[3] ?? null;
+        if (!$framework || !$name) die("Usage: php nemesis make:frontend-component framework Name\n");
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $paths = $scaffolder->generateFrontendComponent($framework, $name);
+            foreach ($paths as $path) {
+                echo "Component file created at {$path}\n";
+            }
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:admin-component':
+        $framework = $argv[2] ?? 'server';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $paths = $scaffolder->generateAdminComponent($framework);
+            foreach ($paths as $path) {
+                echo "Admin component file created at {$path}\n";
+            }
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:profile-component':
+        $framework = $argv[2] ?? 'react';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $paths = $scaffolder->generateProfileComponent($framework);
+            foreach ($paths as $path) {
+                echo "Profile component file created at {$path}\n";
+            }
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:settings-component':
+        $framework = $argv[2] ?? 'vue';
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $paths = $scaffolder->generateSettingsComponent($framework);
+            foreach ($paths as $path) {
+                echo "Settings component file created at {$path}\n";
+            }
         } catch (\RuntimeException $e) {
             echo "Error: " . $e->getMessage() . "\n"; exit(1);
         }
@@ -1083,15 +1202,261 @@ PHP,
         break;
 
     case 'route:cache':
-    case 'route': // Support "route cache"
-        if (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === '') {
-            require_once $projectRoot . '/index.php';
-            $router->cache();
-            echo "Routes cached successfully.\n";
-        } elseif (($argv[2] ?? '') === 'clear' || (($argv[2] ?? '') === 'cache' && ($argv[3] ?? '') === 'clear')) {
-             \Nemesis\Router\Router::clear();
-             echo "Route cache cleared.\n";
+    case 'route:clear':
+    case 'route:list':
+    case 'route:export':
+    case 'route:diagnose':
+    case 'route': // Support "route cache" / "route clear"
+        $routeArgs = array_slice($argv, 2);
+        $routeOptions = [
+            'method' => null,
+            'framework' => null,
+            'middleware' => null,
+            'format' => 'json',
+            'path' => null,
+            'uri' => null,
+            'host' => null,
+            'json' => false,
+            'json_pretty' => true,
+        ];
+        $routePositionals = [];
+        $routeVerb = $routeArgs[0] ?? '';
+        $routeAction = $routeArgs[1] ?? '';
+
+        foreach ($routeArgs as $arg) {
+            if (!is_string($arg)) {
+                continue;
+            }
+
+            if (str_starts_with($arg, '--method=')) {
+                $routeOptions['method'] = substr($arg, 9);
+            } elseif (str_starts_with($arg, '--framework=')) {
+                $routeOptions['framework'] = substr($arg, 12);
+            } elseif (str_starts_with($arg, '--middleware=')) {
+                $routeOptions['middleware'] = substr($arg, 13);
+            } elseif (str_starts_with($arg, '--format=')) {
+                $routeOptions['format'] = strtolower(substr($arg, 9));
+            } elseif (str_starts_with($arg, '--host=')) {
+                $routeOptions['host'] = substr($arg, 7);
+            } elseif ($arg === '--json') {
+                $routeOptions['json'] = true;
+            } elseif ($arg === '--pretty') {
+                $routeOptions['json_pretty'] = true;
+            } elseif ($arg === '--brief') {
+                $routeOptions['json_pretty'] = false;
+            } elseif ($arg !== '' && $arg[0] !== '-') {
+                if (!in_array($arg, ['cache', 'clear', 'list', 'export', 'diagnose'], true)) {
+                    $routePositionals[] = $arg;
+                }
+            }
         }
+
+        if (($command === 'route:clear') || ($routeVerb === 'clear') || ($routeVerb === 'cache' && $routeAction === 'clear')) {
+            \Nemesis\Router\Router::clearCache();
+            echo "Route cache cleared.\n";
+        } elseif ($command === 'route:diagnose' || $routeVerb === 'diagnose') {
+            require_once $projectRoot . '/vendor/autoload.php';
+            \Nemesis\Core\Config::load($projectRoot);
+            $router = require $projectRoot . '/routes/route.php';
+            $uri = $routeOptions['uri'] ?? ($routePositionals[0] ?? null);
+            $method = $routeOptions['method'] ?? ($routePositionals[1] ?? 'GET');
+
+            if (!$uri || str_starts_with((string) $uri, '--')) {
+                fwrite(STDERR, "Usage: php nemesis route:diagnose /uri [METHOD] [--host=example.com]\n");
+                exit(1);
+            }
+
+            if (str_starts_with((string) $method, '--')) {
+                $method = 'GET';
+            }
+
+            $report = $router->matchDiagnostics($uri, $method, $routeOptions['host']);
+            if ($routeOptions['json']) {
+                $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if ($routeOptions['json_pretty']) {
+                    $jsonFlags |= JSON_PRETTY_PRINT;
+                }
+                echo json_encode($report, $jsonFlags) . PHP_EOL;
+                break;
+            }
+
+            $output = new \Nemesis\Console\Output(false);
+            $output->info('Route diagnostics');
+            $output->line('Requested: ' . json_encode($report['requested'], JSON_UNESCAPED_SLASHES));
+            $output->line('Matched: ' . ($report['matched'] ? 'yes' : 'no'));
+            if (!empty($report['matched_route'])) {
+                $output->line('Matched route: ' . json_encode($report['matched_route'], JSON_UNESCAPED_SLASHES));
+            }
+            if (!empty($report['fallback_route'])) {
+                $output->line('Fallback route: ' . json_encode($report['fallback_route'], JSON_UNESCAPED_SLASHES));
+            }
+            $output->line('Checked routes: ' . count($report['checked_routes'] ?? []));
+            $output->newLine();
+            $rows = [];
+            foreach (($report['checked_routes'] ?? []) as $candidate) {
+                $rows[] = [
+                    (string) ($candidate['index'] ?? ''),
+                    (string) ($candidate['method'] ?? ''),
+                    (string) ($candidate['uri'] ?? ''),
+                    (string) ($candidate['name'] ?? ''),
+                    (string) ($candidate['framework'] ?? ''),
+                    !empty($candidate['matched']) ? 'yes' : 'no',
+                    !empty($candidate['reasons']) ? implode(',', (array) $candidate['reasons']) : '',
+                ];
+            }
+            $output->table(['#', 'Method', 'URI', 'Name', 'Framework', 'Match', 'Reasons'], $rows);
+        } elseif ($command === 'route:list' || $routeVerb === 'list') {
+            require_once $projectRoot . '/vendor/autoload.php';
+            \Nemesis\Core\Config::load($projectRoot);
+            $router = require $projectRoot . '/routes/route.php';
+            $output = new \Nemesis\Console\Output(false);
+            $filters = array_filter([
+                'method' => $routeOptions['method'],
+                'framework' => $routeOptions['framework'],
+                'middleware' => $routeOptions['middleware'],
+            ], static fn($value) => $value !== null && $value !== '');
+            $diagnostics = $router->diagnostics($filters);
+            $output->info('Route diagnostics');
+            if (!empty($filters)) {
+                $output->line('Filters: ' . json_encode($filters, JSON_UNESCAPED_SLASHES));
+            }
+            $output->line('Routes: ' . $diagnostics['route_count']);
+            $output->line('Named routes: ' . $diagnostics['named_route_count']);
+            $output->line('Cacheable routes: ' . $diagnostics['cacheable_route_count']);
+            $output->line('Fallback route: ' . ($diagnostics['fallback_route'] ? 'yes' : 'no'));
+            $output->newLine();
+            $rows = [];
+            foreach ($router->routeSummary($filters) as $route) {
+                $rows[] = [
+                    (string) $route['index'],
+                    $route['method'],
+                    $route['uri'],
+                    (string) ($route['name'] ?? ''),
+                    implode(',', (array) $route['middleware']),
+                    $route['cacheable'] ? 'yes' : 'no',
+                ];
+            }
+            $output->table(['#', 'Method', 'URI', 'Name', 'Middleware', 'Cache'], $rows);
+        } elseif ($command === 'route:export' || $routeVerb === 'export') {
+            require_once $projectRoot . '/vendor/autoload.php';
+            \Nemesis\Core\Config::load($projectRoot);
+            $router = require $projectRoot . '/routes/route.php';
+            $filters = array_filter([
+                'method' => $routeOptions['method'],
+                'framework' => $routeOptions['framework'],
+                'middleware' => $routeOptions['middleware'],
+            ], static fn($value) => $value !== null && $value !== '');
+            $file = $routeOptions['path'] ?: ($routePositionals[0] ?? null);
+            if ($file === null) {
+                $defaultExtension = in_array($routeOptions['format'], ['php', 'yaml'], true) ? $routeOptions['format'] : 'json';
+                $file = $projectRoot . '/storage/framework/routes.' . $defaultExtension;
+            }
+            $path = $router->exportRoutes($file, $routeOptions['format'], $filters);
+            echo "Routes exported to {$path}\n";
+        } elseif (($command === 'route:cache' && $routeVerb === '') || ($routeVerb === 'cache' && $routeAction === '')) {
+            require_once $projectRoot . '/vendor/autoload.php';
+            \Nemesis\Core\Config::load($projectRoot);
+            $router = require $projectRoot . '/routes/route.php';
+            $router->warmCache();
+            echo "Routes cached successfully.\n";
+        }
+        break;
+
+    case 'api:format':
+    case 'api:format:examples':
+        require_once $projectRoot . '/vendor/autoload.php';
+        \Nemesis\Core\Config::load($projectRoot);
+
+        $args = array_slice($argv, 2);
+        $jsonMode = in_array('--json', $args, true);
+        $jsonPretty = true;
+        $includeSource = false;
+        $positionals = [];
+        foreach ($args as $arg) {
+            if ($arg === '--json') {
+                continue;
+            }
+
+            if ($arg === '--pretty') {
+                $jsonPretty = true;
+                continue;
+            }
+
+            if ($arg === '--brief') {
+                $jsonPretty = false;
+                continue;
+            }
+
+            if ($arg === '--source') {
+                $includeSource = true;
+                continue;
+            }
+
+            if ($arg !== '' && $arg[0] !== '-') {
+                $positionals[] = strtolower((string) $arg);
+            }
+        }
+
+        $state = $positionals[0] ?? 'status';
+            if (in_array($state, ['examples', 'example', 'matrix'], true) || $command === 'api:format:examples') {
+            if ($jsonMode) {
+                $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if ($jsonPretty) {
+                    $jsonFlags |= JSON_PRETTY_PRINT;
+                }
+                echo json_encode([
+                    'title' => 'API Format Examples',
+                    'examples' => $apiFormatExampleLines,
+                ], $jsonFlags) . PHP_EOL;
+                break;
+            }
+
+            echo "API Format Examples:\n";
+            foreach ($apiFormatExampleLines as $line) {
+                echo '  ' . $line . "\n";
+            }
+            break;
+        }
+
+        if (!in_array($state, ['status', 'show', 'get', 'current', 'on', 'off', 'pretty', 'brief', 'true', 'false', '1', '0', 'yes', 'no'], true)) {
+            fwrite(STDERR, "Usage: php nemesis api:format [status|on|off|pretty|brief|examples] [--json] [--pretty|--brief] [--source]\n");
+            exit(1);
+        }
+        $pretty = match ($state) {
+            'on', 'pretty', 'true', '1', 'yes' => true,
+            'off', 'brief', 'false', '0', 'no' => false,
+            default => null,
+        };
+
+        $configFile = $projectRoot . '/config/api.php';
+        $current = (bool) \config('api.pretty_json', \config('app.json_pretty', true));
+        $source = file_exists($configFile)
+            ? 'config/api.php'
+            : (getenv('APP_JSON_PRETTY') !== false ? 'env:APP_JSON_PRETTY' : 'config/app.php');
+
+        if ($pretty === null) {
+            if ($jsonMode) {
+                $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if ($jsonPretty) {
+                    $jsonFlags |= JSON_PRETTY_PRINT;
+                }
+                $payload = [
+                    'mode' => $current ? 'pretty' : 'brief',
+                    'pretty_json' => $current,
+                ];
+                if ($includeSource) {
+                    $payload['source'] = $source;
+                }
+                echo json_encode($payload, $jsonFlags) . PHP_EOL;
+            } else {
+                echo 'API JSON format: ' . ($current ? 'pretty' : 'brief') . PHP_EOL;
+            }
+            break;
+        }
+
+        $content = "<?php\n// Nemesis 7.0.0 | API formatting defaults | Updated: " . date('Y-m-d') . "\n\nreturn [\n    'pretty_json' => " . ($pretty ? 'true' : 'false') . ",\n];\n";
+        file_put_contents($configFile, $content);
+        echo 'API JSON format set to ' . ($pretty ? 'pretty' : 'brief') . ".\n";
         break;
 
     case 'config:cache':
@@ -1290,6 +1655,12 @@ PHP,
             'db:restore' => 'Restore database from a SQL file',
             'cache:clear' => 'Flush the application cache',
             'route:cache' => 'Create a route cache file for faster routing',
+            'route:clear' => 'Clear the route cache file',
+            'route:list' => 'List registered routes and diagnostics',
+            'route:export' => 'Export route diagnostics to JSON, PHP, or YAML',
+            'route:diagnose' => 'Diagnose route matching for a URI and method [--json] [--pretty|--brief]',
+            'api:format' => 'Show or set API JSON formatting defaults [status|on|off] [--json] [--pretty|--brief] [--source]',
+            'api:format:examples' => 'Print the API JSON formatting matrix examples only',
             'config:cache' => 'Create a configuration cache file',
             'key:generate' => 'Set the APP_KEY in your .env file',
             'auth:rotate' => 'Rotate application secrets',
@@ -1313,6 +1684,10 @@ PHP,
         ];
         foreach ($cmds as $c => $d) {
             echo "  " . str_pad($c, 20) . " $d\n";
+        }
+        echo "\nAPI Format Examples:\n";
+        foreach ($apiFormatExampleLines as $line) {
+            echo "  {$line}\n";
         }
         break;
 

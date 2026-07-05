@@ -56,6 +56,7 @@ class Kernel
         'security'    => \App\Http\Middleware\SecurityHeadersMiddleware::class,
         'api.version' => \App\Http\Middleware\ApiVersionMiddleware::class,
         'debugbar'    => \App\Http\Middleware\DebugBarMiddleware::class,
+        'framework'   => \App\Http\Middleware\FrontendFrameworkMiddleware::class,
     ];
 
     // -------------------------------------------------------------------------

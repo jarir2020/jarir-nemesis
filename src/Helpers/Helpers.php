@@ -77,10 +77,10 @@ namespace Nemesis\Helpers {
     public static function randomString(int $length = 16): string {
          return substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, $length);
     }
-    public static function json(array $data, int $statusCode = 200, bool $pretty = false): void {
+    public static function json(array $data, int $statusCode = 200, ?bool $pretty = null): void {
         http_response_code($statusCode);
         header('Content-Type: application/json');
-        $options = $pretty ? JSON_PRETTY_PRINT : 0;
+        $options = self::shouldPrettyJson($pretty) ? JSON_PRETTY_PRINT : 0;
         echo json_encode($data, $options);
         exit;
     }
@@ -124,6 +124,22 @@ namespace Nemesis\Helpers {
 
     public static function e($value) {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8', false);
+    }
+
+    protected static function shouldPrettyJson(?bool $override = null): bool {
+        if ($override !== null) {
+            return $override;
+        }
+
+        if (function_exists('config')) {
+            return (bool) \config('api.pretty_json', \config('app.json_pretty', true));
+        }
+
+        if (function_exists('env')) {
+            return (bool) \env('APP_JSON_PRETTY', true);
+        }
+
+        return true;
     }
 }
 }

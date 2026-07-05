@@ -255,6 +255,34 @@ class MediaLibrary
         return true;
     }
 
+    /**
+     * Replace an existing attachment with a new upload while keeping the workflow simple.
+     *
+     * The old file record is deleted before the new one is stored.
+     */
+    public static function replace(int|Attachment $attachment, array $file, string $disk = 'local'): Attachment
+    {
+        static::delete($attachment);
+        return static::upload($file, $disk);
+    }
+
+    /**
+     * Delete many attachments in one pass.
+     *
+     * @param array<int, int|Attachment> $attachments
+     */
+    public static function deleteMany(array $attachments): int
+    {
+        $count = 0;
+        foreach ($attachments as $attachment) {
+            if (static::delete($attachment)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     // -------------------------------------------------------------------------
     // URL resolution
     // -------------------------------------------------------------------------
@@ -270,6 +298,22 @@ class MediaLibrary
         if ($att === null) return '';
 
         return static::$publicBase . '/' . ltrim($att->getPath(), '/');
+    }
+
+    /**
+     * Return the public base URL currently in use.
+     */
+    public static function publicBase(): string
+    {
+        return static::$publicBase;
+    }
+
+    /**
+     * Return the upload directory currently in use.
+     */
+    public static function uploadDir(): string
+    {
+        return static::$uploadDir;
     }
 
     // -------------------------------------------------------------------------
