@@ -2,6 +2,8 @@
 
 This guide will help you get Nemesis Framework v3.0.0 Enterprise Edition up and running on your server.
 
+> Note: The `php nemesis vendor:compress` maintenance command does not change normal installation steps. If you use it after installing dependencies, run it in dry-run mode first and keep a restore archive.
+
 ## Prerequisites
 
 Before installing Nemesis, ensure your server meets the following requirements:

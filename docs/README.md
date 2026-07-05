@@ -9,7 +9,7 @@
 ### Getting Started
 - **[Installation](INSTALLATION.md)** — Setup, environment, and configuration
 - **[Directory Structure](STRUCTURE.md)** — Application organisation
-- **[CLI Commands](CLI_COMMANDS.md)** — Full command reference
+- **[CLI Commands](CLI_COMMANDS.md)** — Full command reference, including `vendor:compress`
 
 ### Architecture
 - **[Module System](MODULES.md)** — Build self-contained feature modules
@@ -59,6 +59,9 @@
 ### Development
 - **[Testing](TESTING.md)** — TestCase, HTTP testing, fakes, database assertions
 - **[Dependency Injection](DEPENDENCY_INJECTION.md)** — Container and service providers
+
+### Maintenance
+- **[Vendor Compression](CLI_COMMANDS.md#vendorcompress)** — Safe vendor tree reduction for release maintenance
 
 ### Plugins (Bundled)
 - **[DebugBar Plugin](PLUGIN_DEBUGBAR.md)**

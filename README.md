@@ -6,6 +6,8 @@
 
 **Nemesis** is a high-performance, **Zero-Dependency** PHP framework designed for building scalable SaaS platforms and robust APIs. It combines the architectural elegance of enterprise frameworks with the speed of a featherweight engine.
 
+For maintenance releases such as v7.0.2, Nemesis also includes a safe vendor compression workflow via `php nemesis vendor:compress`. The command uses analysis to remove only classes proven unused, and it supports dry runs, reports, archives, and restore workflows.
+
 ---
 
 ## 🚀 Key Features
@@ -25,6 +27,7 @@
 - 🚀 **[Installation Guide](docs/INSTALLATION.md)** - Setup and configuration
 - 📂 **[Directory Structure](docs/STRUCTURE.md)** - Application organization
 - 💻 **[CLI Commands](docs/CLI_COMMANDS.md)** - Artisan-inspired command reference
+  - Includes `vendor:compress` for safe vendor tree reduction
 
 ### 🏗️ Architecture
 - 🧩 **[Plugin System](docs/PLUGINS.md)** - How to extend the framework

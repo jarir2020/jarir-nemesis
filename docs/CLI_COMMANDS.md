@@ -18,6 +18,95 @@ Nemesis provides a powerful command-line interface (CLI) called `nemesis`. It he
 
 ---
 
+## Maintenance
+
+### `vendor:compress`
+
+Compress the vendor tree by removing only classes proven unused by the application graph.
+
+```bash
+php nemesis vendor:compress [--dry-run] [--report[=path]] [--json] [--keep=<package>] [--exclude=<path>] [--archive=<path>] [--restore=<path>]
+```
+
+**Flags**
+- `--dry-run`: Analyze without changing files.
+- `--report[=path]`: Write a human-readable report to disk.
+- `--json`: Emit machine-readable JSON output.
+- `--keep=<package>`: Preserve a package or namespace root.
+- `--exclude=<path>`: Exclude a path from removal and restore operations.
+- `--archive=<path>`: Store removable files in an archive before deletion.
+- `--restore=<path>`: Restore from a prior archive or manifest.
+
+**Examples**
+
+Dry run:
+
+```bash
+php nemesis vendor:compress --dry-run --json
+```
+
+Restore:
+
+```bash
+php nemesis vendor:compress --restore=.nemesis/vendor-compress/2026-07-05T103000+06:00.json
+```
+
+**JSON payload example**
+
+```json
+{
+  "command": "vendor:compress",
+  "timestamp": "2026-07-05T10:30:00+06:00",
+  "mode": "dry-run",
+  "scope": {
+    "root": ".",
+    "packages": ["vendor/jarir-ahmed/cache", "vendor/jarir-ahmed/notification-system"]
+  },
+  "flags": {
+    "dry_run": true,
+    "json": true,
+    "report": "storage/reports/vendor-compress.json",
+    "keep": ["laravel/framework"],
+    "exclude": ["vendor/bin"]
+  },
+  "summary": {
+    "scanned_files": 1824,
+    "scanned_classes": 9120,
+    "preserved_classes": 8801,
+    "removable_classes": 319,
+    "removed_files": 0,
+    "unresolved_references": 14
+  },
+  "preserved": [
+    {
+      "path": "vendor/composer/autoload_psr4.php",
+      "package": "composer/composer",
+      "type": "bootstrap",
+      "reason": "composer metadata and autoload bootstrap"
+    }
+  ],
+  "candidates": [
+    {
+      "path": "vendor/example/package/src/UnusedHelper.php",
+      "package": "example/package",
+      "type": "class",
+      "reason": "no imports, no classmap references, no runtime bootstrap references"
+    }
+  ],
+  "skipped": [],
+  "warnings": [
+    "14 references could not be resolved safely and were preserved"
+  ],
+  "restore": {
+    "archive_path": ".nemesis/vendor-compress/2026-07-05T103000+06:00.tar.gz",
+    "manifest_path": ".nemesis/vendor-compress/2026-07-05T103000+06:00.json",
+    "restore_command": "php nemesis vendor:compress --restore=.nemesis/vendor-compress/2026-07-05T103000+06:00.json"
+  }
+}
+```
+
+---
+
 ## Scaffolding (Make)
 
 Create new application classes.

@@ -4,6 +4,29 @@ We are thrilled to announce the stable release of **Nemesis Framework v2.0.0**. 
 
 ---
 
+## v7.0.2 Maintenance Note
+
+Nemesis v7.0.2 introduces `php nemesis vendor:compress`, a maintenance command that reduces vendor tree size by removing only classes proven unused by analysis.
+
+### Why it is safe
+- It preserves the Composer bootstrap, autoload files, binaries, and package metadata.
+- It supports `--dry-run` so you can inspect the candidate set before deleting anything.
+- It can emit reports and archives so teams can review or restore removed files later.
+- It preserves uncertain or dynamic references instead of risking application corruption.
+
+### Recommended workflow
+1. Run `php nemesis vendor:compress --dry-run --json`.
+2. Review the report and keep list.
+3. Re-run with `--report` and `--archive` when you are ready.
+4. Use `--restore` if a package needs to be brought back.
+
+### Maintainer notes
+- Reflection-heavy or dynamically loaded packages should be reviewed carefully.
+- The bootstrap allowlist always wins over compression candidates.
+- See the CLI command reference for flags, JSON output, and examples.
+
+---
+
 ## 🏁 The Milestone: 100% Feature Complete
 Nemesis has been built from the ground up to solve the "dependency bloat" problem. Every utility is natively written, ensuring maximum performance, security, and portability.
 

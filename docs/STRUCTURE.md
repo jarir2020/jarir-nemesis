@@ -2,6 +2,8 @@
 
 Nemesis Framework follows a clean and logical directory structure designed for scalability and ease of use.
 
+Vendor compression stores archives and manifests under `.nemesis/vendor-compress/` so cleanup data stays separate from the application tree.
+
 ## Core Directories
 
 ### `app/`

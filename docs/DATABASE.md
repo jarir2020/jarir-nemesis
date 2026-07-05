@@ -4,6 +4,8 @@
 
 Nemesis provides a fluent query builder and Eloquent-style ORM for database operations. Supports MySQL, PostgreSQL, and SQLite.
 
+Vendor compression preserves the ORM bootstrap, database configuration, migrations, and any database entrypoints that are referenced by the application graph.
+
 ---
 
 ## Query Builder

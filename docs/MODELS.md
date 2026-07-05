@@ -4,6 +4,8 @@
 
 Nemesis provides an Eloquent-style ORM for working with databases using object-oriented syntax. Each database table has a corresponding Model inheriting from `Nemesis\Core\Model`.
 
+When `vendor:compress` is used, models that are imported by the application graph or referenced by database bootstrapping are treated as preserved roots and must not be removed.
+
 ---
 
 ## Creating Models
