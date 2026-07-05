@@ -24,6 +24,7 @@
 !phases_plan.txt
 !draft_Plan.txt
 .claude
+.nemesis/
 *.bak
 CLAUDE.md
 /tests/*.md
