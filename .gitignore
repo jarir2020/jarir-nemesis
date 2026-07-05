@@ -7,6 +7,8 @@
 /storage/cache/*
 /storage/logs/*
 /storage/framework/views/*
+/storage/framework/
+/storage/views/*
 /storage/framework/down
 /test_result.txt
 /test_results.log
