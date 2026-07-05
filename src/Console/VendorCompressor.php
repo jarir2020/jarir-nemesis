@@ -183,12 +183,13 @@ class VendorCompressor
         }
 
         $references = $this->collectProjectReferences();
-        $preserveMap = $this->buildPreserveMap($keep);
+        $reflectionHeavyPackages = $this->identifyReflectionHeavyPackages();
+        $preserveMap = $this->buildPreserveMap($keep, $reflectionHeavyPackages);
 
         $preserved = [];
         $candidates = [];
         $skipped = [];
-        $warnings = [];
+        $warnings = $references['warnings'];
         $vendorFilesScanned = 0;
 
         foreach ($this->iterateVendorFiles() as $file) {
@@ -416,6 +417,8 @@ class VendorCompressor
     {
         $tokens = [];
         $sourceFilesScanned = 0;
+        $warnings = [];
+        $dynamicMarkersFound = false;
 
         foreach ($this->iterateProjectFiles() as $file) {
             if (!str_ends_with($file, '.php')) {
@@ -431,11 +434,20 @@ class VendorCompressor
             foreach ($this->extractTokens($content) as $token) {
                 $tokens[$token] = true;
             }
+
+            if ($this->containsDynamicResolutionMarkers($content)) {
+                $dynamicMarkersFound = true;
+            }
+        }
+
+        if ($dynamicMarkersFound) {
+            $warnings[] = 'Dynamic resolution markers were detected in the project tree; reflection-heavy vendor packages will be preserved.';
         }
 
         return [
             'tokens' => $tokens,
             'source_files_scanned' => $sourceFilesScanned,
+            'warnings' => $warnings,
         ];
     }
 
@@ -601,6 +613,7 @@ class VendorCompressor
         $patterns = [
             '/\b(?:app|make|resolve|singleton|bind|instance)\(\s*[\'"]([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)[\'"]/m',
             '/\bclass_alias\(\s*[\'"]([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)[\'"]\s*,\s*[\'"]([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)[\'"]\s*\)/m',
+            '/\b(?:ReflectionClass|ReflectionMethod|ReflectionFunction|ReflectionProperty|ReflectionObject)\(\s*[\'"]([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)[\'"]/m',
         ];
 
         foreach ($patterns as $pattern) {
@@ -621,6 +634,37 @@ class VendorCompressor
         }
 
         return $tokens;
+    }
+
+    private function containsDynamicResolutionMarkers(string $content): bool
+    {
+        $patterns = [
+            '/\bReflectionClass\b/',
+            '/\bReflectionMethod\b/',
+            '/\bReflectionFunction\b/',
+            '/\bReflectionProperty\b/',
+            '/\bReflectionObject\b/',
+            '/\bclass_exists\s*\(/',
+            '/\binterface_exists\s*\(/',
+            '/\btrait_exists\s*\(/',
+            '/\benum_exists\s*\(/',
+            '/\bmethod_exists\s*\(/',
+            '/\bproperty_exists\s*\(/',
+            '/\bis_a\s*\(/',
+            '/\bis_subclass_of\s*\(/',
+            '/\bcall_user_func(?:_array)?\s*\(/',
+            '/\bforward_static_call(?:_array)?\s*\(/',
+            '/\bresolve\s*\(\s*[\'"]?[A-Za-z_\\\\][A-Za-z0-9_\\\\]*[\'"]?\s*\)/',
+            '/\bapp\s*\(\s*[\'"]?[A-Za-z_\\\\][A-Za-z0-9_\\\\]*[\'"]?\s*\)/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $content) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -709,7 +753,10 @@ class VendorCompressor
      * @param list<string> $keep
      * @return array<string, string>
      */
-    private function buildPreserveMap(array $keep): array
+    /**
+     * @param array<string, true> $reflectionHeavyPackages
+     */
+    private function buildPreserveMap(array $keep, array $reflectionHeavyPackages = []): array
     {
         $preserve = [];
 
@@ -731,6 +778,11 @@ class VendorCompressor
                 continue;
             }
 
+            if (isset($reflectionHeavyPackages[$packageRoot])) {
+                $preserve[$file] = 'reflection-heavy-package';
+                continue;
+            }
+
             $composerJson = $packageRoot . DIRECTORY_SEPARATOR . 'composer.json';
             if (!file_exists($composerJson)) {
                 continue;
@@ -748,6 +800,44 @@ class VendorCompressor
         }
 
         return $preserve;
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function identifyReflectionHeavyPackages(): array
+    {
+        $packages = [];
+
+        foreach (glob($this->vendorDir . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR) ?: [] as $packageRoot) {
+            $phpFiles = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($packageRoot, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+
+            foreach ($phpFiles as $fileInfo) {
+                if (!$fileInfo->isFile()) {
+                    continue;
+                }
+
+                $path = $fileInfo->getRealPath();
+                if ($path === false || !str_ends_with($path, '.php')) {
+                    continue;
+                }
+
+                $content = file_get_contents($path);
+                if ($content === false) {
+                    continue;
+                }
+
+                if ($this->containsDynamicResolutionMarkers($content)) {
+                    $packages[rtrim($packageRoot, DIRECTORY_SEPARATOR)] = true;
+                    break;
+                }
+            }
+        }
+
+        return $packages;
     }
 
     /**

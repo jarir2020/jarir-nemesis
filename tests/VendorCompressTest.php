@@ -17,6 +17,7 @@ class VendorCompressTest extends TestCase
         mkdir($this->root . '/vendor/acme/tool/src', 0755, true);
         mkdir($this->root . '/vendor/acme/tool/bin', 0755, true);
         mkdir($this->root . '/vendor/other/pkg/src', 0755, true);
+        mkdir($this->root . '/vendor/dynamic/pkg/src', 0755, true);
         mkdir($this->root . '/app/Services', 0755, true);
         mkdir($this->root . '/vendor/composer', 0755, true);
 
@@ -27,6 +28,8 @@ class VendorCompressTest extends TestCase
         file_put_contents($this->root . '/vendor/acme/tool/src/UsedClass.php', "<?php\nnamespace Acme\\Tool;\nclass UsedClass {}\n");
         file_put_contents($this->root . '/vendor/acme/tool/src/UnusedClass.php', "<?php\nnamespace Acme\\Tool;\nclass UnusedClass {}\n");
         file_put_contents($this->root . '/vendor/other/pkg/src/LooseClass.php', "<?php\nnamespace Other\\Pkg;\nclass LooseClass {}\n");
+        file_put_contents($this->root . '/vendor/dynamic/pkg/src/DynamicResolver.php', "<?php\nnamespace Dynamic\\Pkg;\nuse ReflectionClass;\nclass DynamicResolver { public function load(string \$class): object { return new ReflectionClass(\$class); } }\n");
+        file_put_contents($this->root . '/vendor/dynamic/pkg/src/DynamicTarget.php', "<?php\nnamespace Dynamic\\Pkg;\nclass DynamicTarget {}\n");
         file_put_contents($this->root . '/vendor/acme/tool/composer.json', json_encode([
             'name' => 'acme/tool',
             'bin' => ['bin/tool.php'],
@@ -62,6 +65,7 @@ class VendorCompressTest extends TestCase
         $this->assertGreaterThan(0, $report['summary']['preserved']);
         $this->assertContains('vendor/acme/tool/src/UnusedClass.php', array_column($report['candidates'], 'path'));
         $this->assertContains('vendor/other/pkg/src/LooseClass.php', array_column($report['candidates'], 'path'));
+        $this->assertContains('vendor/dynamic/pkg/src/DynamicTarget.php', array_column($report['preserved'], 'path'));
         $this->assertContains('vendor/acme/tool/src/UsedClass.php', array_column($report['preserved'], 'path'));
     }
 
@@ -102,6 +106,21 @@ class VendorCompressTest extends TestCase
         $this->assertGreaterThan(0, $restoreReport['summary']['restored']);
         $this->assertTrue(file_exists($this->root . '/vendor/acme/tool/src/UnusedClass.php'));
         $this->assertTrue(file_exists($this->root . '/vendor/other/pkg/src/LooseClass.php'));
+    }
+
+    public function testReflectionHeavyVendorPackageIsPreserved(): void
+    {
+        $compressor = new VendorCompressor($this->root);
+        $report = $compressor->compress([
+            'dry_run' => true,
+            'report' => $this->root . '/reports/vendor-compress.json',
+            'archive' => $this->root . '/backups/vendor-compress.zip',
+        ]);
+
+        $paths = array_column($report['preserved'], 'path');
+        $this->assertContains('vendor/dynamic/pkg/src/DynamicResolver.php', $paths);
+        $this->assertContains('vendor/dynamic/pkg/src/DynamicTarget.php', $paths);
+        $this->assertContains('reflection-heavy-package', array_column($report['preserved'], 'reason'));
     }
 
     private function removeDir(string $dir): void
