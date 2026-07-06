@@ -13,8 +13,98 @@ Nemesis provides a powerful command-line interface (CLI) called `nemesis`. It he
 | `php nemesis list` | List all available commands |
 | `php nemesis help [command]` | Display help for a command |
 | `php nemesis serve` | Start the development server |
+| `php nemesis docs:sync [--dry-run] [--json] [--pretty] [--brief]` | Mirror `docs/` and `public/docs/` by timestamp |
 | `php nemesis env:doctor` | Check environment health |
 | `php nemesis key:generate` | Generate application key |
+
+---
+
+## Maintenance
+
+### `vendor:compress`
+
+Compress the vendor tree by removing only classes proven unused by the application graph.
+
+```bash
+php nemesis vendor:compress [--dry-run] [--report[=path]] [--json] [--keep=<package>] [--exclude=<path>] [--archive=<path>] [--restore=<path>]
+```
+
+**Flags**
+- `--dry-run`: Analyze without changing files.
+- `--report[=path]`: Write a human-readable report to disk.
+- `--json`: Emit machine-readable JSON output.
+- `--keep=<package>`: Preserve a package or namespace root.
+- `--exclude=<path>`: Exclude a path from removal and restore operations.
+- `--archive=<path>`: Store removable files in an archive before deletion.
+- `--restore=<path>`: Restore from a prior archive or manifest.
+
+**Examples**
+
+Dry run:
+
+```bash
+php nemesis vendor:compress --dry-run --json
+```
+
+Restore:
+
+```bash
+php nemesis vendor:compress --restore=.nemesis/vendor-compress/2026-07-05T103000+06:00.json
+```
+
+**JSON payload example**
+
+```json
+{
+  "command": "vendor:compress",
+  "timestamp": "2026-07-05T10:30:00+06:00",
+  "mode": "dry-run",
+  "scope": {
+    "root": ".",
+    "packages": ["vendor/jarir-ahmed/cache", "vendor/jarir-ahmed/notification-system"]
+  },
+  "flags": {
+    "dry_run": true,
+    "json": true,
+    "report": "storage/reports/vendor-compress.json",
+    "keep": ["laravel/framework"],
+    "exclude": ["vendor/bin"]
+  },
+  "summary": {
+    "scanned_files": 1824,
+    "scanned_classes": 9120,
+    "preserved_classes": 8801,
+    "removable_classes": 319,
+    "removed_files": 0,
+    "unresolved_references": 14
+  },
+  "preserved": [
+    {
+      "path": "vendor/composer/autoload_psr4.php",
+      "package": "composer/composer",
+      "type": "bootstrap",
+      "reason": "composer metadata and autoload bootstrap"
+    }
+  ],
+  "candidates": [
+    {
+      "path": "vendor/example/package/src/UnusedHelper.php",
+      "package": "example/package",
+      "type": "class",
+      "reason": "no imports, no classmap references, no runtime bootstrap references"
+    }
+  ],
+  "skipped": [],
+  "warnings": [
+    "14 references could not be resolved safely and were preserved"
+  ],
+  "restore": {
+    "archive_path": ".nemesis/vendor-compress/2026-07-05T103000+06:00.tar.gz",
+    "manifest_path": ".nemesis/vendor-compress/2026-07-05T103000+06:00.json",
+    "restore_command": "php nemesis vendor:compress --restore=.nemesis/vendor-compress/2026-07-05T103000+06:00.json"
+  }
+}
+```
 
 ---
 
@@ -25,7 +115,7 @@ Create new application classes.
 | Command | Description |
 |---------|-------------|
 | `make:controller {name}` | Create a new controller class |
-| `make:model {name}` | Create a new Eloquent model class |
+| `make:model {name} [--connection=name]` | Create a new Eloquent model class and pin it to a named database connection |
 | `make:migration {name}` | Create a new migration file |
 | `make:middleware {name}` | Create a new middleware class |
 | `make:request {name}` | Create a new form request class |
@@ -54,6 +144,7 @@ Manage your database schema and data.
 | `migrate:fresh` | Drop all tables and re-run migrations |
 | `migrate:status` | Show status of each migration |
 | `db:seed` | Seed the database with records |
+| `db:list-connections` | List configured database connections |
 | `db:dump` | Dump database to SQL file |
 | `db:restore` | Restore database from SQL file |
 
@@ -109,6 +200,7 @@ Optimize the application for production.
 | `tinker` | Interact with your application via CLI shell |
 | `api:probe` | Test all API routes for availability |
 | `model:health` | Check models for common issues (e.g., N+1) |
+| `examples:list` | Browse the optional starter gallery |
 
 ---
 

@@ -35,6 +35,9 @@ php nemesis list
 - `db:dump`: Export the entire database to a SQL file.
 - `db:restore {file.sql}`: Import a database from a SQL file.
 
+### Documentation
+- `docs:sync`: Mirror `docs/` and `public/docs/` based on file timestamps. Use `--dry-run` to preview, `--json` for tooling, and `--brief` for compact JSON logs.
+
 ### Optimization & Cache
 - `optimize`: Warm up config and route caches.
 - `cache:clear`: Flush all application caches.

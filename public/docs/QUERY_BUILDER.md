@@ -2,6 +2,8 @@
 
 Nemesis provides a fluent query builder that allows you to build and execute database queries with ease. It uses PHP's PDO internally and provides a clean, expressive syntax.
 
+When `vendor:compress` is used, query-related classes and database helpers that are referenced by the application graph are preserved and will not be removed.
+
 ---
 
 ## Getting Started

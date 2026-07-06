@@ -8,6 +8,7 @@ $projectRoot = is_dir(dirname(__FILE__) . '/../vendor')
     : dirname(__FILE__);           // running from project root
 // Autoload dependencies
 require_once $projectRoot . '/vendor/autoload.php';
+$GLOBALS['projectRoot'] = $projectRoot;
 
 define('NEMESIS_CONSOLE', true);
 
@@ -67,6 +68,148 @@ function databaseConnectionsPayload(): array
         'count' => count($items),
         'default' => $defaultName,
         'connections' => $items,
+    ];
+}
+
+function docsRoots(): array
+{
+    $projectRoot = $GLOBALS['projectRoot'] ?? dirname(__FILE__);
+
+    return [
+        'docs' => rtrim((string) (getenv('NEMESIS_DOCS_ROOT') ?: ($projectRoot . '/docs')), '/'),
+        'public_docs' => rtrim((string) (getenv('NEMESIS_PUBLIC_DOCS_ROOT') ?: ($projectRoot . '/public/docs')), '/'),
+    ];
+}
+
+/**
+ * @return array<string, array{path:string,mtime:int,size:int}>
+ */
+function collectSyncFiles(string $root): array
+{
+    if (!is_dir($root)) {
+        return [];
+    }
+
+    $files = [];
+    $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $item) {
+        if (!$item->isFile()) {
+            continue;
+        }
+
+        $relative = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($root))), '/');
+        $files[$relative] = [
+            'path' => $item->getPathname(),
+            'mtime' => (int) @filemtime($item->getPathname()),
+            'size' => (int) @filesize($item->getPathname()),
+        ];
+    }
+
+    ksort($files);
+    return $files;
+}
+
+function ensureParentDirectory(string $path): void
+{
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+}
+
+function syncDocsTrees(string $docsRoot, string $publicDocsRoot, bool $dryRun = false): array
+{
+    $docsFiles = collectSyncFiles($docsRoot);
+    $publicFiles = collectSyncFiles($publicDocsRoot);
+    $allPaths = array_values(array_unique(array_merge(array_keys($docsFiles), array_keys($publicFiles))));
+    sort($allPaths);
+
+    $changes = [];
+    foreach ($allPaths as $relative) {
+        $docsFile = $docsFiles[$relative] ?? null;
+        $publicFile = $publicFiles[$relative] ?? null;
+
+        if ($docsFile === null && $publicFile === null) {
+            continue;
+        }
+
+        if ($docsFile !== null && $publicFile === null) {
+            $target = $publicDocsRoot . '/' . $relative;
+            if (!$dryRun) {
+                ensureParentDirectory($target);
+                copy($docsFile['path'], $target);
+            }
+            $changes[] = [
+                'path' => $relative,
+                'direction' => 'docs->public/docs',
+                'reason' => 'missing_in_public_docs',
+            ];
+            continue;
+        }
+
+        if ($docsFile === null && $publicFile !== null) {
+            $target = $docsRoot . '/' . $relative;
+            if (!$dryRun) {
+                ensureParentDirectory($target);
+                copy($publicFile['path'], $target);
+            }
+            $changes[] = [
+                'path' => $relative,
+                'direction' => 'public/docs->docs',
+                'reason' => 'missing_in_docs',
+            ];
+            continue;
+        }
+
+        if ($docsFile['mtime'] > $publicFile['mtime']) {
+            if (!$dryRun) {
+                copy($docsFile['path'], $publicDocsRoot . '/' . $relative);
+            }
+            $changes[] = [
+                'path' => $relative,
+                'direction' => 'docs->public/docs',
+                'reason' => 'docs_newer',
+            ];
+            continue;
+        }
+
+        if ($publicFile['mtime'] > $docsFile['mtime']) {
+            if (!$dryRun) {
+                copy($publicFile['path'], $docsRoot . '/' . $relative);
+            }
+            $changes[] = [
+                'path' => $relative,
+                'direction' => 'public/docs->docs',
+                'reason' => 'public_docs_newer',
+            ];
+            continue;
+        }
+
+        if ($docsFile['mtime'] === $publicFile['mtime']) {
+            $docsContent = @file_get_contents($docsFile['path']);
+            $publicContent = @file_get_contents($publicFile['path']);
+            if ($docsContent !== $publicContent) {
+                if (!$dryRun) {
+                    copy($docsFile['path'], $publicDocsRoot . '/' . $relative);
+                }
+                $changes[] = [
+                    'path' => $relative,
+                    'direction' => 'docs->public/docs',
+                    'reason' => 'same_mtime_docs_wins',
+                ];
+            }
+        }
+    }
+
+    return [
+        'docs_root' => $docsRoot,
+        'public_docs_root' => $publicDocsRoot,
+        'count' => count($changes),
+        'changes' => $changes,
+        'in_sync' => $changes === [],
     ];
 }
 
@@ -1874,6 +2017,7 @@ PHP,
             'plugin:disable' => 'Disable a plugin',
             'plugin:create' => 'Create a new plugin structure',
             'frontend:list' => 'List supported frontend frameworks and scaffold roots [--json] [--pretty|--brief]',
+            'docs:sync' => 'Synchronize docs/ and public/docs/ [--dry-run] [--json] [--pretty|--brief]',
             'syntax:check' => 'Lint PHP files with php -l [path|--all]',
             'examples:list' => 'Browse the optional starter gallery',
         ];
@@ -1952,6 +2096,38 @@ PHP,
                 echo "    Path: {$entry['path']}\n";
             }
             echo "\n";
+        }
+        break;
+
+    case 'docs:sync':
+        $json = in_array('--json', $argv, true);
+        $pretty = in_array('--pretty', $argv, true);
+        $brief = in_array('--brief', $argv, true);
+        $dryRun = in_array('--dry-run', $argv, true);
+        $roots = docsRoots();
+        $payload = syncDocsTrees($roots['docs'], $roots['public_docs'], $dryRun);
+        $payload['dry_run'] = $dryRun;
+        $payload['timestamp'] = date(DATE_ATOM);
+
+        if ($json) {
+            $flags = JSON_UNESCAPED_SLASHES;
+            if ($pretty && !$brief) {
+                $flags |= JSON_PRETTY_PRINT;
+            }
+            echo json_encode($payload, $flags) . "\n";
+            break;
+        }
+
+        echo "Docs sync summary:\n";
+        echo "  docs root:        {$payload['docs_root']}\n";
+        echo "  public docs root:  {$payload['public_docs_root']}\n";
+        echo "  changes:           {$payload['count']}\n";
+        echo "  mode:              " . ($dryRun ? 'dry-run' : 'sync') . "\n";
+        foreach ($payload['changes'] as $change) {
+            echo "  - {$change['path']} ({$change['direction']}, {$change['reason']})\n";
+        }
+        if ($payload['in_sync']) {
+            echo "  already in sync\n";
         }
         break;
 

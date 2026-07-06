@@ -4,6 +4,8 @@
 
 Nemesis provides a fluent query builder and Eloquent-style ORM for database operations. Supports MySQL, PostgreSQL, and SQLite.
 
+Vendor compression preserves the ORM bootstrap, database configuration, migrations, and any database entrypoints that are referenced by the application graph.
+
 ---
 
 ## Query Builder
@@ -198,6 +200,18 @@ $db = DB::connection();
 $mysql = DB::connection('mysql');
 $postgres = DB::connection('pgsql');
 ```
+
+### Discovering Available Connections
+
+Use the CLI to inspect the named database targets configured for your app:
+
+```bash
+php nemesis db:list-connections
+php nemesis make:model Invoice --connection=analytics
+php nemesis make:model Invoice --list-connections
+```
+
+This is useful when your application has separate default, analytics, tenant, or archive databases and you want generated models to target one explicitly.
 
 ---
 

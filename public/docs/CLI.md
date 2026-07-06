@@ -18,7 +18,7 @@ php nemesis list
 
 ### Scaffolding (Make Commands)
 - `make:controller {Name}`: Create a new controller class.
-- `make:model {Name}`: Create a new model class.
+- `make:model {Name}`: Create a new model class. Use `--connection=name` to pin a model to a named database connection.
 - `make:middleware {Name}`: Create a new middleware class.
 - `make:migration {Name}`: Create a new database migration file.
 - `make:seeder {Name}`: Create a new database seeder class.
@@ -31,8 +31,12 @@ php nemesis list
 - `migrate:run`: Execute all pending migrations.
 - `migrate:rollback`: Rollback the last migration batch.
 - `db:seed`: Seed the database with initial data.
+- `db:list-connections`: List configured database connections.
 - `db:dump`: Export the entire database to a SQL file.
 - `db:restore {file.sql}`: Import a database from a SQL file.
+
+### Documentation
+- `docs:sync`: Mirror `docs/` and `public/docs/` based on file timestamps. Use `--dry-run` to preview, `--json` for tooling, and `--brief` for compact JSON logs.
 
 ### Optimization & Cache
 - `optimize`: Warm up config and route caches.

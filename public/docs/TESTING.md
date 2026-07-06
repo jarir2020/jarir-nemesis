@@ -4,6 +4,22 @@
 
 Nemesis includes a PHPUnit-compatible testing suite designed for developer happiness. It supports unit testing, feature testing, and browser automation.
 
+### Testing `vendor:compress`
+
+When you change the vendor compression workflow, run the following modes in sequence:
+
+1. `php nemesis vendor:compress --dry-run`
+2. `php nemesis vendor:compress --dry-run --json`
+3. `php nemesis vendor:compress --report=storage/reports/vendor-compress.txt`
+4. `php nemesis vendor:compress --archive=.nemesis/vendor-compress/test.tar.gz`
+5. `php nemesis vendor:compress --restore=.nemesis/vendor-compress/test.json`
+
+Regression checks should confirm:
+- bootstrap files remain untouched
+- autoloading still works
+- ORM, middleware, auth, routing, and database bootstrapping still pass
+- restore rehydrates files in the correct order
+
 ---
 
 ## Running Tests
