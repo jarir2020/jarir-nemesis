@@ -14,6 +14,7 @@ Nemesis provides a powerful command-line interface (CLI) called `nemesis`. It he
 | `php nemesis help [command]` | Display help for a command |
 | `php nemesis serve` | Start the development server |
 | `php nemesis docs:sync [--dry-run] [--json] [--pretty] [--brief]` | Mirror `docs/` and `public/docs/` by timestamp |
+| `php nemesis data:sync [--bangladesh-source=...] [--json] [--pretty] [--brief]` | Scaffold `public/data/` packs and import Bangladesh locations |
 | `php nemesis env:doctor` | Check environment health |
 | `php nemesis key:generate` | Generate application key |
 

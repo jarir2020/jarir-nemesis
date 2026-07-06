@@ -1,0 +1,16 @@
+{
+    "items": [
+        {
+            "country_code": "BD",
+            "url_suffix": ".bd"
+        },
+        {
+            "country_code": "US",
+            "url_suffix": ".us"
+        },
+        {
+            "country_code": "IN",
+            "url_suffix": ".in"
+        }
+    ]
+}

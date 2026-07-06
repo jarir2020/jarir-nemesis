@@ -1,0 +1,11 @@
+{
+    "countries": [
+        "countries.json"
+    ],
+    "states": [
+        "states.json"
+    ],
+    "cities": [
+        "cities.json"
+    ]
+}

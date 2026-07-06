@@ -1,0 +1,25 @@
+{
+    "source": "Nemesis data:sync",
+    "items": [
+        {
+            "country_code": "BD",
+            "code": "BD-D",
+            "name": "Dhaka"
+        },
+        {
+            "country_code": "US",
+            "code": "US-CA",
+            "name": "California"
+        },
+        {
+            "country_code": "US",
+            "code": "US-NY",
+            "name": "New York"
+        },
+        {
+            "country_code": "IN",
+            "code": "IN-DL",
+            "name": "Delhi"
+        }
+    ]
+}

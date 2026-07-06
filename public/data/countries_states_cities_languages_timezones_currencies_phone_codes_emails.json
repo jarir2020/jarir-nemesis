@@ -1,0 +1,16 @@
+{
+    "items": [
+        {
+            "country_code": "BD",
+            "email_domain": ".bd"
+        },
+        {
+            "country_code": "US",
+            "email_domain": ".us"
+        },
+        {
+            "country_code": "IN",
+            "email_domain": ".in"
+        }
+    ]
+}

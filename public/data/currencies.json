@@ -1,0 +1,45 @@
+{
+    "source": "Nemesis data:sync",
+    "items": [
+        {
+            "code": "BDT",
+            "name": "Bangladeshi Taka",
+            "symbol": "৳"
+        },
+        {
+            "code": "USD",
+            "name": "US Dollar",
+            "symbol": "$"
+        },
+        {
+            "code": "INR",
+            "name": "Indian Rupee",
+            "symbol": "₹"
+        },
+        {
+            "code": "PKR",
+            "name": "Pakistani Rupee",
+            "symbol": "₨"
+        },
+        {
+            "code": "GBP",
+            "name": "British Pound",
+            "symbol": "£"
+        },
+        {
+            "code": "SAR",
+            "name": "Saudi Riyal",
+            "symbol": "﷼"
+        },
+        {
+            "code": "CNY",
+            "name": "Chinese Yuan",
+            "symbol": "¥"
+        },
+        {
+            "code": "RUB",
+            "name": "Russian Ruble",
+            "symbol": "₽"
+        }
+    ]
+}

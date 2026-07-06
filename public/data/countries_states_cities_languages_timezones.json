@@ -1,0 +1,6 @@
+{
+    "countries_states_cities_languages": "countries_states_cities_languages.json",
+    "timezones": [
+        "timezones.json"
+    ]
+}

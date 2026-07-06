@@ -1,0 +1,29 @@
+{
+    "source": "Nemesis data:sync",
+    "items": [
+        {
+            "country_code": "BD",
+            "state_code": "BD-D",
+            "name": "Dhaka",
+            "population": null
+        },
+        {
+            "country_code": "BD",
+            "state_code": "BD-D",
+            "name": "Chattogram",
+            "population": null
+        },
+        {
+            "country_code": "US",
+            "state_code": "US-CA",
+            "name": "San Francisco",
+            "population": null
+        },
+        {
+            "country_code": "IN",
+            "state_code": "IN-DL",
+            "name": "New Delhi",
+            "population": null
+        }
+    ]
+}

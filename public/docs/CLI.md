@@ -38,6 +38,9 @@ php nemesis list
 ### Documentation
 - `docs:sync`: Mirror `docs/` and `public/docs/` based on file timestamps. Use `--dry-run` to preview, `--json` for tooling, and `--brief` for compact JSON logs.
 
+### Public Data
+- `data:sync`: Scaffold `public/data/` packs and import Bangladesh locations. Use `--bangladesh-source=...` to point at a local file or remote JSON URL, and `--json` / `--brief` for tooling output.
+
 ### Optimization & Cache
 - `optimize`: Warm up config and route caches.
 - `cache:clear`: Flush all application caches.

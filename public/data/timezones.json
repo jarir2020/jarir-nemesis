@@ -1,0 +1,14 @@
+{
+    "source": "Nemesis data:sync",
+    "items": [
+        "Asia/Dhaka",
+        "Asia/Kolkata",
+        "Asia/Dubai",
+        "Asia/Tehran",
+        "Europe/London",
+        "America/New_York",
+        "America/Los_Angeles",
+        "Asia/Shanghai",
+        "Europe/Moscow"
+    ]
+}

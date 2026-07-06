@@ -1,0 +1,40 @@
+{
+    "items": [
+        {
+            "country_code": "BD",
+            "phone_code": "+880"
+        },
+        {
+            "country_code": "US",
+            "phone_code": "+1"
+        },
+        {
+            "country_code": "IN",
+            "phone_code": "+91"
+        },
+        {
+            "country_code": "PK",
+            "phone_code": "+92"
+        },
+        {
+            "country_code": "GB",
+            "phone_code": "+44"
+        },
+        {
+            "country_code": "AE",
+            "phone_code": "+971"
+        },
+        {
+            "country_code": "SA",
+            "phone_code": "+966"
+        },
+        {
+            "country_code": "CN",
+            "phone_code": "+86"
+        },
+        {
+            "country_code": "RU",
+            "phone_code": "+7"
+        }
+    ]
+}
