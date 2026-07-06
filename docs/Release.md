@@ -4,9 +4,9 @@ We are thrilled to announce the stable release of **Nemesis Framework v2.0.0**. 
 
 ---
 
-## v7.0.3 Starter Gallery Note
+## v7.0.4 Starter Gallery Note
 
-Nemesis v7.0.3 adds an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module samples.
+Nemesis v7.0.4 adds an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module samples.
 
 **Short release note:** optional starter packs for MVC, API, plugins, extensions, and modules are now available, along with `php nemesis examples:list` for quick browsing.
 

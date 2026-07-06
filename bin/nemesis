@@ -44,6 +44,32 @@ function loadDatabaseCatalog(): array
     return is_array($database) ? $database : [];
 }
 
+function databaseConnectionsPayload(): array
+{
+    $database = loadDatabaseCatalog();
+    $connections = $database['connections'] ?? [];
+    $defaultName = (string) ($database['default_connection'] ?? 'default');
+
+    $items = [];
+    foreach ((array) $connections as $name => $config) {
+        $name = (string) $name;
+        $items[] = [
+            'name' => $name,
+            'default' => $name === $defaultName,
+            'driver' => (string) ($config['driver'] ?? 'mysql'),
+            'target' => (string) ($config['database'] ?? $config['dbname'] ?? 'n/a'),
+            'status' => ((bool) ($config['enabled'] ?? true)) ? 'enabled' : 'disabled',
+        ];
+    }
+
+    return [
+        'title' => 'Nemesis Database Connections',
+        'count' => count($items),
+        'default' => $defaultName,
+        'connections' => $items,
+    ];
+}
+
 function resolveFrontendFramework(?string $framework, bool $defaultToServer = true): string
 {
     $framework = $framework === null ? '' : strtolower(trim($framework));
@@ -144,16 +170,12 @@ switch ($command) {
             }
 
             if ($arg === '--list-connections') {
-                $database = loadDatabaseCatalog();
-                $connections = $database['connections'] ?? [];
-                $defaultName = (string) ($database['default_connection'] ?? 'default');
-                echo "Nemesis Database Connections:\n\n";
-                foreach ((array) $connections as $name => $config) {
-                    $name = (string) $name;
-                    $isDefault = $name === $defaultName;
-                    echo "  {$name}" . ($isDefault ? " (default)" : "") . "\n";
-                    echo "    driver: " . (string) ($config['driver'] ?? 'mysql') . "\n";
-                    echo "    target: " . (string) ($config['database'] ?? $config['dbname'] ?? 'n/a') . "\n";
+                $payload = databaseConnectionsPayload();
+                echo $payload['title'] . ":\n\n";
+                foreach ($payload['connections'] as $item) {
+                    echo "  {$item['name']}" . (!empty($item['default']) ? " (default)" : "") . "\n";
+                    echo "    driver: {$item['driver']}\n";
+                    echo "    target: {$item['target']}\n";
                 }
                 break 2;
             }
@@ -182,23 +204,30 @@ switch ($command) {
         break;
 
     case 'db:list-connections':
-        $database = loadDatabaseCatalog();
-        $connections = $database['connections'] ?? [];
-        $defaultName = (string) ($database['default_connection'] ?? 'default');
+        $json = in_array('--json', $argv, true);
+        $pretty = in_array('--pretty', $argv, true);
+        $payload = databaseConnectionsPayload();
+
+        if ($json) {
+            $flags = JSON_UNESCAPED_SLASHES;
+            if ($pretty) {
+                $flags |= JSON_PRETTY_PRINT;
+            }
+            echo json_encode($payload, $flags) . "\n";
+            break;
+        }
 
         echo "Nemesis Database Connections:\n\n";
-        if (empty($connections)) {
+        if ($payload['connections'] === []) {
             echo "No database connections configured.\n";
             break;
         }
 
-        foreach ((array) $connections as $name => $config) {
-            $name = (string) $name;
-            $isDefault = $name === $defaultName;
-            echo "  {$name}" . ($isDefault ? " (default)" : "") . "\n";
-            echo "    driver: " . (string) ($config['driver'] ?? 'mysql') . "\n";
-            echo "    target: " . (string) ($config['database'] ?? $config['dbname'] ?? 'n/a') . "\n";
-            echo "    status: " . ((bool) ($config['enabled'] ?? true) ? 'enabled' : 'disabled') . "\n";
+        foreach ($payload['connections'] as $item) {
+            echo "  {$item['name']}" . (!empty($item['default']) ? " (default)" : "") . "\n";
+            echo "    driver: {$item['driver']}\n";
+            echo "    target: {$item['target']}\n";
+            echo "    status: {$item['status']}\n";
         }
         break;
 

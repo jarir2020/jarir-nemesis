@@ -161,6 +161,27 @@ class DatabaseConnectionSelectionTest extends TestCase
         $this->assertStringContainsString('analytics', $text);
     }
 
+    public function testDbListConnectionsCommandCanEmitJsonPayload(): void
+    {
+        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(base_path('bin/nemesis')) . ' db:list-connections --json --pretty 2>&1';
+        $output = [];
+        $code = 0;
+        exec($cmd, $output, $code);
+
+        $text = implode("\n", $output);
+        $this->assertSame(0, $code, $text);
+
+        $payload = json_decode($text, true);
+        $this->assertIsArray($payload);
+        $this->assertSame('Nemesis Database Connections', $payload['title'] ?? null);
+        $this->assertSame('default', $payload['default'] ?? null);
+        $this->assertSame(2, (int) ($payload['count'] ?? 0));
+
+        $names = array_map(static fn(array $item): string => $item['name'] ?? '', $payload['connections'] ?? []);
+        $this->assertContains('default', $names);
+        $this->assertContains('analytics', $names);
+    }
+
     public function testMakeModelCanListConnectionsInline(): void
     {
         $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(base_path('bin/nemesis')) . ' make:model --list-connections 2>&1';
@@ -185,6 +206,7 @@ foreach ([
     'testFluentKeepsNamedConnectionThroughNestedQueries',
     'testMakeModelCommandGeneratesAConnectionAwareConstructor',
     'testDbListConnectionsCommandShowsConfiguredTargets',
+    'testDbListConnectionsCommandCanEmitJsonPayload',
     'testMakeModelCanListConnectionsInline',
 ] as $method) {
     echo "Running {$method}... ";
