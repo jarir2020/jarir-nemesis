@@ -1,5 +1,19 @@
 # Nemesis Framework — Changelog
 
+## [7.0.3] — 2026-07-06
+
+### What's New
+
+- Added an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module skeletons.
+- Added `php nemesis examples:list` so the gallery can be browsed from the CLI without touching normal app code.
+- Updated the top-level docs to point learners and fast coders at the new starter packs.
+
+### Notes
+
+- The examples are optional and copy-only.
+- They are not autoloaded, registered, or injected into a fresh app automatically.
+- Existing application workflows remain unchanged.
+
 ## [5.1.1] — 2026-04-06
 
 ### What's New

@@ -1,12 +1,16 @@
-# Nemesis Framework v7.0.2 (Enterprise)
+# Nemesis Framework v7.0.3 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-7.0.2-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-7.0.3-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.2-777bb4.svg)](https://php.net)
 
 **Nemesis** is a high-performance, **Zero-Dependency** PHP framework designed for building scalable SaaS platforms and robust APIs. It combines the architectural elegance of enterprise frameworks with the speed of a featherweight engine.
 
-For maintenance releases such as v7.0.2, Nemesis also includes a safe vendor compression workflow via `php nemesis vendor:compress`. The command uses analysis to remove only classes proven unused, and it supports dry runs, reports, archives, and restore workflows.
+For maintenance releases such as v7.0.3, Nemesis also includes a safe vendor compression workflow via `php nemesis vendor:compress`. The command uses analysis to remove only classes proven unused, and it supports dry runs, reports, archives, and restore workflows.
+
+Nemesis v7.0.3 also includes an isolated `examples/` gallery with ready-to-use MVC, API, plugin, extension, and module samples. These examples are optional, copy-only references and are not autoloaded into normal applications.
+
+**Packagist-friendly release note:** v7.0.3 adds 22 optional starter packs for MVC, API, plugin, extension, and module workflows. They are isolated from the runtime path and safe to ignore or delete in normal projects.
 
 ---
 
@@ -28,6 +32,7 @@ For maintenance releases such as v7.0.2, Nemesis also includes a safe vendor com
 - 📂 **[Directory Structure](docs/STRUCTURE.md)** - Application organization
 - 💻 **[CLI Commands](docs/CLI_COMMANDS.md)** - Artisan-inspired command reference
   - Includes `vendor:compress` for safe vendor tree reduction
+  - Includes `examples:list` for browsing the starter gallery
 
 ### 🏗️ Architecture
 - 🧩 **[Plugin System](docs/PLUGINS.md)** - How to extend the framework

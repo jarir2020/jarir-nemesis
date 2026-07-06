@@ -1,0 +1,7 @@
+{
+  "name": "storage-adapter",
+  "version": "1.0.0",
+  "description": "Storage adapter extension starter",
+  "entry": "src/StorageAdapter.php"
+}
+

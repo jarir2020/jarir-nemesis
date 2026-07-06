@@ -198,6 +198,7 @@ Optimize the application for production.
 | `tinker` | Interact with your application via CLI shell |
 | `api:probe` | Test all API routes for availability |
 | `model:health` | Check models for common issues (e.g., N+1) |
+| `examples:list` | Browse the optional starter gallery |
 
 ---
 

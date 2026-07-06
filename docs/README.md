@@ -10,6 +10,7 @@
 - **[Installation](INSTALLATION.md)** — Setup, environment, and configuration
 - **[Directory Structure](STRUCTURE.md)** — Application organisation
 - **[CLI Commands](CLI_COMMANDS.md)** — Full command reference, including `vendor:compress`
+- **[Examples Gallery](EXAMPLES.md)** — Optional starter packs for MVC, API, plugins, extensions, and modules
 
 ### Architecture
 - **[Module System](MODULES.md)** — Build self-contained feature modules

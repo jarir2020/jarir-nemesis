@@ -8,6 +8,7 @@ Welcome to the Nemesis Framework documentation. This guide will help you underst
 - **[Installation](README.md#getting-started)** - Setup and configuration
 - **[Directory Structure](README.md#structure)** - Application organization
 - **[CLI Commands](CLI_COMMANDS.md)** - Command line reference
+- **[Examples Gallery](EXAMPLES.md)** - Optional ready-to-use starter packs
 
 ### 🏗️ Architecture
 - **[Module System](MODULES.md)** - Build modular applications

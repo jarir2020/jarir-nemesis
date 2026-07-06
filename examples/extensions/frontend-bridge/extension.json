@@ -1,0 +1,7 @@
+{
+  "name": "frontend-bridge",
+  "version": "1.0.0",
+  "description": "Frontend bridge extension starter",
+  "entry": "src/FrontendBridge.php"
+}
+

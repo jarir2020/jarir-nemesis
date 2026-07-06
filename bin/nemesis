@@ -22,6 +22,17 @@ $apiFormatExampleLines = [
     'php nemesis api:format off',
 ];
 
+function loadExamplesCatalog(string $projectRoot): array
+{
+    $catalogPath = $projectRoot . '/examples/catalog.php';
+    if (!file_exists($catalogPath)) {
+        return [];
+    }
+
+    $catalog = require $catalogPath;
+    return is_array($catalog) ? $catalog : [];
+}
+
 // Command-line argument parsing
 $command = $argv[1] ?? null;
 
@@ -1681,6 +1692,7 @@ PHP,
             'plugin:enable' => 'Enable a plugin',
             'plugin:disable' => 'Disable a plugin',
             'plugin:create' => 'Create a new plugin structure',
+            'examples:list' => 'Browse the optional starter gallery',
         ];
         foreach ($cmds as $c => $d) {
             echo "  " . str_pad($c, 20) . " $d\n";
@@ -1733,6 +1745,31 @@ PHP,
         $manager = \Nemesis\Core\PluginManager::getInstance();
         $manager->disable($name);
         echo "Plugin '{$name}' disabled successfully.\n";
+        break;
+
+    case 'examples:list':
+        $catalog = loadExamplesCatalog($projectRoot);
+        if (empty($catalog)) {
+            echo "No example gallery found.\n";
+            break;
+        }
+
+        echo "Nemesis Examples Gallery:\n\n";
+        $grouped = [];
+        foreach ($catalog as $entry) {
+            $grouped[$entry['category']][] = $entry;
+        }
+
+        ksort($grouped);
+        foreach ($grouped as $category => $entries) {
+            echo strtoupper($category) . " EXAMPLES\n";
+            foreach ($entries as $entry) {
+                echo "  {$entry['name']} - {$entry['title']}\n";
+                echo "    {$entry['description']}\n";
+                echo "    Path: {$entry['path']}\n";
+            }
+            echo "\n";
+        }
         break;
 
     case 'plugin:create':

@@ -1,0 +1,7 @@
+{
+  "name": "payment-adapter",
+  "version": "1.0.0",
+  "description": "Payment adapter extension starter",
+  "entry": "src/PaymentAdapter.php"
+}
+

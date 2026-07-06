@@ -1,0 +1,26 @@
+<?php
+
+return [
+    ['category' => 'mvc', 'name' => 'blog', 'path' => 'examples/mvc/blog', 'title' => 'Blog MVC Starter', 'description' => 'Controller, model, route, and view skeleton for content sites.'],
+    ['category' => 'mvc', 'name' => 'dashboard', 'path' => 'examples/mvc/dashboard', 'title' => 'Dashboard MVC Starter', 'description' => 'Admin dashboard skeleton with summary widgets and a clean page shell.'],
+    ['category' => 'api', 'name' => 'users-api', 'path' => 'examples/api/users-api', 'title' => 'Users API Starter', 'description' => 'JSON API skeleton for user listing and profile resources.'],
+    ['category' => 'api', 'name' => 'content-api', 'path' => 'examples/api/content-api', 'title' => 'Content API Starter', 'description' => 'JSON API skeleton for articles, drafts, and publishing flows.'],
+    ['category' => 'plugin', 'name' => 'audit-plugin', 'path' => 'examples/plugins/audit-plugin', 'title' => 'Audit Plugin Starter', 'description' => 'Plugin skeleton for audit hooks, logging, and lifecycle callbacks.'],
+    ['category' => 'plugin', 'name' => 'seo-plugin', 'path' => 'examples/plugins/seo-plugin', 'title' => 'SEO Plugin Starter', 'description' => 'Plugin skeleton for metadata, sitemap, and robots integrations.'],
+    ['category' => 'extension', 'name' => 'frontend-bridge', 'path' => 'examples/extensions/frontend-bridge', 'title' => 'Frontend Bridge Extension', 'description' => 'Package skeleton for connecting Nemesis views to a frontend stack.'],
+    ['category' => 'extension', 'name' => 'storage-adapter', 'path' => 'examples/extensions/storage-adapter', 'title' => 'Storage Adapter Extension', 'description' => 'Package skeleton for custom storage, upload, or archive adapters.'],
+    ['category' => 'module', 'name' => 'blog-module', 'path' => 'examples/modules/blog-module', 'title' => 'Blog Module Starter', 'description' => 'Self-contained module skeleton with routes, controllers, models, and views.'],
+    ['category' => 'module', 'name' => 'shop-module', 'path' => 'examples/modules/shop-module', 'title' => 'Shop Module Starter', 'description' => 'Commerce module skeleton with catalog, cart, and order surfaces.'],
+    ['category' => 'mvc', 'name' => 'landing-page', 'path' => 'examples/mvc/landing-page', 'title' => 'Landing Page MVC Starter', 'description' => 'Simple marketing page skeleton with lead capture and content sections.'],
+    ['category' => 'mvc', 'name' => 'commerce-dashboard', 'path' => 'examples/mvc/commerce-dashboard', 'title' => 'Commerce Dashboard MVC Starter', 'description' => 'Revenue and catalog dashboard skeleton for store operators.'],
+    ['category' => 'mvc', 'name' => 'profile-center', 'path' => 'examples/mvc/profile-center', 'title' => 'Profile Center MVC Starter', 'description' => 'User profile and account settings skeleton with a clean layout.'],
+    ['category' => 'api', 'name' => 'auth-api', 'path' => 'examples/api/auth-api', 'title' => 'Auth API Starter', 'description' => 'Authentication API skeleton with login and session endpoints.'],
+    ['category' => 'api', 'name' => 'analytics-api', 'path' => 'examples/api/analytics-api', 'title' => 'Analytics API Starter', 'description' => 'Analytics API skeleton for dashboards, metrics, and filters.'],
+    ['category' => 'api', 'name' => 'billing-api', 'path' => 'examples/api/billing-api', 'title' => 'Billing API Starter', 'description' => 'Billing API skeleton for plans, invoices, and payment summaries.'],
+    ['category' => 'plugin', 'name' => 'cache-plugin', 'path' => 'examples/plugins/cache-plugin', 'title' => 'Cache Plugin Starter', 'description' => 'Plugin skeleton for cache hooks and cache lifecycle callbacks.'],
+    ['category' => 'plugin', 'name' => 'notifications-plugin', 'path' => 'examples/plugins/notifications-plugin', 'title' => 'Notifications Plugin Starter', 'description' => 'Plugin skeleton for notification channels and delivery hooks.'],
+    ['category' => 'extension', 'name' => 'payment-adapter', 'path' => 'examples/extensions/payment-adapter', 'title' => 'Payment Adapter Extension', 'description' => 'Adapter skeleton for payment provider integrations.'],
+    ['category' => 'extension', 'name' => 'search-adapter', 'path' => 'examples/extensions/search-adapter', 'title' => 'Search Adapter Extension', 'description' => 'Adapter skeleton for search engine integrations.'],
+    ['category' => 'module', 'name' => 'forum-module', 'path' => 'examples/modules/forum-module', 'title' => 'Forum Module Starter', 'description' => 'Community module skeleton with threads, replies, and moderation.'],
+    ['category' => 'module', 'name' => 'academy-module', 'path' => 'examples/modules/academy-module', 'title' => 'Academy Module Starter', 'description' => 'Learning module skeleton with lessons, quizzes, and progress.'],
+];

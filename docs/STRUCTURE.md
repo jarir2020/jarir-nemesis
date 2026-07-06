@@ -26,6 +26,14 @@ Database-related files.
 ### `docs/`
 Framework documentation in Markdown format.
 
+### `examples/`
+Optional copy-only starter packs for learners and fast coders.
+- `mvc/`: MVC page/controller/model/view samples
+- `api/`: API controller/resource samples
+- `plugins/`: Framework plugin samples
+- `extensions/`: Extension and integration samples
+- `modules/`: Self-contained application module samples
+
 ### `plugins/`
 The enterprise sidecar architecture. Each plugin is self-contained with its own manifest, bootstrap, and source code.
 - `Audit/`

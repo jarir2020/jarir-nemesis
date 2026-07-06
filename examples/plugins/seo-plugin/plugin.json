@@ -1,0 +1,19 @@
+{
+  "name": "seo-plugin",
+  "version": "1.0.0",
+  "description": "SEO plugin starter",
+  "entry": "bootstrap.php",
+  "requires": {
+    "php": ">=8.2",
+    "nemesis": "^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\Plugins\\SeoPlugin\\": "src/"
+    }
+  },
+  "permissions": [
+    "routes"
+  ]
+}
+

@@ -4,6 +4,22 @@ We are thrilled to announce the stable release of **Nemesis Framework v2.0.0**. 
 
 ---
 
+## v7.0.3 Starter Gallery Note
+
+Nemesis v7.0.3 adds an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module samples.
+
+### Why it is safe
+- The gallery lives outside the application autoload path.
+- Nothing is registered automatically in a normal app boot.
+- Developers can copy only the pieces they want.
+- The gallery exists to accelerate learning, AI-assisted prototyping, and fast scaffolding.
+
+### Browse it
+- Run `php nemesis examples:list` to see the available sample packs.
+- Open `examples/README.md` for the copy-and-paste guide.
+
+---
+
 ## v7.0.2 Maintenance Note
 
 Nemesis v7.0.2 introduces `php nemesis vendor:compress`, a maintenance command that reduces vendor tree size by removing only classes proven unused by analysis.
