@@ -14,8 +14,11 @@ use Nemesis\Database\Grammars\SQLiteGrammar;
 
 class Database
 {
-    protected static ?PDO             $pdo     = null;
-    protected static ?array           $config  = null;
+    protected static ?PDO             $pdo      = null;
+    protected static ?array           $config   = null;
+    protected static array            $pdoPool  = [];
+    protected static array            $configPool = [];
+    protected static string           $defaultConnection = 'default';
     protected static array            $queryLog = [];
     protected static bool             $logging  = false;
     protected static ?GrammarInterface $grammar = null;
@@ -65,31 +68,51 @@ class Database
      * Config keys: driver, host, port, dbname, username, password
      * Supported drivers: mysql (default), pgsql, sqlite
      */
-    public static function connect(array $config = null): PDO
+    public static function connect(array $config = null, ?string $connection = null): PDO
     {
-        if (self::$pdo !== null) {
-            return self::$pdo;
+        if ($config !== null) {
+            self::configure($config, $connection);
         }
 
-        if ($config === null && self::$config === null) {
+        if (empty(self::$configPool) && self::$config === null) {
+            $loaded = Config::get('config.database');
+            if (is_array($loaded) && !empty($loaded)) {
+                self::configure($loaded);
+            }
+        }
+
+        $connection = self::normalizeConnectionName($connection);
+        if ($connection === '') {
+            $connection = self::$defaultConnection;
+        }
+
+        if (isset(self::$pdoPool[$connection])) {
+            return self::$pdoPool[$connection];
+        }
+
+        $config = self::resolveConnectionConfig($connection);
+        if ($config === []) {
             throw new \RuntimeException('Database configuration is required.');
         }
 
-        if ($config !== null) {
-            self::$config = $config;
-        }
-
-        $driver = strtolower(self::$config['driver'] ?? 'mysql');
+        $driver = strtolower($config['driver'] ?? 'mysql');
 
         try {
-            self::$pdo = match ($driver) {
-                'mysql'  => self::connectMysql(),
-                'pgsql'  => self::connectPgsql(),
-                'sqlite' => self::connectSqlite(),
+            $pdo = match ($driver) {
+                'mysql'  => self::connectMysql($config),
+                'pgsql'  => self::connectPgsql($config),
+                'sqlite' => self::connectSqlite($config),
                 default  => throw new \InvalidArgumentException("Unsupported DB driver: {$driver}"),
             };
+            self::$pdoPool[$connection] = $pdo;
+            if ($connection === self::$defaultConnection || self::$pdo === null) {
+                self::$pdo = $pdo;
+            }
         } catch (PDOException $e) {
-            self::$pdo = null;
+            unset(self::$pdoPool[$connection]);
+            if ($connection === self::$defaultConnection) {
+                self::$pdo = null;
+            }
             if ((self::$config['debug'] ?? false) || getenv('APP_DEBUG') === 'true') {
                 throw $e; // Let ErrorHandler render it
             }
@@ -97,33 +120,99 @@ class Database
             die('Internal Server Error: Database connection could not be established.');
         }
 
-        return self::$pdo;
+        return self::$pdoPool[$connection];
     }
 
-    private static function connectMysql(): PDO
+    public static function connection(?string $connection = null): PDO
     {
-        $host = self::$config['host'] ?? '127.0.0.1';
-        $port = self::$config['port'] ?? 3306;
-        $db   = self::$config['dbname'] ?? '';
+        return self::connect(null, $connection);
+    }
+
+    public static function configure(array $config, ?string $defaultConnection = null): void
+    {
+        self::$pdo = null;
+        self::$pdoPool = [];
+        self::$configPool = [];
+        self::$grammar = null;
+
+        if (isset($config['connections']) && is_array($config['connections']) && !empty($config['connections'])) {
+            foreach ($config['connections'] as $name => $connectionConfig) {
+                if (is_array($connectionConfig)) {
+                    self::$configPool[self::normalizeConnectionName((string) $name)] = $connectionConfig;
+                }
+            }
+
+            $fallback = $defaultConnection
+                ?? (string) ($config['default_connection'] ?? '')
+                ?? array_key_first(self::$configPool)
+                ?? self::$defaultConnection;
+
+            self::$defaultConnection = self::normalizeConnectionName((string) $fallback) ?: self::$defaultConnection;
+            $resolvedConfig = self::$configPool[self::$defaultConnection] ?? null;
+            if (!is_array($resolvedConfig)) {
+                $resolvedConfig = self::$configPool !== [] ? reset(self::$configPool) : null;
+            }
+            self::$config = is_array($resolvedConfig) ? $resolvedConfig : null;
+            return;
+        }
+
+        $name = $defaultConnection
+            ?? (string) ($config['name'] ?? $config['connection'] ?? self::$defaultConnection);
+
+        $name = self::normalizeConnectionName($name) ?: self::$defaultConnection;
+        self::$defaultConnection = $name;
+        self::$configPool[$name] = $config;
+        self::$config = $config;
+    }
+
+    public static function setConnectionConfig(string $name, array $config, bool $makeDefault = false): void
+    {
+        $name = self::normalizeConnectionName($name);
+        if ($name === '') {
+            throw new \InvalidArgumentException('Connection name is required.');
+        }
+
+        self::$configPool[$name] = $config;
+        if ($makeDefault || self::$defaultConnection === '') {
+            self::$defaultConnection = $name;
+            self::$config = $config;
+        }
+    }
+
+    public static function hasConnection(string $name): bool
+    {
+        return array_key_exists(self::normalizeConnectionName($name), self::$configPool);
+    }
+
+    public static function getConnectionNames(): array
+    {
+        return array_keys(self::$configPool);
+    }
+
+    private static function connectMysql(array $config): PDO
+    {
+        $host = $config['host'] ?? '127.0.0.1';
+        $port = $config['port'] ?? 3306;
+        $db   = $config['dbname'] ?? '';
         $dsn  = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
-        return new PDO($dsn, self::$config['username'] ?? '', self::$config['password'] ?? '', self::pdoOptions());
+        return new PDO($dsn, $config['username'] ?? '', $config['password'] ?? '', self::pdoOptions());
     }
 
-    private static function connectPgsql(): PDO
+    private static function connectPgsql(array $config): PDO
     {
-        $host = self::$config['host'] ?? '127.0.0.1';
-        $port = self::$config['port'] ?? 5432;
-        $db   = self::$config['dbname'] ?? '';
-        $user = self::$config['username'] ?? '';
-        $pass = self::$config['password'] ?? '';
+        $host = $config['host'] ?? '127.0.0.1';
+        $port = $config['port'] ?? 5432;
+        $db   = $config['dbname'] ?? '';
+        $user = $config['username'] ?? '';
+        $pass = $config['password'] ?? '';
         $dsn  = "pgsql:host={$host};port={$port};dbname={$db}";
         return new PDO($dsn, $user, $pass, self::pdoOptions());
     }
 
-    private static function connectSqlite(): PDO
+    private static function connectSqlite(array $config): PDO
     {
         // Updated: 2026-04-06 — resolve path, auto-create parent directory
-        $path = self::$config['database'] ?? self::$config['dbname'] ?? ':memory:';
+        $path = $config['database'] ?? $config['dbname'] ?? ':memory:';
 
         if ($path !== ':memory:') {
             $dir = dirname($path);
@@ -173,9 +262,9 @@ class Database
     // CRUD helpers
     // -------------------------------------------------------------------------
 
-    public static function view(string $sql, array $params = []): array
+    public static function view(string $sql, array $params = [], ?string $connection = null): array
     {
-        $pdo = self::connect();
+        $pdo = self::connection($connection);
         $start = microtime(true);
         $stmt  = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -183,40 +272,40 @@ class Database
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function create(string $sql, array $params = []): int
+    public static function create(string $sql, array $params = [], ?string $connection = null): int
     {
-        $pdo  = self::connect();
+        $pdo  = self::connection($connection);
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount();
     }
 
-    public static function update(string $sql, array $params = []): int
+    public static function update(string $sql, array $params = [], ?string $connection = null): int
     {
-        $pdo  = self::connect();
+        $pdo  = self::connection($connection);
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount();
     }
 
-    public static function delete(string $sql, array $params = []): int
+    public static function delete(string $sql, array $params = [], ?string $connection = null): int
     {
-        $pdo  = self::connect();
+        $pdo  = self::connection($connection);
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount(); // Fixed: was returning lastInsertId (wrong for DELETE)
     }
 
-    public static function statement(string $sql, array $params = []): bool
+    public static function statement(string $sql, array $params = [], ?string $connection = null): bool
     {
-        $pdo  = self::connect();
+        $pdo  = self::connection($connection);
         $stmt = $pdo->prepare($sql);
         return $stmt->execute($params);
     }
 
-    public static function unprepared(string $sql): int|false
+    public static function unprepared(string $sql, ?string $connection = null): int|false
     {
-        return self::connect()->exec($sql);
+        return self::connection($connection)->exec($sql);
     }
 
     // -------------------------------------------------------------------------
@@ -264,6 +353,7 @@ class Database
     public static function disconnect(): void
     {
         self::$pdo     = null;
+        self::$pdoPool = [];
         self::$grammar = null;
     }
 
@@ -271,6 +361,7 @@ class Database
     public static function setPdo(PDO $pdo): void
     {
         self::$pdo = $pdo;
+        self::$pdoPool[self::$defaultConnection] = $pdo;
     }
 
     public static function getPdo(): ?PDO
@@ -281,5 +372,24 @@ class Database
     public static function getDriverName(): string
     {
         return strtolower(self::$config['driver'] ?? 'mysql');
+    }
+
+    private static function resolveConnectionConfig(?string $connection = null): array
+    {
+        $connection = self::normalizeConnectionName($connection ?? self::$defaultConnection);
+        if ($connection !== '' && isset(self::$configPool[$connection])) {
+            return self::$configPool[$connection];
+        }
+
+        if (self::$config !== null && $connection === self::$defaultConnection) {
+            return self::$config;
+        }
+
+        return [];
+    }
+
+    private static function normalizeConnectionName(?string $name): string
+    {
+        return strtolower(trim((string) $name));
     }
 }

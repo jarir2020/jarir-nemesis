@@ -10,6 +10,7 @@ use Nemesis\Support\Collection;
 class Fluent
 {
     protected string $table;
+    protected ?string $connection = null;
     protected string $baseQuery;          // FROM clause (set once in constructor)
     protected array  $params        = [];
     protected array  $whereParts    = []; // Individual WHERE conditions
@@ -25,20 +26,32 @@ class Fluent
     // Construction
     // -------------------------------------------------------------------------
 
-    public function __construct(string $table)
+    public function __construct(string $table, ?string $connection = null)
     {
         $this->table     = '`' . str_replace('`', '``', $table) . '`';
+        $this->connection = $connection !== null && $connection !== '' ? strtolower(trim($connection)) : null;
         $this->baseQuery = "SELECT * FROM {$this->table}";
     }
 
-    public static function table(string $table): static
+    public static function table(string $table, ?string $connection = null): static
     {
-        return new static($table);
+        return new static($table, $connection);
     }
 
     public function getTable(): string
     {
         return str_replace('`', '', $this->table);
+    }
+
+    public function getConnectionName(): ?string
+    {
+        return $this->connection;
+    }
+
+    public function setConnection(?string $connection): static
+    {
+        $this->connection = $connection !== null && $connection !== '' ? strtolower(trim($connection)) : null;
+        return $this;
     }
 
     // -------------------------------------------------------------------------
@@ -184,7 +197,8 @@ class Fluent
      */
     public function whereNested(callable $callback, string $boolean = 'AND'): static
     {
-        $nested = new static($this->getTable());
+        $nested = clone $this;
+        $nested->whereParts = [];
         $nested->params = $this->params;
         $callback($nested);
 
@@ -343,7 +357,7 @@ class Fluent
      */
     public function get(): Collection
     {
-        $rows = Database::view($this->buildSelectSql(), $this->params);
+        $rows = Database::view($this->buildSelectSql(), $this->params, $this->connection);
         return new Collection($rows ?: []);
     }
 
@@ -377,7 +391,7 @@ class Fluent
         if (!empty($this->joinParts))    $sql .= ' ' . implode(' ', $this->joinParts);
         if (!empty($this->whereParts))   $sql .= ' WHERE ' . $this->compileWhere();
         if (!empty($this->groupByParts)) $sql .= ' GROUP BY ' . implode(', ', $this->groupByParts);
-        $result = Database::view($sql, $this->params);
+        $result = Database::view($sql, $this->params, $this->connection);
         return (int) ($result[0]['aggregate'] ?? 0);
     }
 
@@ -385,7 +399,7 @@ class Fluent
     {
         $sql = "SELECT MAX({$column}) as aggregate FROM {$this->table}";
         if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
-        $result = Database::view($sql, $this->params);
+        $result = Database::view($sql, $this->params, $this->connection);
         return $result[0]['aggregate'] ?? null;
     }
 
@@ -393,7 +407,7 @@ class Fluent
     {
         $sql = "SELECT MIN({$column}) as aggregate FROM {$this->table}";
         if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
-        $result = Database::view($sql, $this->params);
+        $result = Database::view($sql, $this->params, $this->connection);
         return $result[0]['aggregate'] ?? null;
     }
 
@@ -401,7 +415,7 @@ class Fluent
     {
         $sql = "SELECT SUM({$column}) as aggregate FROM {$this->table}";
         if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
-        $result = Database::view($sql, $this->params);
+        $result = Database::view($sql, $this->params, $this->connection);
         return $result[0]['aggregate'] ?? 0;
     }
 
@@ -409,7 +423,7 @@ class Fluent
     {
         $sql = "SELECT AVG({$column}) as aggregate FROM {$this->table}";
         if (!empty($this->whereParts)) $sql .= ' WHERE ' . $this->compileWhere();
-        $result = Database::view($sql, $this->params);
+        $result = Database::view($sql, $this->params, $this->connection);
         return $result[0]['aggregate'] ?? 0;
     }
 
@@ -422,8 +436,8 @@ class Fluent
         $columns      = implode(', ', array_keys($data));
         $placeholders = implode(', ', array_map(fn($k) => ":{$k}", array_keys($data)));
         $sql          = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
-        Database::create($sql, $data);
-        return Database::connect()->lastInsertId();
+        Database::create($sql, $data, $this->connection);
+        return Database::connection($this->connection)->lastInsertId();
     }
 
     public function update(array $data): int
@@ -438,7 +452,7 @@ class Fluent
             $this->params[$paramKey] = $value;
         }
         $sql = "UPDATE {$this->table} SET " . implode(', ', $set) . ' WHERE ' . $this->compileWhere();
-        return Database::update($sql, $this->params);
+        return Database::update($sql, $this->params, $this->connection);
     }
 
     public function delete(): int
@@ -447,7 +461,7 @@ class Fluent
             throw new \RuntimeException("WHERE clause is required for delete queries.");
         }
         $sql = "DELETE FROM {$this->table} WHERE " . $this->compileWhere();
-        return Database::delete($sql, $this->params);
+        return Database::delete($sql, $this->params, $this->connection);
     }
 
     // -------------------------------------------------------------------------

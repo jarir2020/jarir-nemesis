@@ -33,6 +33,83 @@ function loadExamplesCatalog(string $projectRoot): array
     return is_array($catalog) ? $catalog : [];
 }
 
+function loadFrontendCatalog(): \Nemesis\Frontend\FrontendManager
+{
+    return \Nemesis\Frontend\FrontendManager::getInstance();
+}
+
+function loadDatabaseCatalog(): array
+{
+    $database = \Nemesis\Core\Config::get('config.database', []);
+    return is_array($database) ? $database : [];
+}
+
+function resolveFrontendFramework(?string $framework, bool $defaultToServer = true): string
+{
+    $framework = $framework === null ? '' : strtolower(trim($framework));
+
+    if ($framework === '') {
+        return $defaultToServer ? 'server' : '';
+    }
+
+    $manager = \Nemesis\Frontend\FrontendManager::getInstance();
+
+    if (!$manager->supportsFramework($framework) && !$manager->isAllowed($framework)) {
+        throw new \RuntimeException("Unsupported frontend framework [{$framework}].");
+    }
+
+    if (!$manager->isAllowed($framework)) {
+        throw new \RuntimeException("Frontend framework [{$framework}] is not allowed.");
+    }
+
+    return $framework;
+}
+
+/**
+ * @return array<int, string>
+ */
+function collectPhpFiles(string $root): array
+{
+    if (is_file($root)) {
+        return str_ends_with($root, '.php') ? [$root] : [];
+    }
+
+    if (!is_dir($root)) {
+        return [];
+    }
+
+    $files = [];
+    $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $item) {
+        if ($item->isFile() && str_ends_with($item->getFilename(), '.php')) {
+            $path = $item->getPathname();
+            if (str_contains($path, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)
+                || str_contains($path, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR)
+                || str_contains($path, DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+
+            $files[] = $path;
+        }
+    }
+
+    sort($files);
+    return $files;
+}
+
+function runPhpLint(string $path): array
+{
+    $cmd = escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($path) . ' 2>&1';
+    $output = [];
+    $code = 0;
+    exec($cmd, $output, $code);
+
+    return [$code, implode("\n", $output)];
+}
+
 // Command-line argument parsing
 $command = $argv[1] ?? null;
 
@@ -50,14 +127,78 @@ switch ($command) {
         break;
 
     case 'make:model':
-        $name = $argv[2] ?? null;
-        if (!$name) die("Usage: php nemesis make:model Name\n");
+        $name = null;
+        $connection = null;
+        foreach ($argv as $index => $arg) {
+            if ($index < 2) {
+                continue;
+            }
+
+            if ($arg === '--help' || $arg === '-h') {
+                echo "Usage: php nemesis make:model Name [--connection=name]\n";
+                echo "  Creates an App\\Models\\* model stub.\n";
+                echo "  Use --connection to pin the model to a named database connection.\n";
+                echo "  Without --connection, the model uses the default database connection.\n";
+                echo "  Use --list-connections to show available database connections.\n";
+                break 2;
+            }
+
+            if ($arg === '--list-connections') {
+                $database = loadDatabaseCatalog();
+                $connections = $database['connections'] ?? [];
+                $defaultName = (string) ($database['default_connection'] ?? 'default');
+                echo "Nemesis Database Connections:\n\n";
+                foreach ((array) $connections as $name => $config) {
+                    $name = (string) $name;
+                    $isDefault = $name === $defaultName;
+                    echo "  {$name}" . ($isDefault ? " (default)" : "") . "\n";
+                    echo "    driver: " . (string) ($config['driver'] ?? 'mysql') . "\n";
+                    echo "    target: " . (string) ($config['database'] ?? $config['dbname'] ?? 'n/a') . "\n";
+                }
+                break 2;
+            }
+
+            if (str_starts_with($arg, '--connection=')) {
+                $connection = substr($arg, 13);
+                continue;
+            }
+
+            if ($name === null) {
+                $name = $arg;
+            }
+        }
+        if (!$name) die("Usage: php nemesis make:model Name [--connection=name]\n");
         try {
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
-            $path = $scaffolder->generate('model', $name);
+            $tokens = [];
+            if ($connection !== null && $connection !== '') {
+                $tokens['ConnectionProperty'] = "    protected ?string \$connection = '" . str_replace("'", "\\'", strtolower(trim($connection))) . "';";
+            }
+            $path = $scaffolder->generate('model', $name, $tokens);
             echo "Model created at {$path}\n";
         } catch (\RuntimeException $e) {
             echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'db:list-connections':
+        $database = loadDatabaseCatalog();
+        $connections = $database['connections'] ?? [];
+        $defaultName = (string) ($database['default_connection'] ?? 'default');
+
+        echo "Nemesis Database Connections:\n\n";
+        if (empty($connections)) {
+            echo "No database connections configured.\n";
+            break;
+        }
+
+        foreach ((array) $connections as $name => $config) {
+            $name = (string) $name;
+            $isDefault = $name === $defaultName;
+            echo "  {$name}" . ($isDefault ? " (default)" : "") . "\n";
+            echo "    driver: " . (string) ($config['driver'] ?? 'mysql') . "\n";
+            echo "    target: " . (string) ($config['database'] ?? $config['dbname'] ?? 'n/a') . "\n";
+            echo "    status: " . ((bool) ($config['enabled'] ?? true) ? 'enabled' : 'disabled') . "\n";
         }
         break;
 
@@ -420,6 +561,7 @@ switch ($command) {
     case 'make:layout':
         $framework = $argv[2] ?? null;
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generateLayout($framework);
             echo "Layout created at {$path}\n";
@@ -431,6 +573,7 @@ switch ($command) {
     case 'make:admin-view':
         $framework = $argv[2] ?? 'server';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generateAdminView($framework);
             echo "Admin view created at {$path}\n";
@@ -442,6 +585,7 @@ switch ($command) {
     case 'make:profile-view':
         $framework = $argv[2] ?? 'react';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generateProfileView($framework);
             echo "Profile view created at {$path}\n";
@@ -453,6 +597,7 @@ switch ($command) {
     case 'make:settings-view':
         $framework = $argv[2] ?? 'vue';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generateSettingsView($framework);
             echo "Settings view created at {$path}\n";
@@ -466,6 +611,7 @@ switch ($command) {
         $name = $argv[3] ?? null;
         if (!$framework || !$name) die("Usage: php nemesis make:frontend-component framework Name\n");
         try {
+            $framework = resolveFrontendFramework($framework, false);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $paths = $scaffolder->generateFrontendComponent($framework, $name);
             foreach ($paths as $path) {
@@ -479,6 +625,7 @@ switch ($command) {
     case 'make:admin-component':
         $framework = $argv[2] ?? 'server';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $paths = $scaffolder->generateAdminComponent($framework);
             foreach ($paths as $path) {
@@ -492,6 +639,7 @@ switch ($command) {
     case 'make:profile-component':
         $framework = $argv[2] ?? 'react';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $paths = $scaffolder->generateProfileComponent($framework);
             foreach ($paths as $path) {
@@ -505,6 +653,7 @@ switch ($command) {
     case 'make:settings-component':
         $framework = $argv[2] ?? 'vue';
         try {
+            $framework = resolveFrontendFramework($framework);
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $paths = $scaffolder->generateSettingsComponent($framework);
             foreach ($paths as $path) {
@@ -1629,7 +1778,7 @@ PHP,
         $cmds = [
             'serve' => 'Start the development server',
             'make:controller' => 'Create a new controller',
-            'make:model' => 'Create a new model',
+            'make:model' => 'Create a new model [--connection=name]',
             'make:middleware' => 'Create a new middleware',
             'make:migration' => 'Create a new database migration',
             'make:seeder' => 'Create a new database seeder',
@@ -1650,6 +1799,7 @@ PHP,
             'make:widget'      => 'Create a new widget (folder + class + view)',
             'make:library'     => 'Create a new library class',
             'make:helper'      => 'Create a new helper file',
+            'make:frontend'    => 'Create a starter bundle for a frontend framework [--framework=name]',
             'make:plugin'      => 'Create a new plugin scaffold (v2 manifest)',
             'make:module' => 'Create a new module structure',
             'make:resource' => 'Create a full resource stack (Model, Controller, Migration, etc.)',
@@ -1661,6 +1811,7 @@ PHP,
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
             'db:seed' => 'Seed the database with records',
+            'db:list-connections' => 'List configured database connections',
             'db:dump' => 'Export the database to a SQL file',
             'db:truncate' => 'Truncate all database tables',
             'db:restore' => 'Restore database from a SQL file',
@@ -1692,6 +1843,8 @@ PHP,
             'plugin:enable' => 'Enable a plugin',
             'plugin:disable' => 'Disable a plugin',
             'plugin:create' => 'Create a new plugin structure',
+            'frontend:list' => 'List supported frontend frameworks and scaffold roots [--json] [--pretty|--brief]',
+            'syntax:check' => 'Lint PHP files with php -l [path|--all]',
             'examples:list' => 'Browse the optional starter gallery',
         ];
         foreach ($cmds as $c => $d) {
@@ -1769,6 +1922,53 @@ PHP,
                 echo "    Path: {$entry['path']}\n";
             }
             echo "\n";
+        }
+        break;
+
+    case 'frontend:list':
+        $manager = loadFrontendCatalog();
+        $frameworks = $manager->supportedFrameworks();
+
+        $json = in_array('--json', $argv, true);
+        $pretty = in_array('--pretty', $argv, true);
+        $brief = in_array('--brief', $argv, true);
+
+        $payload = [
+            'title' => 'Nemesis Frontend Frameworks',
+            'count' => count($frameworks),
+            'frameworks' => array_map(static function (string $framework) use ($manager): array {
+                $config = $manager->frameworkConfig($framework);
+                return [
+                    'name' => $framework,
+                    'allowed' => $manager->isAllowed($framework),
+                    'enabled' => $manager->isEnabled($framework),
+                    'compiler' => $config['compiler'] ?? null,
+                    'views' => $config['views'] ?? null,
+                    'entry' => $config['entry'] ?? null,
+                    'build' => $config['build'] ?? null,
+                    'manifest' => $config['manifest'] ?? null,
+                    'middleware' => $config['middleware'] ?? null,
+                    'fallback' => (bool) ($config['fallback'] ?? false),
+                ];
+            }, $frameworks),
+        ];
+
+        if ($json) {
+            $flags = JSON_UNESCAPED_SLASHES;
+            if (!$brief || $pretty) {
+                $flags |= JSON_PRETTY_PRINT;
+            }
+            echo json_encode($payload, $flags) . "\n";
+            break;
+        }
+
+        echo "Nemesis Frontend Frameworks:\n\n";
+        foreach ($payload['frameworks'] as $item) {
+            echo "  {$item['name']}\n";
+            echo "    status:   " . ($item['allowed'] ? 'allowed' : 'blocked') . "\n";
+            echo "    compiler: " . ($item['compiler'] ?? 'unknown') . "\n";
+            echo "    views:    " . ($item['views'] ?? 'n/a') . "\n";
+            echo "    entry:    " . ($item['entry'] ?? 'n/a') . "\n";
         }
         break;
 
@@ -1957,11 +2157,26 @@ PHP,
         // Install a named frontend stack scaffold
         $stack = $argv[2] ?? null;
         $stacks = [
-            'alpine'   => 'Alpine.js — lightweight reactivity, no build step needed',
-            'inertia'  => 'Inertia.js — SPA adapter (Vue/React) without a full API',
-            'livewire' => 'Livewire — reactive PHP UI components',
-            'ghost'    => 'Ghost.js — owner\'s custom JS framework',
-            'jquery'   => 'jQuery — universal DOM/AJAX library',
+            'alpine'    => 'Alpine.js — lightweight reactivity, no build step needed',
+            'angular'   => 'Angular — enterprise SPA framework',
+            'astro'     => 'Astro — content-focused web framework',
+            'ember'     => 'Ember — convention-heavy front-end framework',
+            'ghost'     => 'Ghost.js — owner\'s custom JS framework',
+            'htmx'      => 'htmx — hypermedia-driven interactions',
+            'inertia'   => 'Inertia.js — SPA adapter (Vue/React) without a full API',
+            'jquery'    => 'jQuery — universal DOM/AJAX library',
+            'lit'       => 'Lit — lightweight web components',
+            'livewire'  => 'Livewire — reactive PHP UI components',
+            'next'      => 'Next.js — React framework with routing and SSR',
+            'nuxt'      => 'Nuxt — Vue meta-framework with SSR and routing',
+            'preact'    => 'Preact — tiny React-compatible UI library',
+            'qwik'      => 'Qwik — resumable frontend framework',
+            'react'     => 'React — component-driven UI library',
+            'remix'     => 'Remix — React framework for nested routing',
+            'solid'     => 'SolidJS — fine-grained reactive UI framework',
+            'svelte'    => 'Svelte — compiler-first UI framework',
+            'sveltekit' => 'SvelteKit — app framework for Svelte',
+            'vue'       => 'Vue — progressive UI framework',
         ];
 
         if (!$stack || !isset($stacks[$stack])) {
@@ -1975,11 +2190,26 @@ PHP,
 
         // npm package names per stack
         $packages = [
-            'alpine'   => ['alpinejs'],
-            'inertia'  => ['@inertiajs/core', '@inertiajs/vue3'],
-            'livewire' => ['livewire'],
-            'jquery'   => ['jquery'],
-            'ghost'    => [],   // local — remind user to link manually
+            'alpine'    => ['alpinejs'],
+            'angular'   => ['@angular/core', '@angular/cli'],
+            'astro'     => ['astro'],
+            'ember'     => ['ember-source'],
+            'ghost'     => [],   // local — remind user to link manually
+            'htmx'      => ['htmx.org'],
+            'inertia'   => ['@inertiajs/core', '@inertiajs/vue3'],
+            'jquery'    => ['jquery'],
+            'lit'       => ['lit'],
+            'livewire'  => ['livewire'],
+            'next'      => ['next', 'react', 'react-dom'],
+            'nuxt'      => ['nuxt'],
+            'preact'    => ['preact'],
+            'qwik'      => ['@builder.io/qwik'],
+            'react'     => ['react', 'react-dom'],
+            'remix'     => ['@remix-run/react', '@remix-run/node'],
+            'solid'     => ['solid-js'],
+            'svelte'    => ['svelte'],
+            'sveltekit' => ['@sveltejs/kit', 'svelte'],
+            'vue'       => ['vue'],
         ];
 
         if ($stack === 'ghost') {
@@ -2005,13 +2235,111 @@ PHP,
             'inertia' => "import { createApp, h } from 'vue';\nimport { createInertiaApp } from '@inertiajs/vue3';\ncreateInertiaApp({\n    resolve: name => import(`./Pages/\${name}.vue`),\n    setup({ el, App, props, plugin }) {\n        createApp({ render: () => h(App, props) }).use(plugin).mount(el);\n    },\n});\n",
             'jquery'  => "import $ from 'jquery';\nwindow.$ = window.jQuery = $;\n",
         ];
-        if (isset($snippets[$stack])) {
-            file_put_contents($bootstrapFile, $snippets[$stack]);
-            echo "  [ok]   resources/js/bootstrap-{$stack}.js created\n";
-            echo "  Add to your app.js:  import './bootstrap-{$stack}';\n";
-        }
+        $bootstrap = $snippets[$stack] ?? "// {$stack} bootstrap placeholder\n// Add framework-specific setup here.\n";
+        file_put_contents($bootstrapFile, $bootstrap);
+        echo "  [ok]   resources/js/bootstrap-{$stack}.js created\n";
+        echo "  Add to your app.js:  import './bootstrap-{$stack}';\n";
 
         echo "\n{$stack} installed. Run `npm run dev` to start.\n";
+        break;
+
+    case 'make:frontend':
+        $name = null;
+        $framework = null;
+        $manager = loadFrontendCatalog();
+
+        if (in_array('--help', $argv, true) || in_array('-h', $argv, true)) {
+            echo "Usage: php nemesis make:frontend <name> [--framework=name]\n";
+            echo "Create a beginner-friendly starter bundle for a frontend framework.\n\n";
+            echo "Examples:\n";
+            echo "  php nemesis make:frontend landing --framework=astro\n";
+            echo "  php nemesis make:frontend dashboard vue\n";
+            echo "  php nemesis frontend:list --json\n";
+            echo "\nUse php nemesis frontend:list to inspect supported framework names.\n";
+            break;
+        }
+
+        foreach ($argv as $index => $arg) {
+            if ($index < 2) {
+                continue;
+            }
+
+            if (str_starts_with($arg, '--framework=')) {
+                $framework = substr($arg, 12);
+                continue;
+            }
+
+            if ($arg === '--force') {
+                continue;
+            }
+
+            if ($framework === null && $name === null && $manager->supportsFramework($arg)) {
+                $framework = $arg;
+                continue;
+            }
+
+            if ($name === null) {
+                $name = $arg;
+            }
+        }
+
+        $name = $name ?? 'starter';
+        $framework = resolveFrontendFramework($framework ?? 'server');
+
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $paths = $scaffolder->generateFrontendStarter($framework, $name);
+            echo "Frontend starter scaffold created for {$framework}:\n";
+            foreach ($paths as $path) {
+                echo "  {$path}\n";
+            }
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+        break;
+
+    case 'syntax:check':
+        $target = null;
+        $all = in_array('--all', $argv, true);
+        foreach ($argv as $index => $arg) {
+            if ($index < 2) {
+                continue;
+            }
+            if ($arg === '--all') {
+                continue;
+            }
+            if ($target === null) {
+                $target = $arg;
+            }
+        }
+
+        $paths = $all
+            ? collectPhpFiles($projectRoot)
+            : collectPhpFiles($target ?? $projectRoot);
+
+        if (empty($paths)) {
+            echo "No PHP files found to check.\n";
+            break;
+        }
+
+        $failures = 0;
+        foreach ($paths as $path) {
+            [$code, $output] = runPhpLint($path);
+            if ($code === 0) {
+                echo "OK   {$path}\n";
+                continue;
+            }
+
+            $failures++;
+            echo "FAIL {$path}\n";
+            echo $output . "\n";
+        }
+
+        echo "\nSyntax check complete: " . (count($paths) - $failures) . " passed, {$failures} failed.\n";
+        if ($failures > 0) {
+            exit(1);
+        }
         break;
 
     // Phase 9: vendor:shrink — strips dev-only files from the vendor directory | 2026-04-03

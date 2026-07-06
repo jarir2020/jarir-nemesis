@@ -11,6 +11,7 @@ use Nemesis\Support\Collection;
 abstract class Model implements \ArrayAccess {
     protected $table;
     protected $primaryKey = 'id';
+    protected ?string $connection = null;
     protected $attributes = [];
     protected $relations = [];
     protected static $booted = [];
@@ -141,6 +142,21 @@ abstract class Model implements \ArrayAccess {
         $instance = new static();
         $builder = new Builder($instance);
         return $instance->applyGlobalScopes($builder);
+    }
+
+    public function getConnectionName(): ?string
+    {
+        return $this->connection !== null && $this->connection !== ''
+            ? strtolower(trim($this->connection))
+            : null;
+    }
+
+    public function setConnection(?string $connection)
+    {
+        $this->connection = $connection !== null && $connection !== ''
+            ? strtolower(trim($connection))
+            : null;
+        return $this;
     }
 
     public static function addGlobalScope($scope, $implementation = null) {
@@ -465,4 +481,3 @@ abstract class Model implements \ArrayAccess {
 }
 
 // class_basename() moved to src/Helpers/Helpers.php — 2026-04-02 (R3 fix)
-

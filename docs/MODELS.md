@@ -13,6 +13,12 @@ When `vendor:compress` is used, models that are imported by the application grap
 ```bash
 # Create a standard model
 php nemesis make:model User
+
+# Show configured database connections
+php nemesis make:model User --list-connections
+
+# Pin a generated model to a named connection
+php nemesis make:model AnalyticsEvent --connection=analytics
 ```
 
 ---
@@ -30,7 +36,8 @@ use Nemesis\Core\Model;
 class User extends Model {
     protected $table = 'users'; // Optional if follows convention
     protected $primaryKey = 'id'; // Default is 'id'
-    
+    protected ?string $connection = 'analytics'; // Optional named connection
+
     // Mass assignment protection
     protected $fillable = ['name', 'email', 'password'];
     
@@ -38,6 +45,8 @@ class User extends Model {
     // protected $guarded = ['id', 'is_admin'];
 }
 ```
+
+If you prefer to generate a model already wired to a named database connection, pass `--connection=name` to `make:model`. The generated stub will include a constructor-aware connection property so the model, builder, and fluent queries all use the same connection.
 
 ---
 

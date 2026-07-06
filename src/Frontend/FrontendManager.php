@@ -60,9 +60,30 @@ class FrontendManager
         return array_values(array_map([$this, 'normalizeFramework'], (array) $allowed));
     }
 
+    /**
+     * Return every framework declared in the frontend config.
+     *
+     * @return list<string>
+     */
+    public function supportedFrameworks(): array
+    {
+        $frameworks = $this->config['frameworks'] ?? [];
+        if (!is_array($frameworks)) {
+            return [];
+        }
+
+        return array_values(array_map([$this, 'normalizeFramework'], array_keys($frameworks)));
+    }
+
     public function isAllowed(string $framework): bool
     {
         return in_array($this->normalizeFramework($framework), $this->allowedFrameworks(), true);
+    }
+
+    public function supportsFramework(string $framework): bool
+    {
+        $framework = $this->normalizeFramework($framework);
+        return in_array($framework, $this->supportedFrameworks(), true);
     }
 
     public function isEnabled(string $framework): bool

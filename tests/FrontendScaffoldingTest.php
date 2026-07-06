@@ -91,6 +91,7 @@ class FrontendScaffoldingTest extends TestCase
         $this->assertCount(2, $paths);
         $this->assertTrue(file_exists($paths[0]));
         $this->assertTrue(file_exists($paths[1]));
+        $this->assertTrue(is_dir(base_path('resources/js/views/react')));
 
         foreach ($paths as $path) {
             @unlink($path);
@@ -98,6 +99,41 @@ class FrontendScaffoldingTest extends TestCase
 
         @rmdir(dirname($paths[0]));
         @rmdir(dirname($paths[1]));
+        @rmdir(base_path('resources/js/views/react'));
+    }
+
+    public function testNewFrameworkScaffoldsUseMirroredViewRoots(): void
+    {
+        $scaffolder = new Scaffolder();
+
+        $layout = $scaffolder->generateLayout('astro', 'shell');
+        $view = $scaffolder->generatePageView('sveltekit', 'dashboard', 'Dashboard', 'Welcome');
+        $component = $scaffolder->generateFrontendComponent('qwik', 'HeroCard');
+
+        $this->assertStringContainsString('/resources/views/astro/layouts/shell.blade.php', $layout);
+        $this->assertStringContainsString('/resources/views/sveltekit/dashboard.blade.php', $view);
+        $this->assertTrue(is_dir(base_path('resources/js/views/astro')));
+        $this->assertTrue(is_dir(base_path('resources/js/views/sveltekit')));
+        $this->assertTrue(is_dir(base_path('resources/js/views/qwik')));
+        $this->assertStringContainsString('/resources/js/qwik/components/HeroCard.js', $component[0]);
+        $this->assertStringContainsString('/resources/views/qwik/components/hero-card.blade.php', $component[1]);
+
+        foreach ([$layout, $view, $component[0], $component[1]] as $path) {
+            @unlink($path);
+        }
+
+        @rmdir(dirname($layout));
+        @rmdir(dirname(dirname($layout)));
+        @rmdir(dirname($view));
+        @rmdir(dirname(dirname($view)));
+        @rmdir(dirname($component[0]));
+        @rmdir(dirname($component[1]));
+        @rmdir(base_path('resources/js/views/astro/components'));
+        @rmdir(base_path('resources/js/views/astro'));
+        @rmdir(base_path('resources/js/views/sveltekit/components'));
+        @rmdir(base_path('resources/js/views/sveltekit'));
+        @rmdir(base_path('resources/js/views/qwik/components'));
+        @rmdir(base_path('resources/js/views/qwik'));
     }
 
     public function testProfileAndSettingsConvenienceGeneratorsWork(): void

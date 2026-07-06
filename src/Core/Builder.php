@@ -16,7 +16,7 @@ class Builder
     public function __construct(Model $model)
     {
         $this->model = $model;
-        $this->query = new Fluent($model->getTable());
+        $this->query = new Fluent($model->getTable(), $model->getConnectionName());
     }
 
     public function __clone()
@@ -434,7 +434,7 @@ class Builder
     public function truncate(): void
     {
         // Use raw exec — TRUNCATE is DDL, not parameterised
-        Database::connect()->exec('TRUNCATE TABLE ' . $this->model->getTable());
+        Database::connection($this->model->getConnectionName())->exec('TRUNCATE TABLE ' . $this->model->getTable());
     }
 
     // -------------------------------------------------------------------------

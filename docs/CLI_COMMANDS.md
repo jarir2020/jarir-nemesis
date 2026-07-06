@@ -114,7 +114,7 @@ Create new application classes.
 | Command | Description |
 |---------|-------------|
 | `make:controller {name}` | Create a new controller class |
-| `make:model {name}` | Create a new Eloquent model class |
+| `make:model {name} [--connection=name]` | Create a new Eloquent model class and pin it to a named database connection |
 | `make:migration {name}` | Create a new migration file |
 | `make:middleware {name}` | Create a new middleware class |
 | `make:request {name}` | Create a new form request class |
@@ -143,6 +143,7 @@ Manage your database schema and data.
 | `migrate:fresh` | Drop all tables and re-run migrations |
 | `migrate:status` | Show status of each migration |
 | `db:seed` | Seed the database with records |
+| `db:list-connections` | List configured database connections |
 | `db:dump` | Dump database to SQL file |
 | `db:restore` | Restore database from SQL file |
 

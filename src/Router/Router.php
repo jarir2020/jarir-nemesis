@@ -607,6 +607,17 @@ class Router
      */
     public function frontendGroup(string $framework, string $layout, \Closure $callback, array $attributes = []): void
     {
+        $manager = \Nemesis\Frontend\FrontendManager::getInstance();
+        $framework = $manager->normalizeFramework($framework);
+
+        if (!$manager->supportsFramework($framework) && !$manager->isAllowed($framework)) {
+            throw new \InvalidArgumentException("Frontend framework [{$framework}] is not supported by the frontend config.");
+        }
+
+        if (!$manager->isAllowed($framework)) {
+            throw new \InvalidArgumentException("Frontend framework [{$framework}] is not allowed.");
+        }
+
         $attributes['framework'] = $framework;
         $attributes['layout'] = $layout;
 

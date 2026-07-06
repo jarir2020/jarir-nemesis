@@ -8,4 +8,10 @@ use Nemesis\Core\Fluent;
 class {{ClassName}} extends Fluent
 {
     protected string $table = '{{TableName}}';
+{{ConnectionProperty}}
+
+    public function __construct(?string $connection = null)
+    {
+        parent::__construct($this->table, $connection ?? $this->connection);
+    }
 }
