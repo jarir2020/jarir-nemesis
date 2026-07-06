@@ -2013,7 +2013,7 @@ PHP,
             break;
         }
 
-        $content = "<?php\n// Nemesis 7.0.0 | API formatting defaults | Updated: " . date('Y-m-d') . "\n\nreturn [\n    'pretty_json' => " . ($pretty ? 'true' : 'false') . ",\n];\n";
+        $content = "<?php\n// Nemesis 7.1.0 | API formatting defaults | Updated: " . date('Y-m-d') . "\n\nreturn [\n    'pretty_json' => " . ($pretty ? 'true' : 'false') . ",\n];\n";
         file_put_contents($configFile, $content);
         echo 'API JSON format set to ' . ($pretty ? 'pretty' : 'brief') . ".\n";
         break;

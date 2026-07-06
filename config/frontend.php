@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Nemesis 7.0.0 | Frontend framework routing and build config | Draft
+// Nemesis 7.1.0 | Frontend framework routing and build config | Draft
 
 return [
     /*
