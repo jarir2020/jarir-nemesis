@@ -5,6 +5,17 @@ $catalog = require __DIR__ . '/../examples/catalog.php';
 
 $categories = array_values(array_unique(array_map(static fn (array $entry): string => $entry['category'], $catalog)));
 $requiredCategories = ['mvc', 'api', 'plugin', 'extension', 'module'];
+$requiredPacks = [
+    'ecommerce',
+    'admin-panel',
+    'cms-blog',
+    'login-api',
+    'cms-api',
+    'ecommerce-module',
+    'cms-module',
+    'auth-plugin',
+    'cms-plugin',
+];
 
 foreach ($requiredCategories as $category) {
     if (!in_array($category, $categories, true)) {
@@ -13,8 +24,23 @@ foreach ($requiredCategories as $category) {
     }
 }
 
-if (count($catalog) < 20) {
-    fwrite(STDERR, "Expected at least 20 examples, found " . count($catalog) . "\n");
+foreach ($requiredPacks as $pack) {
+    $found = false;
+    foreach ($catalog as $entry) {
+        if ($entry['name'] === $pack) {
+            $found = true;
+            break;
+        }
+    }
+
+    if (!$found) {
+        fwrite(STDERR, "Missing examples pack: {$pack}\n");
+        exit(1);
+    }
+}
+
+if (count($catalog) < 30) {
+    fwrite(STDERR, "Expected at least 30 examples, found " . count($catalog) . "\n");
     exit(1);
 }
 

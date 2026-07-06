@@ -23,4 +23,13 @@ return [
     ['category' => 'extension', 'name' => 'search-adapter', 'path' => 'examples/extensions/search-adapter', 'title' => 'Search Adapter Extension', 'description' => 'Adapter skeleton for search engine integrations.'],
     ['category' => 'module', 'name' => 'forum-module', 'path' => 'examples/modules/forum-module', 'title' => 'Forum Module Starter', 'description' => 'Community module skeleton with threads, replies, and moderation.'],
     ['category' => 'module', 'name' => 'academy-module', 'path' => 'examples/modules/academy-module', 'title' => 'Academy Module Starter', 'description' => 'Learning module skeleton with lessons, quizzes, and progress.'],
+    ['category' => 'mvc', 'name' => 'ecommerce', 'path' => 'examples/mvc/ecommerce', 'title' => 'Ecommerce MVC Starter', 'description' => 'Storefront skeleton with product pages, cart, and checkout flow.'],
+    ['category' => 'mvc', 'name' => 'admin-panel', 'path' => 'examples/mvc/admin-panel', 'title' => 'Admin Panel MVC Starter', 'description' => 'Classic admin panel skeleton with sidebar, tables, and controls.'],
+    ['category' => 'mvc', 'name' => 'cms-blog', 'path' => 'examples/mvc/cms-blog', 'title' => 'CMS Blog MVC Starter', 'description' => 'Blog and CMS skeleton with posts, categories, and editor-friendly structure.'],
+    ['category' => 'api', 'name' => 'login-api', 'path' => 'examples/api/login-api', 'title' => 'Login API Starter', 'description' => 'Login and session API skeleton for auth-first applications.'],
+    ['category' => 'api', 'name' => 'cms-api', 'path' => 'examples/api/cms-api', 'title' => 'CMS API Starter', 'description' => 'Content API skeleton for pages, posts, and publishing flows.'],
+    ['category' => 'module', 'name' => 'ecommerce-module', 'path' => 'examples/modules/ecommerce-module', 'title' => 'Ecommerce Module Starter', 'description' => 'Commerce module skeleton with products, checkout, and orders.'],
+    ['category' => 'module', 'name' => 'cms-module', 'path' => 'examples/modules/cms-module', 'title' => 'CMS Module Starter', 'description' => 'CMS module skeleton with posts, pages, menus, and revisions.'],
+    ['category' => 'plugin', 'name' => 'auth-plugin', 'path' => 'examples/plugins/auth-plugin', 'title' => 'Auth Plugin Starter', 'description' => 'Plugin skeleton for login hooks, session helpers, and guards.'],
+    ['category' => 'plugin', 'name' => 'cms-plugin', 'path' => 'examples/plugins/cms-plugin', 'title' => 'CMS Plugin Starter', 'description' => 'Plugin skeleton for content hooks, slugs, and publishing events.'],
 ];

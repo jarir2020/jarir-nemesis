@@ -9,7 +9,7 @@ Nemesis ships an isolated `examples/` gallery for learners, vibe coders, and any
 - Plugin starters for framework extensions
 - Extension starters for bridge packages and adapters
 - Module starters for self-contained application features
-- 22 starter packs total, with room to grow as real-world patterns emerge
+- 32 starter packs total, with room to grow as real-world patterns emerge
 
 ## Safety rules
 
@@ -28,8 +28,8 @@ php nemesis examples:list
 
 | Category | Examples |
 |---|---|
-| MVC | `mvc/blog`, `mvc/dashboard`, `mvc/landing-page`, `mvc/commerce-dashboard`, `mvc/profile-center` |
-| API | `api/users-api`, `api/content-api`, `api/auth-api`, `api/analytics-api`, `api/billing-api` |
-| Plugins | `plugins/audit-plugin`, `plugins/seo-plugin`, `plugins/cache-plugin`, `plugins/notifications-plugin` |
+| MVC | `mvc/blog`, `mvc/dashboard`, `mvc/landing-page`, `mvc/commerce-dashboard`, `mvc/profile-center`, `mvc/ecommerce`, `mvc/admin-panel`, `mvc/cms-blog` |
+| API | `api/users-api`, `api/content-api`, `api/auth-api`, `api/analytics-api`, `api/billing-api`, `api/login-api`, `api/cms-api` |
+| Plugins | `plugins/audit-plugin`, `plugins/seo-plugin`, `plugins/cache-plugin`, `plugins/notifications-plugin`, `plugins/auth-plugin`, `plugins/cms-plugin` |
 | Extensions | `extensions/frontend-bridge`, `extensions/storage-adapter`, `extensions/payment-adapter`, `extensions/search-adapter` |
-| Modules | `modules/blog-module`, `modules/shop-module`, `modules/forum-module`, `modules/academy-module` |
+| Modules | `modules/blog-module`, `modules/shop-module`, `modules/forum-module`, `modules/academy-module`, `modules/ecommerce-module`, `modules/cms-module` |
