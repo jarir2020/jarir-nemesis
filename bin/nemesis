@@ -219,6 +219,60 @@ function dataRoot(): string
     return rtrim((string) (getenv('NEMESIS_PUBLIC_DATA_ROOT') ?: ($projectRoot . '/public/data')), '/');
 }
 
+function ipRulesPath(): string
+{
+    $projectRoot = $GLOBALS['projectRoot'] ?? dirname(__FILE__);
+    return rtrim((string) (getenv('NEMESIS_IP_RULES_PATH') ?: ($projectRoot . '/config/ip.php')), '/');
+}
+
+function loadIpRules(): array
+{
+    $path = ipRulesPath();
+    if (!is_file($path)) {
+        return [
+            'allow_all' => true,
+            'allow' => [],
+            'block' => [],
+            'trusted_proxies' => [],
+        ];
+    }
+
+    $config = require $path;
+    return is_array($config) ? $config : [];
+}
+
+function saveIpRules(array $config): void
+{
+    $path = ipRulesPath();
+    ensureParentDirectory($path);
+    $content = "<?php\n// Nemesis 7.1.0 | IP access rules | Updated: " . date('Y-m-d') . "\n\nreturn " . var_export($config, true) . ";\n";
+    file_put_contents($path, $content);
+}
+
+function normalizeRuleList(array $rules): array
+{
+    $rules = array_map(static fn($rule) => strtolower(trim((string) $rule)), $rules);
+    $rules = array_values(array_unique(array_filter($rules, static fn($rule) => $rule !== '')));
+    sort($rules);
+    return $rules;
+}
+
+function ipRulesPayload(array $config): array
+{
+    $policy = new \Nemesis\Support\IpAccess($config);
+    $status = $policy->status();
+
+    return [
+        'title' => 'Nemesis IP Access Rules',
+        'ip_rules_path' => ipRulesPath(),
+        'allow_all' => (bool) ($status['allow_all'] ?? true),
+        'allow_count' => count((array) ($status['allow'] ?? [])),
+        'block_count' => count((array) ($status['block'] ?? [])),
+        'trusted_proxy_count' => count((array) ($status['trusted_proxies'] ?? [])),
+        'rules' => $status,
+    ];
+}
+
 function defaultBangladeshSource(): string
 {
     return (string) (getenv('NEMESIS_BANGLADESH_SOURCE') ?: 'https://raw.githubusercontent.com/jarir-in-atl/BangladeshLocations/refs/heads/main/bangladesh_locations.json');
@@ -2191,6 +2245,12 @@ PHP,
             'frontend:list' => 'List supported frontend frameworks and scaffold roots [--json] [--pretty|--brief]',
             'docs:sync' => 'Synchronize docs/ and public/docs/ [--dry-run] [--json] [--pretty|--brief]',
             'data:sync' => 'Scaffold public/data packs and import Bangladesh locations [--bangladesh-source=...] [--json] [--pretty|--brief]',
+            'ip:list' => 'List IP allow/block rules [--json] [--pretty|--brief]',
+            'ip:allow' => 'Allow an IP, CIDR, or wildcard pattern',
+            'ip:block' => 'Block an IP, CIDR, or wildcard pattern',
+            'ip:unallow' => 'Remove an IP rule from the allow list',
+            'ip:unblock' => 'Remove an IP rule from the block list',
+            'ip:reset' => 'Reset IP rules back to allow-all defaults',
             'syntax:check' => 'Lint PHP files with php -l [path|--all]',
             'examples:list' => 'Browse the optional starter gallery',
         ];
@@ -2371,6 +2431,92 @@ PHP,
                 $line .= " source={$change['source']}";
             }
             echo $line . "\n";
+        }
+        break;
+
+    case 'ip:list':
+        $json = in_array('--json', $argv, true);
+        $pretty = in_array('--pretty', $argv, true);
+        $brief = in_array('--brief', $argv, true);
+        $payload = ipRulesPayload(loadIpRules());
+
+        if ($json) {
+            $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+            if ($pretty && !$brief) {
+                $flags |= JSON_PRETTY_PRINT;
+            }
+            echo json_encode($payload, $flags) . "\n";
+            break;
+        }
+
+        echo "Nemesis IP Access Rules:\n\n";
+        echo "  path: {$payload['ip_rules_path']}\n";
+        echo "  allow all: " . ($payload['allow_all'] ? 'yes' : 'no') . "\n";
+        echo "  allow count: {$payload['allow_count']}\n";
+        echo "  block count: {$payload['block_count']}\n";
+        echo "  trusted proxies: {$payload['trusted_proxy_count']}\n";
+        echo "  current ip: " . ($payload['rules']['ip'] ?? 'n/a') . "\n";
+        break;
+
+    case 'ip:allow':
+    case 'ip:block':
+    case 'ip:unallow':
+    case 'ip:unblock':
+    case 'ip:reset':
+        $json = in_array('--json', $argv, true);
+        $pretty = in_array('--pretty', $argv, true);
+        $brief = in_array('--brief', $argv, true);
+        $rule = $argv[2] ?? null;
+        $config = loadIpRules();
+        $policy = new \Nemesis\Support\IpAccess($config);
+
+        if ($command === 'ip:reset') {
+            $policy = $policy->reset();
+            saveIpRules($policy->getConfig());
+            $payload = ipRulesPayload($policy->getConfig());
+            if ($json) {
+                $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if ($pretty && !$brief) {
+                    $flags |= JSON_PRETTY_PRINT;
+                }
+                echo json_encode($payload, $flags) . "\n";
+            } else {
+                echo "IP rules reset to allow all.\n";
+            }
+            break;
+        }
+
+        if (!$rule) {
+            $usage = match ($command) {
+                'ip:allow' => "Usage: php nemesis ip:allow <ip|cidr|pattern>\n",
+                'ip:block' => "Usage: php nemesis ip:block <ip|cidr|pattern>\n",
+                'ip:unallow' => "Usage: php nemesis ip:unallow <ip|cidr|pattern>\n",
+                'ip:unblock' => "Usage: php nemesis ip:unblock <ip|cidr|pattern>\n",
+                default => "Usage: php nemesis {$command} <ip|cidr|pattern>\n",
+            };
+            die($usage);
+        }
+
+        if ($command === 'ip:allow') {
+            $policy = $policy->withRule('allow', $rule);
+        } elseif ($command === 'ip:block') {
+            $policy = $policy->withRule('block', $rule);
+        } elseif ($command === 'ip:unallow') {
+            $policy = $policy->withoutRule('allow', $rule);
+        } else {
+            $policy = $policy->withoutRule('block', $rule);
+        }
+
+        saveIpRules($policy->getConfig());
+        $payload = ipRulesPayload($policy->getConfig());
+        if ($json) {
+            $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+            if ($pretty && !$brief) {
+                $flags |= JSON_PRETTY_PRINT;
+            }
+            echo json_encode($payload, $flags) . "\n";
+        } else {
+            echo "IP rules updated.\n";
         }
         break;
 

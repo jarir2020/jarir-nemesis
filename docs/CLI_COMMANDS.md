@@ -15,6 +15,12 @@ Nemesis provides a powerful command-line interface (CLI) called `nemesis`. It he
 | `php nemesis serve` | Start the development server |
 | `php nemesis docs:sync [--dry-run] [--json] [--pretty] [--brief]` | Mirror `docs/` and `public/docs/` by timestamp |
 | `php nemesis data:sync [--bangladesh-source=...] [--json] [--pretty] [--brief]` | Scaffold `public/data/` packs and import Bangladesh locations |
+| `php nemesis ip:list [--json] [--pretty] [--brief]` | Show the current IP allow/block policy |
+| `php nemesis ip:allow <ip|cidr|pattern>` | Add an IP rule to the allow list |
+| `php nemesis ip:block <ip|cidr|pattern>` | Add an IP rule to the block list |
+| `php nemesis ip:unallow <ip|cidr|pattern>` | Remove an IP rule from the allow list |
+| `php nemesis ip:unblock <ip|cidr|pattern>` | Remove an IP rule from the block list |
+| `php nemesis ip:reset` | Restore the default allow-all policy |
 | `php nemesis env:doctor` | Check environment health |
 | `php nemesis key:generate` | Generate application key |
 

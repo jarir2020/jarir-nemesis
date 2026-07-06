@@ -128,6 +128,35 @@ $router->add('POST', '/api/data', [ApiController::class, 'store'], ['throttle:60
 
 ---
 
+## IP Access Control
+
+Nemesis can allow or block traffic by exact IP, CIDR range, or wildcard pattern through `config/ip.php`.
+
+### CLI Management
+
+```bash
+php nemesis ip:list
+php nemesis ip:allow 127.0.0.1
+php nemesis ip:block 203.0.113.0/24
+php nemesis ip:unblock 203.0.113.0/24
+php nemesis ip:reset
+```
+
+### Middleware Usage
+
+```php
+Route::get('/admin', [AdminController::class, 'index'], ['auth', 'ip']);
+```
+
+### Policy Notes
+
+1. Block rules always win.
+2. Allow lists switch the policy into allow-only mode.
+3. If no allow rules are configured, the default policy is allow-all.
+4. Exact IPs, `*` wildcards, and CIDR ranges are supported.
+
+---
+
 ## Security Headers
 
 ```php

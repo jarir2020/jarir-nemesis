@@ -41,6 +41,12 @@ php nemesis list
 ### Public Data
 - `data:sync`: Scaffold `public/data/` packs and import Bangladesh locations. Use `--bangladesh-source=...` to point at a local file or remote JSON URL, and `--json` / `--brief` for tooling output.
 
+### IP Access
+- `ip:list`: Inspect the current IP allow/block policy. Use `--json`, `--pretty`, or `--brief` for machine-readable output.
+- `ip:allow`, `ip:block`: Add an IP, CIDR, or wildcard pattern to the allow or block list.
+- `ip:unallow`, `ip:unblock`: Remove an entry from the allow or block list.
+- `ip:reset`: Restore the default allow-all policy.
+
 ### Optimization & Cache
 - `optimize`: Warm up config and route caches.
 - `cache:clear`: Flush all application caches.

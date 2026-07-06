@@ -165,6 +165,26 @@ Nemesis ships with several ready-to-use middleware:
 - **`guest`**: Verifies the user is NOT authenticated (useful for login pages).
 - **`csrf`**: Protects against Cross-Site Request Forgery.
 - **`throttle`**: Rate limits requests (e.g., `throttle:60,1` for 60 reqs/min).
+- **`ip`**: Enforces the allow/block policy from `config/ip.php` and returns a 403 for blocked IPs.
+
+### IP Access Middleware
+
+The `ip` alias maps to `App\Http\Middleware\IpAccessMiddleware` and reads its rules from `config/ip.php`.
+
+Example:
+
+```php
+Route::get('/admin', [AdminController::class, 'index'], ['auth', 'ip']);
+```
+
+Use the CLI helpers to manage the policy:
+
+```bash
+php nemesis ip:list
+php nemesis ip:allow 127.0.0.1
+php nemesis ip:block 203.0.113.0/24
+php nemesis ip:reset
+```
 
 ---
 

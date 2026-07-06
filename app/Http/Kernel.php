@@ -57,6 +57,7 @@ class Kernel
         'api.version' => \App\Http\Middleware\ApiVersionMiddleware::class,
         'debugbar'    => \App\Http\Middleware\DebugBarMiddleware::class,
         'framework'   => \App\Http\Middleware\FrontendFrameworkMiddleware::class,
+        'ip'          => \App\Http\Middleware\IpAccessMiddleware::class,
     ];
 
     // -------------------------------------------------------------------------
