@@ -206,11 +206,12 @@ switch ($command) {
     case 'db:list-connections':
         $json = in_array('--json', $argv, true);
         $pretty = in_array('--pretty', $argv, true);
+        $brief = in_array('--brief', $argv, true);
         $payload = databaseConnectionsPayload();
 
         if ($json) {
             $flags = JSON_UNESCAPED_SLASHES;
-            if ($pretty) {
+            if ($pretty && !$brief) {
                 $flags |= JSON_PRETTY_PRINT;
             }
             echo json_encode($payload, $flags) . "\n";
@@ -1840,7 +1841,7 @@ PHP,
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
             'db:seed' => 'Seed the database with records',
-            'db:list-connections' => 'List configured database connections',
+            'db:list-connections' => 'List configured database connections [--json] [--pretty|--brief]',
             'db:dump' => 'Export the database to a SQL file',
             'db:truncate' => 'Truncate all database tables',
             'db:restore' => 'Restore database from a SQL file',
