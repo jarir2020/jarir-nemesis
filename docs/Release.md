@@ -4,11 +4,11 @@ We are thrilled to announce the stable release of **Nemesis Framework v2.0.0**. 
 
 ---
 
-## v7.0.4 Starter Gallery Note
+## v7.1.0 IP and Starter Gallery Note
 
-Nemesis v7.0.4 adds an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module samples.
+Nemesis v7.1.0 adds an isolated `examples/` gallery with 22 ready-to-use MVC, API, plugin, extension, and module samples, plus a runtime IP allow/block helper for safer admin and deployment flows.
 
-**Short release note:** optional starter packs for MVC, API, plugins, extensions, and modules are now available, along with `php nemesis examples:list` for quick browsing.
+**Short release note:** optional starter packs for MVC, API, plugins, extensions, and modules are now available, along with `php nemesis examples:list` and `php nemesis ip:list` for quick browsing and IP policy management.
 
 ### Why it is safe
 - The gallery lives outside the application autoload path.

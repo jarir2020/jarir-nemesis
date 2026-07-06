@@ -1,5 +1,20 @@
 # Nemesis Framework — Changelog
 
+## [7.1.0] — 2026-07-06
+
+### What's New
+
+- Added the IP allow/block helper with exact IP, CIDR, and wildcard support.
+- Added `php nemesis ip:list`, `ip:allow`, `ip:block`, `ip:unallow`, `ip:unblock`, and `ip:reset`.
+- Added the `ip` middleware alias so routes can enforce the policy at runtime.
+- Documented the IP access workflow in the CLI, middleware, and security guides.
+
+### Notes
+
+- The default policy remains allow-all until you add allow rules or explicit blocks.
+- Block rules always win over allow rules.
+- The feature uses `config/ip.php` as the default rules source.
+
 ## [7.0.3] — 2026-07-06
 
 ### What's New

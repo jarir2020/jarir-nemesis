@@ -1,16 +1,16 @@
-# Nemesis Framework v7.0.4 (Enterprise)
+# Nemesis Framework v7.1.0 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-7.0.4-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-7.1.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.2-777bb4.svg)](https://php.net)
 
 **Nemesis** is a high-performance, **Zero-Dependency** PHP framework designed for building scalable SaaS platforms and robust APIs. It combines the architectural elegance of enterprise frameworks with the speed of a featherweight engine.
 
-For maintenance releases such as v7.0.4, Nemesis also includes a safe vendor compression workflow via `php nemesis vendor:compress`. The command uses analysis to remove only classes proven unused, and it supports dry runs, reports, archives, and restore workflows.
+For maintenance releases such as v7.1.0, Nemesis also includes a safe vendor compression workflow via `php nemesis vendor:compress`. The command uses analysis to remove only classes proven unused, and it supports dry runs, reports, archives, and restore workflows.
 
-Nemesis v7.0.4 also includes an isolated `examples/` gallery with ready-to-use MVC, API, plugin, extension, and module samples. These examples are optional, copy-only references and are not autoloaded into normal applications.
+Nemesis v7.1.0 also includes an isolated `examples/` gallery with ready-to-use MVC, API, plugin, extension, and module samples. These examples are optional, copy-only references and are not autoloaded into normal applications.
 
-**Packagist-friendly release note:** v7.0.4 adds 22 optional starter packs for MVC, API, plugin, extension, and module workflows. They are isolated from the runtime path and safe to ignore or delete in normal projects.
+**Packagist-friendly release note:** v7.1.0 adds 22 optional starter packs for MVC, API, plugin, extension, and module workflows, plus IP allow/block helpers for safer deployment controls. They are isolated from the runtime path and safe to ignore or delete in normal projects.
 
 ---
 
