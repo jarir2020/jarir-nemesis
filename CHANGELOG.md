@@ -1,5 +1,73 @@
 # Nemesis Framework — Changelog
 
+## [7.1.1] — 2026-08-30
+
+Comprehensive gap-fix release. Closes all 12 known gaps identified during
+the framework audit. Recommended update for everyone on 7.1.0.
+
+### ⚠️ Breaking Changes
+
+| Area | Before 7.1.1 | 7.1.1 |
+|---|---|---|
+| `Crypt::decrypt()` | Accepted legacy `base64(ct::iv)` payloads | Only accepts the new `v2:base64(...)` AEAD envelope. Legacy payloads now throw. |
+| Built-in middleware namespace | `App\Http\Middleware\*` | `Nemesis\Http\Middleware\*` |
+| `Kernel::$middleware` global list | Included `StartSession` + `VerifyCsrfToken` | Only `CheckForMaintenanceMode`. Session/CSRF live in the `web` group; use the `session` / `csrf` aliases outside it. |
+
+> **Action required for the Crypt breaking change:** re-encrypt any persisted
+> data using the new `Crypt::encrypt()` output before upgrading.
+
+### Bug Fixes
+
+| # | Subsystem | Fix |
+|---|---|---|
+| 1 | `Nemesis\Http\Session` | Added `all()`, `flash()`, `getFlash()`, `getOldInput()`, `flashOldInput()`, `pull()`, `reflash()`, `keep()`. The `Gate::checkAcl()` and `flash()`/`old()` helpers no longer fatal. |
+| 2 | `Nemesis\Security\Crypt` | Rewritten as AEAD: `AES-256-GCM` for confidentiality + integrity, plus an explicit `HMAC-SHA256` envelope. New subkeys derived via `hash_hkdf`. Throws on any tampering. |
+| 3 | `Nemesis\Core\PluginSandbox` | `setupSandbox()` now installs `open_basedir = base_path()` and restores it on `teardownSandbox()`. `checkFileAccess()` rejects null-byte injection, `phar://`-style stream wrappers, and `..`-style escapes with a realpath() check. |
+| 4 | `Nemesis\Core\Builder` | `with()` now actually eager-loads. After hydration, each requested relation is loaded in a single batched query (`WHERE IN`) and distributed back into the parent models' relation cache. Replaces the previous N+1. Supports `hasOne`, `hasMany`, `belongsTo`, `belongsToMany`. |
+| 5 | Scaffolder `make:model` | The `model.stub` now extends `Nemesis\Core\Model` (AR) instead of `Nemesis\Core\Fluent` (raw QB). Generated models are immediately usable with `find`, `create`, `save`, `where`, etc. |
+| 6 | `Nemesis\Http\Session` | Optional `Session::boot(SessionConfig)` accepts the typed DTO and applies the cookie name + lifetime before `session_start()`. |
+| 7 | `index.php` (root) | Now also loads `routes/web.php` and `routes/api.php` (when present), matching the behaviour of `public/index.php`. |
+| 8 | Built-in middleware | Moved from `app/Http/Middleware/*` to `src/Http/Middleware/*` (namespace `Nemesis\Http\Middleware`). `app/Http/Middleware/.gitkeep` is kept for app-level overrides. |
+| 9 | Scaffolder stubs | `migration.stub` now declares `namespace` + `strict_types`, uses `Schema::create()` and `Schema::dropIfExists()`. All 27 stubs audited. |
+| 10 | Placeholder dirs | `src/Interceptors/`, `src/Serializer/`, `src/Telemetry/` — `.gitkeep` files now contain explanatory comments about the planned future content. |
+| 11 | `app/Http\Kernel` | Removed `StartSession` and `VerifyCsrfToken` from the global middleware list (they're already in the `web` group). |
+| 12 | CLI architecture | Added `Nemesis\Console\CommandRegistry` — a first-class in-memory command registry. `bin/nemesis` consults it before falling back to the legacy `CommandBus` / plugin paths. New `php nemesis list` and `php nemesis help <cmd>` commands. |
+
+### New Public API
+
+- `Nemesis\Http\Session::all(): array`
+- `Nemesis\Http\Session::flash(string, $value): void`
+- `Nemesis\Http\Session::getFlash(string, $default = null): mixed`
+- `Nemesis\Http\Session::flashOldInput(array): void`
+- `Nemesis\Http\Session::getOldInput(string, $default = null): mixed`
+- `Nemesis\Http\Session::pull(string, $default = null): mixed`
+- `Nemesis\Http\Session::reflash(): void`
+- `Nemesis\Http\Session::keep(array): void`
+- `Nemesis\Http\Session::boot(?SessionConfig): void`
+- `Nemesis\Core\Model::setRelation(string, mixed): static`
+- `Nemesis\Core\Model::getRelations(): array`
+- `Nemesis\Console\CommandRegistry` (singleton with `register()`, `has()`, `run()`, `list()`, `help()`)
+- `Nemesis\Security\Crypt::VERSION` (constant `'v2'`)
+
+### New Tests
+
+- `tests/SessionFlashTest.php` — covers all new `Session` methods
+- `tests/CryptAeadTest.php` — round-trip, unicode, nondeterminism, tamper detection, legacy rejection, wrong-key failure
+- `tests/EagerLoadTest.php` — relation helpers, `with()` fluent API
+- `tests/PluginSandboxIsolationTest.php` — path validation, stream-wrapper rejection, `open_basedir` install/restore
+
+### Upgrade from 7.1.0
+
+```bash
+composer update jarir/nemesis-framework
+```
+
+1. Update any code that referenced `App\Http\Middleware\*` to use `Nemesis\Http\Middleware\*`.
+2. Re-encrypt any data stored with the old `Crypt::encrypt()` format.
+3. If you relied on session/CSRF being globally registered on every request, attach the `web` middleware group to those routes (or use the `session` / `csrf` aliases directly).
+
+---
+
 ## [7.1.0] — 2026-07-06
 
 ### What's New

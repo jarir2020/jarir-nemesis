@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Nemesis 4.0.0 | Phase 3 — MiddlewareInterface | Moved from src/Middleware: 2026-04-02
 // Renamed from DebugBar.php → DebugBarMiddleware.php to avoid clash with plugin class name.
 
-namespace App\Http\Middleware;
+namespace Nemesis\Http\Middleware;
 
 use Nemesis\Contracts\MiddlewareInterface;
 use Nemesis\Core\Database;

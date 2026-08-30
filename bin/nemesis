@@ -3186,6 +3186,46 @@ PHP,
         break;
 
     default:
+        // v7.1.1 (Gap 12): consult the new CommandRegistry first. Plugins and
+        // apps can register commands via \Nemesis\Console\CommandRegistry::getInstance()
+        // and they will be picked up here before falling back to the legacy
+        // CommandBus / plugin-command paths.
+        $registry = \Nemesis\Console\CommandRegistry::getInstance();
+
+        // New in v7.1.1: `php nemesis list` shows all registered commands.
+        if ($command === 'list' || $command === 'commands') {
+            echo "Nemesis Framework CLI — registered commands:\n\n";
+            foreach ($registry->list() as $name => $description) {
+                echo sprintf("  %-32s %s\n", $name, $description);
+            }
+            if ($registry->list() === []) {
+                echo "  (no commands registered yet)\n";
+            }
+            echo "\nRun `php nemesis help <command>` for details on a specific command.\n";
+            exit(0);
+        }
+
+        if ($command === 'help' || $command === '--help' || $command === '-h') {
+            $target = $argv[2] ?? null;
+            if ($target === null) {
+                echo "Usage: php nemesis help <command>\n";
+                exit(0);
+            }
+            $info = $registry->help($target);
+            if ($info === null) {
+                echo "No help available for '{$target}'.\n";
+                exit(1);
+            }
+            echo "{$target} — {$info['description']}\n\n";
+            echo "Usage:\n  {$info['usage']}\n";
+            exit(0);
+        }
+
+        if ($registry->has($command)) {
+            require_once $projectRoot . '/index.php';
+            exit($registry->run($command, $argv));
+        }
+
         // Phase 7: try CommandBus first (app/Console/Commands + plugin commands) | 2026-04-03
         $bus = \Nemesis\Reactor\CommandBus::getInstance();
 

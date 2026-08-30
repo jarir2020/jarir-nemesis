@@ -6,7 +6,7 @@
  * @package  JarirAhmed
  * @author   Jarir Ahmed <jarircse16@gmail.com>
  */
-// CORS is now handled by App\Http\Middleware\CorsMiddleware per route-group.
+// CORS is now handled by Nemesis\Http\Middleware\CorsMiddleware per route-group.
 // Apply it to the 'api' group in routes/api.php via ->middleware('cors').
 // Updated: 2026-04-03
 

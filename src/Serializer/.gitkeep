@@ -1,0 +1,5 @@
+# Reserved for a future serialization layer.
+# Planned: a SerializerInterface + drivers (PHP serialize, JSON, msgpack, ...)
+# that lets the framework swap how Eloquent-style models are marshalled to
+# strings, queues, cache, etc. without touching call sites.
+# v7.1.1 — directory reserved, no implementation yet.

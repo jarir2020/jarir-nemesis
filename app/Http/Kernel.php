@@ -1,21 +1,39 @@
 <?php
 declare(strict_types=1);
 
-// Nemesis 6.2.1 | Phase 16 — auth + api.key middleware registered | Updated: 2026-04-06
+// Nemesis 7.1.1 | Phase 16 — auth + api.key middleware registered | Updated: 2026-08-30
+// v7.1.1 (Gap 8): middleware classes moved to Nemesis\Http\Middleware namespace
+// v7.1.1 (Gap 11): removed StartSession + VerifyCsrfToken from the global
+//                   middleware list (they live in the 'web' group).
 
 namespace App\Http;
+
+use Nemesis\Http\Middleware\ApiKeyAuthenticate;
+use Nemesis\Http\Middleware\ApiVersionMiddleware;
+use Nemesis\Http\Middleware\Authenticate;
+use Nemesis\Http\Middleware\CheckForMaintenanceMode;
+use Nemesis\Http\Middleware\CorsMiddleware;
+use Nemesis\Http\Middleware\DebugBarMiddleware;
+use Nemesis\Http\Middleware\FrontendFrameworkMiddleware;
+use Nemesis\Http\Middleware\IpAccessMiddleware;
+use Nemesis\Http\Middleware\SecurityHeadersMiddleware;
+use Nemesis\Http\Middleware\StartSession;
+use Nemesis\Http\Middleware\ThrottleRequests;
+use Nemesis\Http\Middleware\VerifyCsrfToken;
 
 class Kernel
 {
     /**
      * Global HTTP middleware — runs on every request.
      *
+     * v7.1.1 (Gap 11): session and CSRF are no longer global. They live in
+     * the 'web' group, and routes outside that group opt in via the
+     * 'session' / 'csrf' aliases.
+     *
      * @var class-string[]
      */
     protected array $middleware = [
-        \App\Http\Middleware\CheckForMaintenanceMode::class,
-        \App\Http\Middleware\StartSession::class,
-        \App\Http\Middleware\VerifyCsrfToken::class,
+        \Nemesis\Http\Middleware\CheckForMaintenanceMode::class,
     ];
 
     /**
@@ -28,8 +46,8 @@ class Kernel
      */
     protected array $middlewareGroups = [
         'web' => [
-            \App\Http\Middleware\StartSession::class,
-            \App\Http\Middleware\VerifyCsrfToken::class,
+            \Nemesis\Http\Middleware\StartSession::class,
+            \Nemesis\Http\Middleware\VerifyCsrfToken::class,
         ],
         'api' => [
             'throttle:60,1',
@@ -39,25 +57,23 @@ class Kernel
     /**
      * Route middleware aliases — short names used in ->middleware('alias').
      *
+     * v7.1.1 (Gap 8): all built-in middleware now lives in
+     * Nemesis\Http\Middleware. App-level overrides can be added here.
+     *
      * @var array<string, class-string>
      */
     protected array $routeMiddleware = [
-        // app/Http/Middleware
-        'throttle' => \App\Http\Middleware\ThrottleRequests::class,
-        'csrf'     => \App\Http\Middleware\VerifyCsrfToken::class,
-        'session'  => \App\Http\Middleware\StartSession::class,
-        'auth'    => \App\Http\Middleware\Authenticate::class,
-        'api.key' => \App\Http\Middleware\ApiKeyAuthenticate::class,
-        // 'guest'  => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        // 'role'   => \App\Http\Middleware\CheckRole::class,
-
-        // Consolidated from src/Middleware → app/Http/Middleware (2026-04-02)
-        'cors'        => \App\Http\Middleware\CorsMiddleware::class,
-        'security'    => \App\Http\Middleware\SecurityHeadersMiddleware::class,
-        'api.version' => \App\Http\Middleware\ApiVersionMiddleware::class,
-        'debugbar'    => \App\Http\Middleware\DebugBarMiddleware::class,
-        'framework'   => \App\Http\Middleware\FrontendFrameworkMiddleware::class,
-        'ip'          => \App\Http\Middleware\IpAccessMiddleware::class,
+        'throttle'    => ThrottleRequests::class,
+        'csrf'        => VerifyCsrfToken::class,
+        'session'     => StartSession::class,
+        'auth'        => Authenticate::class,
+        'api.key'     => ApiKeyAuthenticate::class,
+        'cors'        => CorsMiddleware::class,
+        'security'    => SecurityHeadersMiddleware::class,
+        'api.version' => ApiVersionMiddleware::class,
+        'debugbar'    => DebugBarMiddleware::class,
+        'framework'   => FrontendFrameworkMiddleware::class,
+        'ip'          => IpAccessMiddleware::class,
     ];
 
     // -------------------------------------------------------------------------

@@ -1,17 +1,24 @@
 <?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
 
 use Nemesis\Database\Migration;
-use Nemesis\Core\Database;
+use Nemesis\Database\Schema;
+use Nemesis\Database\Blueprint;
 
 class {{ClassName}} extends Migration
 {
     public function up(): void
     {
-        // Database::connect()->exec("CREATE TABLE {{TableName}} (id INT AUTO_INCREMENT PRIMARY KEY)");
+        Schema::create('{{TableName}}', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
     {
-        // Database::connect()->exec("DROP TABLE IF EXISTS {{TableName}}");
+        Schema::dropIfExists('{{TableName}}');
     }
 }

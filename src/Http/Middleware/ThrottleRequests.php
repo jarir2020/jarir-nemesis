@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // Nemesis 4.0.0 | Phase 3 — MiddlewareInterface | Updated: 2026-04-02
 
-namespace App\Http\Middleware;
+namespace Nemesis\Http\Middleware;
 
 use Nemesis\Contracts\MiddlewareInterface;
 use Nemesis\Core\Cache;

@@ -954,18 +954,18 @@ class TenantMiddlewareTest extends TestCase
 
     public function testMiddlewareClassExists(): void
     {
-        $this->assertTrue(class_exists(\App\Http\Middleware\TenantMiddleware::class));
+        $this->assertTrue(class_exists(\Nemesis\Http\Middleware\TenantMiddleware::class));
     }
 
     public function testMiddlewareImplementsInterface(): void
     {
-        $mw = new \App\Http\Middleware\TenantMiddleware();
+        $mw = new \Nemesis\Http\Middleware\TenantMiddleware();
         $this->assertInstanceOf(\Nemesis\Contracts\MiddlewareInterface::class, $mw);
     }
 
     public function testMiddlewareHasHandleMethod(): void
     {
-        $this->assertTrue(method_exists(\App\Http\Middleware\TenantMiddleware::class, 'handle'));
+        $this->assertTrue(method_exists(\Nemesis\Http\Middleware\TenantMiddleware::class, 'handle'));
     }
 }
 

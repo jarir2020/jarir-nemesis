@@ -1,6 +1,6 @@
 <?php
 // Nemesis 4.0.0 | CORS configuration | Created: 2026-04-03
-// Used by App\Http\Middleware\CorsMiddleware (constructor reads these keys).
+// Used by Nemesis\Http\Middleware\CorsMiddleware (constructor reads these keys).
 // Wire via Kernel 'api' group or per-route: ->middleware('cors')
 
 return [

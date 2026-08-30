@@ -1,6 +1,6 @@
-# Nemesis Framework v7.1.0 (Enterprise)
+# Nemesis Framework v7.1.1 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-7.1.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-7.1.1-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.2-777bb4.svg)](https://php.net)
 

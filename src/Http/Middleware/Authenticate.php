@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // Nemesis 6.0 | Phase 16 — JWT Bearer auth middleware | 2026-04-06
 
-namespace App\Http\Middleware;
+namespace Nemesis\Http\Middleware;
 
 use Nemesis\Auth\JWT;
 use Nemesis\Contracts\MiddlewareInterface;

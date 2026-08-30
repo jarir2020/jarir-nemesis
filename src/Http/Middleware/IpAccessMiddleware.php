@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Http\Middleware;
+namespace Nemesis\Http\Middleware;
 
 use Nemesis\Contracts\MiddlewareInterface;
 use Nemesis\Http\Request;

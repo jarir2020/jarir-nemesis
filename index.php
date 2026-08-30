@@ -89,6 +89,16 @@ if (PHP_SAPI !== 'cli') {
     $kernel = new \App\Http\Kernel();
     $request = $container->make(\Nemesis\Http\Request::class);
     $router = require __DIR__ . '/routes/route.php';
+    // v7.1.1 (Gap 7): also load optional web.php / api.php so apps deployed
+    // with the root directory as the document root behave the same as apps
+    // served from public/. Wrapped in is_file() so missing optional files
+    // don't fatal.
+    if (is_file(__DIR__ . '/routes/web.php')) {
+        require __DIR__ . '/routes/web.php';
+    }
+    if (is_file(__DIR__ . '/routes/api.php')) {
+        require __DIR__ . '/routes/api.php';
+    }
 
     (new \Nemesis\Http\Pipeline())
         ->send($request)

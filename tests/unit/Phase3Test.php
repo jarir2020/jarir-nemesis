@@ -319,47 +319,47 @@ class Phase3Test extends TestCase
 
     public function testCheckForMaintenanceModeImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\CheckForMaintenanceMode());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\CheckForMaintenanceMode());
     }
 
     public function testStartSessionImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\StartSession());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\StartSession());
     }
 
     public function testVerifyCsrfTokenImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\VerifyCsrfToken());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\VerifyCsrfToken());
     }
 
     public function testThrottleRequestsImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\ThrottleRequests());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\ThrottleRequests());
     }
 
     public function testTestMiddlewareImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\TestMiddleware());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\TestMiddleware());
     }
 
     public function testCorsMiddlewareImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\CorsMiddleware());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\CorsMiddleware());
     }
 
     public function testSecurityHeadersMiddlewareImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\SecurityHeadersMiddleware());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\SecurityHeadersMiddleware());
     }
 
     public function testApiVersionMiddlewareImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\ApiVersionMiddleware());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\ApiVersionMiddleware());
     }
 
     public function testDebugBarMiddlewareImplementsInterface(): void
     {
-        $this->assertInstanceOf(MiddlewareInterface::class, new \App\Http\Middleware\DebugBarMiddleware());
+        $this->assertInstanceOf(MiddlewareInterface::class, new \Nemesis\Http\Middleware\DebugBarMiddleware());
     }
 
     // =========================================================================
@@ -412,7 +412,7 @@ class Phase3Test extends TestCase
 
     public function testStartSessionHasTerminateMethod(): void
     {
-        $m = new \App\Http\Middleware\StartSession();
+        $m = new \Nemesis\Http\Middleware\StartSession();
         $this->assertTrue(method_exists($m, 'terminate'));
     }
 }

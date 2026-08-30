@@ -3,15 +3,20 @@ declare(strict_types=1);
 
 namespace {{Namespace}};
 
-use Nemesis\Core\Fluent;
+use Nemesis\Core\Model;
 
-class {{ClassName}} extends Fluent
+class {{ClassName}} extends Model
 {
-    protected string $table = '{{TableName}}';
+    protected $table = '{{TableName}}';
+
+    /**
+     * Mass-assignable attributes.
+     */
+    protected $fillable = [];
 {{ConnectionProperty}}
 
-    public function __construct(?string $connection = null)
+    public function __construct(array $attributes = [])
     {
-        parent::__construct($this->table, $connection ?? $this->connection);
+        parent::__construct($attributes);
     }
 }

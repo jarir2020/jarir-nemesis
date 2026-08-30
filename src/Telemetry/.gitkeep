@@ -1,0 +1,5 @@
+# Reserved for future telemetry / observability primitives.
+# Planned: a lightweight tracing layer (spans, metrics, exporters) that the
+# HTTP pipeline, database layer, queue, and jobs can instrument without
+# pulling in OpenTelemetry directly.
+# v7.1.1 — directory reserved, no implementation yet.

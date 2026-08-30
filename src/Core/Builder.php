@@ -334,18 +334,13 @@ class Builder
     /**
      * Execute query and return a Collection of hydrated Model instances.
      * Phase 2: changed from plain array to Collection — 2026-04-03
+     * v7.1.1 (Gap 4): now applies eager-loaded relations via eagerLoadRelations()
      */
     public function get(array $columns = ['*']): Collection
     {
         $rawResults = $this->cloneQuery()->get(); // Collection of raw arrays from Fluent
-        $models     = [];
-        foreach ($rawResults as $item) {
-            if (is_array($item)) {
-                $model         = new $this->model($item);
-                $model->exists = true;
-                $models[]      = $model;
-            }
-        }
+        $models     = $this->hydrate($rawResults);
+        $this->eagerLoadRelations($models);
         return new Collection($models);
     }
 
@@ -356,9 +351,236 @@ class Builder
         if ($item !== null && is_array($item)) {
             $model         = new $this->model($item);
             $model->exists = true;
+            $this->eagerLoadRelations([$model]);
             return $model;
         }
         return null;
+    }
+
+    /**
+     * Hydrate raw array rows into Model instances.
+     */
+    protected function hydrate(iterable $rawResults): array
+    {
+        $models = [];
+        foreach ($rawResults as $item) {
+            if (is_array($item)) {
+                $model         = new $this->model($item);
+                $model->exists = true;
+                $models[]      = $model;
+            }
+        }
+        return $models;
+    }
+
+    /**
+     * v7.1.1 (Gap 4): Eager-load each relation named in $this->eagerLoad
+     * using batched queries. Replaces the previous N+1 lazy loading.
+     *
+     * Supports hasOne, hasMany, belongsTo, belongsToMany.
+     * For each relation, runs at most ONE additional query no matter how
+     * many parent models were hydrated.
+     */
+    protected function eagerLoadRelations(array $models): void
+    {
+        if ($models === [] || $this->eagerLoad === []) {
+            return;
+        }
+
+        foreach ($this->eagerLoad as $relationName) {
+            $method = $relationName;
+            // Allow dot-notation (e.g. "comments.author") — we eagerly load
+            // each segment independently. Only the first level is required
+            // for N+1 elimination; nested eager-loading is a future enhancement.
+            $segments = explode('.', $method);
+            $this->eagerLoadSingle($models, $segments[0]);
+        }
+    }
+
+    protected function eagerLoadSingle(array $models, string $relationName): void
+    {
+        if ($models === [] || $relationName === '') {
+            return;
+        }
+
+        $first = $models[0];
+        if (!method_exists($first, $relationName)) {
+            return;
+        }
+
+        $relation = $first->$relationName();
+        $relationType = $this->detectRelationType($relation);
+
+        switch ($relationType) {
+            case 'HasMany':
+                $this->eagerLoadHasMany($models, $relation, $relationName);
+                break;
+            case 'HasOne':
+                $this->eagerLoadHasOne($models, $relation, $relationName);
+                break;
+            case 'BelongsTo':
+                $this->eagerLoadBelongsTo($models, $relation, $relationName);
+                break;
+            case 'BelongsToMany':
+                $this->eagerLoadBelongsToMany($models, $relation, $relationName);
+                break;
+            default:
+                // Unknown relation type — fall back to lazy loading per model.
+                foreach ($models as $model) {
+                    $model->getRelationValue($relationName);
+                }
+        }
+    }
+
+    protected function detectRelationType(object $relation): string
+    {
+        $class = get_class($relation);
+        $base  = basename(str_replace('\\', '/', $class));
+        return $base;
+    }
+
+    protected function eagerLoadHasMany(array $models, HasMany $relation, string $relationName): void
+    {
+        $reflection = new \ReflectionClass($relation);
+        $foreignKey = $reflection->getProperty('foreignKey')->getValue($relation);
+        $localKey   = $reflection->getProperty('localKey')->getValue($relation);
+        $related    = $reflection->getProperty('related')->getValue($relation);
+
+        $parentIds = array_values(array_unique(array_filter(array_map(
+            fn(Model $m) => $m->{$localKey} ?? null,
+            $models
+        ))));
+
+        if ($parentIds === []) {
+            return;
+        }
+
+        // Use the related model class so subclasses with their own
+        // global scopes / table overrides are honoured.
+        $relatedRows = $related::whereIn($foreignKey, $parentIds)->get();
+
+        $byParent = [];
+        foreach ($relatedRows as $row) {
+            $byParent[$row->{$foreignKey}][] = $row;
+        }
+
+        foreach ($models as $model) {
+            $key = $model->{$localKey} ?? null;
+            $model->setRelation($relationName, $byParent[$key] ?? []);
+        }
+    }
+
+    protected function eagerLoadHasOne(array $models, HasOne $relation, string $relationName): void
+    {
+        $reflection = new \ReflectionClass($relation);
+        $foreignKey = $reflection->getProperty('foreignKey')->getValue($relation);
+        $localKey   = $reflection->getProperty('localKey')->getValue($relation);
+        $related    = $reflection->getProperty('related')->getValue($relation);
+
+        $parentIds = array_values(array_unique(array_filter(array_map(
+            fn(Model $m) => $m->{$localKey} ?? null,
+            $models
+        ))));
+
+        if ($parentIds === []) {
+            return;
+        }
+
+        $relatedRows = $related::whereIn($foreignKey, $parentIds)->get();
+
+        $byParent = [];
+        foreach ($relatedRows as $row) {
+            $byParent[$row->{$foreignKey}] = $row;
+        }
+
+        foreach ($models as $model) {
+            $key = $model->{$localKey} ?? null;
+            $model->setRelation($relationName, $byParent[$key] ?? null);
+        }
+    }
+
+    protected function eagerLoadBelongsTo(array $models, BelongsTo $relation, string $relationName): void
+    {
+        $reflection = new \ReflectionClass($relation);
+        $foreignKey = $reflection->getProperty('foreignKey')->getValue($relation);
+        $ownerKey   = $reflection->getProperty('ownerKey')->getValue($relation);
+        $related    = $reflection->getProperty('related')->getValue($relation);
+
+        $childKeys = array_values(array_unique(array_filter(array_map(
+            fn(Model $m) => $m->{$foreignKey} ?? null,
+            $models
+        ))));
+
+        if ($childKeys === []) {
+            return;
+        }
+
+        $relatedRows = $related::whereIn($ownerKey, $childKeys)->get();
+
+        $byOwner = [];
+        foreach ($relatedRows as $row) {
+            $byOwner[$row->{$ownerKey}] = $row;
+        }
+
+        foreach ($models as $model) {
+            $key = $model->{$foreignKey} ?? null;
+            $model->setRelation($relationName, $byOwner[$key] ?? null);
+        }
+    }
+
+    protected function eagerLoadBelongsToMany(array $models, BelongsToMany $relation, string $relationName): void
+    {
+        $reflection = new \ReflectionClass($relation);
+        $table           = $reflection->getProperty('table')->getValue($relation);
+        $foreignPivotKey = $reflection->getProperty('foreignPivotKey')->getValue($relation);
+        $relatedPivotKey = $reflection->getProperty('relatedPivotKey')->getValue($relation);
+        $related         = $reflection->getProperty('related')->getValue($relation);
+
+        $relatedTable = $related->getTable();
+
+        $parentIds = array_values(array_unique(array_filter(array_map(
+            fn(Model $m) => $m->getKey(),
+            $models
+        ))));
+
+        if ($parentIds === []) {
+            return;
+        }
+
+        $placeholders = [];
+        $params       = [];
+        foreach ($parentIds as $i => $id) {
+            $key = ":p{$i}";
+            $placeholders[] = $key;
+            $params[$key]   = $id;
+        }
+        $inList = implode(',', $placeholders);
+
+        $sql = "SELECT {$relatedTable}.*, {$table}.{$foreignPivotKey} AS __pivot_{$foreignPivotKey}
+                FROM {$relatedTable}
+                INNER JOIN {$table} ON {$relatedTable}.id = {$table}.{$relatedPivotKey}
+                WHERE {$table}.{$foreignPivotKey} IN ({$inList})";
+
+        $rows = Database::view($sql, $params);
+        if (!$rows) {
+            foreach ($models as $model) {
+                $model->setRelation($relationName, []);
+            }
+            return;
+        }
+
+        $class = get_class($related);
+        $byParent = [];
+        foreach ($rows as $row) {
+            $instance = new $class($row);
+            $pivotKey = "__pivot_{$foreignPivotKey}";
+            $byParent[$row->{$pivotKey}][] = $instance;
+        }
+
+        foreach ($models as $model) {
+            $key = $model->getKey();
+            $model->setRelation($relationName, $byParent[$key] ?? []);
+        }
     }
 
     /** Find by primary key — returns Model or null. */
@@ -454,14 +676,8 @@ class Builder
         $offset = ($page - 1) * $perPage;
 
         $rawItems = $this->cloneQuery()->limit($perPage)->offset($offset)->get(); // Collection of arrays
-        $models   = [];
-        foreach ($rawItems as $item) {
-            if (is_array($item)) {
-                $model         = new $this->model($item);
-                $model->exists = true;
-                $models[]      = $model;
-            }
-        }
+        $models   = $this->hydrate($rawItems);
+        $this->eagerLoadRelations($models);
         return new Paginator(new Collection($models), $total, $perPage, $page);
     }
 

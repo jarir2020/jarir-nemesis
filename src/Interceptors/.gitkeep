@@ -1,0 +1,4 @@
+# Reserved for future request interceptors.
+# Planned: a pluggable interceptor pipeline that runs before/after the
+# middleware pipeline (e.g. global logging, audit hooks, telemetry spans).
+# v7.1.1 — directory reserved, no implementation yet.

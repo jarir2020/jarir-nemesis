@@ -137,6 +137,20 @@ abstract class Model implements \ArrayAccess {
         return $this->relations[$key];
     }
 
+    /**
+     * Set a relation value directly (used by Builder::eagerLoadRelations).
+     */
+    public function setRelation(string $name, mixed $value): static
+    {
+        $this->relations[$name] = $value;
+        return $this;
+    }
+
+    public function getRelations(): array
+    {
+        return $this->relations;
+    }
+
     // Static query builder
     public static function query() {
         $instance = new static();

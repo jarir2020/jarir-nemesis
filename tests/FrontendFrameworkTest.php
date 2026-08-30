@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-use App\Http\Middleware\FrontendFrameworkMiddleware;
+use Nemesis\Http\Middleware\FrontendFrameworkMiddleware;
 use App\Controllers\FrontendController;
 use Nemesis\Frontend\FrontendManager;
 use Nemesis\Core\View;
