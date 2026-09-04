@@ -12,7 +12,10 @@ class MigrationManager {
     protected $path;
 
     public function __construct($path) {
-        $this->path = $path;
+        $this->path = rtrim((string) $path, '/\\');
+        if (!is_dir($this->path)) {
+            throw new \InvalidArgumentException("Migration directory not found: {$this->path}");
+        }
         $this->createMigrationsTable();
     }
 
@@ -38,8 +41,8 @@ class MigrationManager {
 
     public function migrate() {
         $appliedMigrations = $this->getAppliedMigrations();
-        $files = scandir($this->path);
-        $toApply = array_diff($files, $appliedMigrations, ['.', '..']);
+        $files = $this->migrationFiles();
+        $toApply = array_values(array_diff($files, $appliedMigrations));
 
         if (empty($toApply)) {
             echo "No new migrations to apply.\n";
@@ -48,9 +51,7 @@ class MigrationManager {
 
         foreach ($toApply as $file) {
             require_once $this->path . '/' . $file;
-            $className = pathinfo($file, PATHINFO_FILENAME);
-            $className = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $className);
-            $className = str_replace('_', '', ucwords($className, '_'));
+            $className = $this->resolveMigrationClass($file);
             
             echo "Migrating: $file (Class: $className)\n";
             $instance = new $className();
@@ -69,8 +70,7 @@ class MigrationManager {
         }
 
         require_once $this->path . '/' . $lastMigration;
-        $className = pathinfo($lastMigration, PATHINFO_FILENAME);
-        $className = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $className);
+        $className = $this->resolveMigrationClass($lastMigration);
 
         echo "Rolling back: $lastMigration\n";
         $instance = new $className();
@@ -83,6 +83,48 @@ class MigrationManager {
     protected function getAppliedMigrations() {
         $stmt = Database::connect()->query("SELECT migration FROM migrations");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /** @return list<array{migration: string, status: string}> */
+    public function status(): array
+    {
+        $applied = $this->getAppliedMigrations();
+        return array_map(
+            fn(string $file): array => [
+                'migration' => $file,
+                'status' => in_array($file, $applied, true) ? 'Ran' : 'Pending',
+            ],
+            $this->migrationFiles()
+        );
+    }
+
+    /** @return list<string> */
+    protected function migrationFiles(): array
+    {
+        $files = scandir($this->path);
+        if ($files === false) {
+            throw new \RuntimeException("Unable to read migration directory: {$this->path}");
+        }
+
+        return array_values(array_filter($files, fn(string $file): bool =>
+            str_ends_with($file, '.php') && is_file($this->path . '/' . $file)
+        ));
+    }
+
+    protected function resolveMigrationClass(string $file): string
+    {
+        $base = pathinfo($file, PATHINFO_FILENAME);
+        $withoutTimestamp = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $base) ?: $base;
+        $pascal = str_replace('_', '', ucwords($withoutTimestamp, '_'));
+        $candidates = array_unique([$base, $withoutTimestamp, $pascal]);
+
+        foreach ($candidates as $candidate) {
+            if (class_exists($candidate) && is_subclass_of($candidate, Migration::class)) {
+                return $candidate;
+            }
+        }
+
+        throw new \RuntimeException("Migration class not found for file: {$file}");
     }
 
     protected function logMigration($migration) {

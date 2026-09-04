@@ -114,6 +114,54 @@ class Request
             ?? $default;
     }
 
+    /**
+     * Return all captured request headers, or one header by name.
+     * Header names are normalized case-insensitively by header().
+     */
+    public function headers(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $this->headers;
+        }
+
+        return $this->header($key, $default);
+    }
+
+    /** Return a server value, or the complete server bag when no key is given. */
+    public function server(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $_SERVER;
+        }
+
+        return $_SERVER[$key] ?? $default;
+    }
+
+    /** Return the request path without its query string. */
+    public function path(): string
+    {
+        $uri = (string) $this->uri();
+        $path = parse_url($uri, PHP_URL_PATH);
+
+        return is_string($path) && $path !== '' ? $path : '/';
+    }
+
+    /** Return all query parameters, or one parameter by key. */
+    public function query(?string $key = null, mixed $default = null): mixed
+    {
+        $query = $_GET;
+
+        if ($query === [] && str_contains($this->uri(), '?')) {
+            parse_str((string) parse_url($this->uri(), PHP_URL_QUERY), $query);
+        }
+
+        if ($key === null) {
+            return $query;
+        }
+
+        return $query[$key] ?? $default;
+    }
+
     /** Extract Bearer token from Authorization header. Added: 2026-04-06 */
     public function bearerToken(): ?string
     {

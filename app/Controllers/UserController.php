@@ -196,21 +196,47 @@ class UserController {
 
         $mail = new PHPMailer(true);
         try {
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'slot.book.wims@gmail.com';
-            $mail->Password = 'ceib criu fpyf hpoh';
-            $mail->SMTPSecure = 'tls';
-            $mail->Port = 587;
+            $mailHost = (string) (function_exists('config')
+                ? config('mail.mailers.smtp.host', getenv('MAIL_HOST') ?: '')
+                : (getenv('MAIL_HOST') ?: ''));
+            $mailUsername = (string) (function_exists('config')
+                ? config('mail.mailers.smtp.username', getenv('MAIL_USER') ?: '')
+                : (getenv('MAIL_USER') ?: ''));
+            $mailPassword = (string) (function_exists('config')
+                ? config('mail.mailers.smtp.password', getenv('MAIL_PASS') ?: '')
+                : (getenv('MAIL_PASS') ?: ''));
+            $mailEncryption = (string) (function_exists('config')
+                ? config('mail.mailers.smtp.encryption', getenv('MAIL_ENCRYPTION') ?: 'tls')
+                : (getenv('MAIL_ENCRYPTION') ?: 'tls'));
+            $mailPort = (int) (function_exists('config')
+                ? config('mail.mailers.smtp.port', getenv('MAIL_PORT') ?: 587)
+                : (getenv('MAIL_PORT') ?: 587));
+            $mailFrom = (string) (function_exists('config')
+                ? config('mail.from.address', getenv('MAIL_FROM') ?: $mailUsername)
+                : (getenv('MAIL_FROM') ?: $mailUsername));
+            $mailFromName = (string) (function_exists('config')
+                ? config('mail.from.name', getenv('MAIL_FROM_NAME') ?: 'Password Reset')
+                : (getenv('MAIL_FROM_NAME') ?: 'Password Reset'));
 
-            $mail->setFrom('slot.book.wims@gmail.com', 'Password Reset');
+            if ($mailHost === '' || $mailUsername === '' || $mailPassword === '' || $mailFrom === '') {
+                throw new \RuntimeException('Mail transport is not configured.');
+            }
+
+            $mail->isSMTP();
+            $mail->Host = $mailHost;
+            $mail->SMTPAuth = true;
+            $mail->Username = $mailUsername;
+            $mail->Password = $mailPassword;
+            $mail->SMTPSecure = $mailEncryption;
+            $mail->Port = $mailPort;
+
+            $mail->setFrom($mailFrom, $mailFromName);
             $mail->addAddress($email);
             $mail->Subject = 'Your OTP for Password Reset';
             $mail->Body = "Your OTP is: $otp";
 
             $mail->send();
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             HTTPResponse::internalServerError();
             Helpers::json(['error' => true, 'message' => 'Failed to send OTP.']);
             return;

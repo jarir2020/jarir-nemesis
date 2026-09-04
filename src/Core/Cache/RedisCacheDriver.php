@@ -15,7 +15,9 @@ class RedisCacheDriver implements CacheDriver {
 
     public function get($key, $default = null) {
         $value = $this->redis->get($key);
-        return $value === false ? $default : unserialize($value);
+        if ($value === false) return $default;
+        $decoded = @unserialize($value);
+        return $decoded === false && $value !== serialize(false) ? $default : $decoded;
     }
 
     public function set($key, $value, $seconds = 3600) {
@@ -23,10 +25,14 @@ class RedisCacheDriver implements CacheDriver {
     }
 
     public function forget($key) {
-        $this->redis->del($key);
+        return $this->redis->del($key) >= 0;
     }
 
     public function clear() {
-        $this->redis->flushDB();
+        return $this->redis->flushDB();
+    }
+
+    public function has($key) {
+        return (bool) $this->redis->exists($key);
     }
 }

@@ -658,6 +658,15 @@ switch ($command) {
         $manager->rollback();
         break;
 
+    case 'migrate:status':
+        require_once $projectRoot . '/index.php'; // Bootstraps config and DB
+        $manager = new \Nemesis\Database\MigrationManager($projectRoot . '/database/migrations');
+        echo "Migration status:\n\n";
+        foreach ($manager->status() as $migration) {
+            echo sprintf("  %-8s %s\n", $migration['status'], $migration['migration']);
+        }
+        break;
+
     case 'db:seed':
         require_once $projectRoot . '/index.php'; // Bootstraps config and DB
         $name = $argv[2] ?? null;
@@ -1915,6 +1924,9 @@ PHP,
         } elseif (($command === 'route:cache' && $routeVerb === '') || ($routeVerb === 'cache' && $routeAction === '')) {
             require_once $projectRoot . '/vendor/autoload.php';
             \Nemesis\Core\Config::load($projectRoot);
+            // Rebuild from route source rather than appending to a previous
+            // partial cache.
+            \Nemesis\Router\Router::clearCache();
             $router = require $projectRoot . '/routes/route.php';
             $router->warmCache();
             echo "Routes cached successfully.\n";
@@ -2168,7 +2180,9 @@ PHP,
 
     case 'test':
         echo "Running Framework Test Suite...\n";
-        passthru("php tests/RunAll.php");
+        $testCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($projectRoot . '/tests/test_runner.php') . ' --suite=unit';
+        passthru($testCommand, $testExitCode);
+        if ($testExitCode !== 0) exit($testExitCode);
         break;
 
     case 'list':
@@ -2209,6 +2223,7 @@ PHP,
             'websocket:start'   => 'Start the WebSocket server [--host=127.0.0.1] [--port=6001]',
             'migrate:run' => 'Run all pending migrations',
             'migrate:rollback' => 'Rollback the last database migration',
+            'migrate:status' => 'Show the status of each database migration',
             'db:seed' => 'Seed the database with records',
             'db:list-connections' => 'List configured database connections [--json] [--pretty|--brief]',
             'db:dump' => 'Export the database to a SQL file',

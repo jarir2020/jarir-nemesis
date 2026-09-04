@@ -6,6 +6,7 @@
 /database/*.sqlite-wal
 /storage/cache/*
 /storage/logs/*
+/storage/session/*
 /storage/framework/views/*
 /storage/framework/
 /storage/views/*

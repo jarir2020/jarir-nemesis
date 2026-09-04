@@ -37,12 +37,14 @@ class Router
     protected array $binders         = [];   // Route model binders: param → callable
     protected array $groupStack      = [];
     protected ?Container $container  = null;
+    protected bool $loadedFromCache  = false;
+    protected ?int $lastRouteIndex   = null;
 
     protected static string $cachedPath = __DIR__ . '/../../storage/framework/routes.php';
 
     public function __construct(?Container $container = null)
     {
-        $this->container = $container ?? new Container();
+        $this->container = $container ?? Container::getInstance();
         $this->loadCachedRoutes();
     }
 
@@ -53,7 +55,11 @@ class Router
     protected function loadCachedRoutes(): void
     {
         if (file_exists(self::$cachedPath)) {
-            $this->routes = require self::$cachedPath;
+            $cached = require self::$cachedPath;
+            if (is_array($cached)) {
+                $this->routes = $cached;
+                $this->loadedFromCache = true;
+            }
         }
     }
 
@@ -65,7 +71,9 @@ class Router
             mkdir(dirname(self::$cachedPath), 0755, true);
         }
 
-        file_put_contents(self::$cachedPath, "<?php\n\nreturn " . var_export($cacheableRoutes, true) . ";\n");
+        if (file_put_contents(self::$cachedPath, "<?php\n\nreturn " . var_export($cacheableRoutes, true) . ";\n", LOCK_EX) === false) {
+            throw new \RuntimeException("Unable to write route cache: " . self::$cachedPath);
+        }
         return self::$cachedPath;
     }
 
@@ -659,7 +667,7 @@ class Router
         $uri        = '/' . trim($prefix . '/' . trim($uri, '/'), '/');
         $middleware = array_merge($groupMiddleware, $middleware);
 
-        $this->routes[] = [
+        $newRoute = [
             'method'      => strtoupper($method),
             'uri'         => $uri,
             'action'      => $action,
@@ -670,21 +678,46 @@ class Router
             'meta'        => $groupMeta,
         ];
 
+        // Route files are still loaded so closures and other dynamic actions
+        // remain available; skip the cached copy to avoid duplicate matches.
+        if ($this->loadedFromCache && ($cachedIndex = $this->cachedRouteIndex($newRoute)) !== null) {
+            $this->lastRouteIndex = $cachedIndex;
+            return $this;
+        }
+
+        $this->routes[] = $newRoute;
+        $this->lastRouteIndex = array_key_last($this->routes);
+
         return $this;
+    }
+
+    protected function cachedRouteIndex(array $route): ?int
+    {
+        foreach ($this->routes as $index => $cached) {
+            if (!$this->isCacheableRoute($cached)) continue;
+            if (($cached['method'] ?? null) !== $route['method']) continue;
+            if (($cached['uri'] ?? null) !== $route['uri']) continue;
+            if (($cached['domain'] ?? null) !== $route['domain']) continue;
+            if (($cached['middleware'] ?? []) !== $route['middleware']) continue;
+            if (($cached['meta'] ?? []) !== $route['meta']) continue;
+            return $index;
+        }
+
+        return null;
     }
 
     public function name(string $name): static
     {
-        if (!empty($this->routes)) {
-            $this->routes[count($this->routes) - 1]['name'] = $name;
+        if ($this->lastRouteIndex !== null && isset($this->routes[$this->lastRouteIndex])) {
+            $this->routes[$this->lastRouteIndex]['name'] = $name;
         }
         return $this;
     }
 
     public function where(string $name, string $expression): static
     {
-        if (!empty($this->routes)) {
-            $this->routes[count($this->routes) - 1]['constraints'][$name] = $expression;
+        if ($this->lastRouteIndex !== null && isset($this->routes[$this->lastRouteIndex])) {
+            $this->routes[$this->lastRouteIndex]['constraints'][$name] = $expression;
         }
         return $this;
     }
@@ -708,34 +741,34 @@ class Router
 
     // HTTP verb shortcuts
 
-    public function get(string $uri, mixed $action): static
+    public function get(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('GET', $uri, $action);
+        return $this->add('GET', $uri, $action, $middleware);
     }
 
-    public function post(string $uri, mixed $action): static
+    public function post(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('POST', $uri, $action);
+        return $this->add('POST', $uri, $action, $middleware);
     }
 
-    public function put(string $uri, mixed $action): static
+    public function put(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('PUT', $uri, $action);
+        return $this->add('PUT', $uri, $action, $middleware);
     }
 
-    public function patch(string $uri, mixed $action): static
+    public function patch(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('PATCH', $uri, $action);
+        return $this->add('PATCH', $uri, $action, $middleware);
     }
 
-    public function delete(string $uri, mixed $action): static
+    public function delete(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('DELETE', $uri, $action);
+        return $this->add('DELETE', $uri, $action, $middleware);
     }
 
-    public function options(string $uri, mixed $action): static
+    public function options(string $uri, mixed $action, array $middleware = []): static
     {
-        return $this->add('OPTIONS', $uri, $action);
+        return $this->add('OPTIONS', $uri, $action, $middleware);
     }
 
     // -------------------------------------------------------------------------
@@ -776,24 +809,32 @@ class Router
             // --- Run middleware pipeline ---
             $middleware = array_merge($this->globalMiddlewares, $this->resolveMiddleware($route['middleware']));
 
-            return (new \Nemesis\Http\Pipeline())
+            $pipeline = (new \Nemesis\Http\Pipeline())
                 ->send($request)
-                ->through($middleware)
-                ->then(function ($request) use ($route, $params) {
-                    return $this->callAction($route['action'], $request, $params);
-                });
+                ->through($middleware);
+
+            $response = $pipeline->then(function ($request) use ($route, $params) {
+                return $this->callAction($route['action'], $request, $params);
+            });
+
+            $pipeline->terminate($request, $response);
+            return $response;
         }
 
         // No route matched: try explicit fallback route first.
         $fallback = $this->findFallbackRoute();
         if ($fallback !== null) {
             $middleware = array_merge($this->globalMiddlewares, $this->resolveMiddleware($fallback['middleware']));
-            return (new \Nemesis\Http\Pipeline())
+            $pipeline = (new \Nemesis\Http\Pipeline())
                 ->send($request)
-                ->through($middleware)
-                ->then(function ($request) use ($fallback) {
-                    return $this->callAction($fallback['action'], $request, []);
-                });
+                ->through($middleware);
+
+            $response = $pipeline->then(function ($request) use ($fallback) {
+                return $this->callAction($fallback['action'], $request, []);
+            });
+
+            $pipeline->terminate($request, $response);
+            return $response;
         }
 
         if (!headers_sent()) {

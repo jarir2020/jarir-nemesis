@@ -28,7 +28,7 @@ class UserResource extends JsonResource {
 
 class PerfectionTest extends TestCase {
     
-    public function setUp() {
+    public function setUp(): void {
         Database::connect()->exec("CREATE TABLE IF NOT EXISTS test_users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255))");
         Database::connect()->exec("TRUNCATE TABLE test_users");
     }

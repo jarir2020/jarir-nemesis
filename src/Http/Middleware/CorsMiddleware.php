@@ -19,6 +19,10 @@ class CorsMiddleware implements MiddlewareInterface
 
     public function __construct(array $config = [])
     {
+        if ($config === [] && function_exists('config')) {
+            $config = (array) \config('cors', []);
+        }
+
         $this->allowedOrigins   = $config['origins']     ?? ['*'];
         $this->allowedMethods   = $config['methods']     ?? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
         $this->allowedHeaders   = $config['headers']     ?? ['Content-Type', 'Authorization', 'X-Requested-With'];
@@ -29,25 +33,20 @@ class CorsMiddleware implements MiddlewareInterface
     public function handle(Request $request, callable $next): Response
     {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-        if ($this->isOriginAllowed($origin)) {
-            header('Access-Control-Allow-Origin: ' . ($this->allowedOrigins[0] === '*' ? '*' : $origin));
-            if ($this->allowCredentials) {
-                header('Access-Control-Allow-Credentials: true');
-            }
-        }
+        $allowed = $this->isOriginAllowed($origin);
 
         // Preflight OPTIONS — respond immediately without calling $next
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-            return Response::make('', 204)
-                ->withHeader('Access-Control-Allow-Methods', implode(', ', $this->allowedMethods))
-                ->withHeader('Access-Control-Allow-Headers', implode(', ', $this->allowedHeaders))
-                ->withHeader('Access-Control-Max-Age',       (string) $this->maxAge);
+            if (!$allowed) {
+                return Response::make('', 403);
+            }
+
+            return $this->addCorsHeaders(Response::make('', 204), $origin, true);
         }
 
-        header('Access-Control-Expose-Headers: Content-Length, X-JSON');
-
-        return $next($request);
+        return $allowed
+            ? $this->addCorsHeaders($next($request), $origin)
+            : $next($request);
     }
 
     protected function isOriginAllowed(string $origin): bool
@@ -55,6 +54,27 @@ class CorsMiddleware implements MiddlewareInterface
         if (empty($origin)) return false;
         if (in_array('*', $this->allowedOrigins, true)) return true;
         return in_array($origin, $this->allowedOrigins, true);
+    }
+
+    protected function addCorsHeaders(Response $response, string $origin, bool $preflight = false): Response
+    {
+        $wildcard = in_array('*', $this->allowedOrigins, true) && !$this->allowCredentials;
+        $response = $response->withHeader('Access-Control-Allow-Origin', $wildcard ? '*' : $origin)
+            ->withHeader('Vary', 'Origin')
+            ->withHeader('Access-Control-Expose-Headers', 'Content-Length, X-JSON');
+
+        if ($this->allowCredentials) {
+            $response = $response->withHeader('Access-Control-Allow-Credentials', 'true');
+        }
+
+        if ($preflight) {
+            $response = $response
+                ->withHeader('Access-Control-Allow-Methods', implode(', ', $this->allowedMethods))
+                ->withHeader('Access-Control-Allow-Headers', implode(', ', $this->allowedHeaders))
+                ->withHeader('Access-Control-Max-Age', (string) $this->maxAge);
+        }
+
+        return $response;
     }
 
     public static function create(array $config = []): static

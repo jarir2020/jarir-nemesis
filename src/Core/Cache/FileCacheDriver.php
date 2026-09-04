@@ -14,8 +14,13 @@ class FileCacheDriver implements CacheDriver {
         $file = $this->path . '/' . md5($key) . '.cache';
         if (!file_exists($file)) return $default;
 
-        $content = unserialize(file_get_contents($file));
-        if (time() > $content['expires_at']) {
+        $content = @unserialize((string) file_get_contents($file));
+        if (!is_array($content) || !array_key_exists('expires_at', $content) || !array_key_exists('data', $content)) {
+            $this->forget($key);
+            return $default;
+        }
+
+        if (time() >= $content['expires_at']) {
             $this->forget($key);
             return $default;
         }
@@ -29,18 +34,24 @@ class FileCacheDriver implements CacheDriver {
             'expires_at' => time() + $seconds,
             'data' => $value
         ];
-        return file_put_contents($file, serialize($content));
+        return file_put_contents($file, serialize($content), LOCK_EX) !== false;
     }
 
     public function forget($key) {
         $file = $this->path . '/' . md5($key) . '.cache';
-        if (file_exists($file)) unlink($file);
+        return !file_exists($file) || unlink($file);
     }
 
     public function clear() {
         $files = glob($this->path . '/*.cache');
         foreach ($files as $file) {
-            if (is_file($file)) unlink($file);
+            if (is_file($file) && !unlink($file)) return false;
         }
+        return true;
+    }
+
+    public function has($key) {
+        $marker = new \stdClass();
+        return $this->get($key, $marker) !== $marker;
     }
 }

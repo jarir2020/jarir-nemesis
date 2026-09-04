@@ -18,16 +18,40 @@ class Session {
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
             // Apply SessionConfig if it was set via boot()
-            if (self::$config !== null) {
-                if (self::$config->cookieName !== '') {
-                    session_name(self::$config->cookieName);
+            $config = self::$config ?? SessionConfig::fromEnv();
+            $settings = function_exists('config') ? (array) \config('session', []) : [];
+            $lifetimeSeconds = max(0, $config->lifetime * 60);
+
+            $savePath = (string) ($settings['path'] ?? $settings['save_path'] ?? '');
+            if ($savePath !== '') {
+                if (!is_dir($savePath) && !mkdir($savePath, 0755, true) && !is_dir($savePath)) {
+                    throw new \RuntimeException("Unable to create session directory: {$savePath}");
                 }
-                if (self::$config->lifetime > 0) {
-                    ini_set('session.gc_maxlifetime', (string) self::$config->lifetime);
-                    ini_set('session.cookie_lifetime', (string) self::$config->lifetime);
-                }
+                session_save_path($savePath);
             }
+
+            if ($config->cookieName !== '') {
+                session_name($config->cookieName);
+            }
+            if ($lifetimeSeconds > 0) {
+                ini_set('session.gc_maxlifetime', (string) $lifetimeSeconds);
+                ini_set('session.cookie_lifetime', (string) $lifetimeSeconds);
+            }
+
+            $sameSite = strtolower($config->sameSite);
+            if (!in_array($sameSite, ['lax', 'strict', 'none'], true)) $sameSite = 'lax';
+            $secure = $config->secure || $sameSite === 'none';
+            session_set_cookie_params([
+                'lifetime' => ($settings['expire_on_close'] ?? false) ? 0 : $lifetimeSeconds,
+                'path'     => (string) ($settings['cookie_path'] ?? '/'),
+                'domain'   => (string) ($settings['domain'] ?? ''),
+                'secure'   => $secure,
+                'httponly' => (bool) ($settings['http_only'] ?? true),
+                'samesite' => $sameSite,
+            ]);
+
             session_start();
+            self::ageFlashData();
         }
     }
 
@@ -49,7 +73,7 @@ class Session {
     }
 
     public static function has($key) {
-        return isset($_SESSION[$key]);
+        return array_key_exists($key, $_SESSION ?? []);
     }
 
     public static function remove($key) {
@@ -76,6 +100,7 @@ class Session {
             $_SESSION['_flash'] = [];
         }
         $_SESSION['_flash'][$key] = $value;
+        $_SESSION['_flash_new'][$key] = true;
     }
 
     /**
@@ -85,6 +110,7 @@ class Session {
     {
         $value = $_SESSION['_flash'][$key] ?? $default;
         unset($_SESSION['_flash'][$key]);
+        unset($_SESSION['_flash_new'][$key]);
         return $value;
     }
 
@@ -94,8 +120,10 @@ class Session {
      */
     public static function reflash(): void
     {
-        // No-op for single-pass flash: nothing to keep.
-        // Provided for API compatibility.
+        $flash = $_SESSION['_flash'] ?? [];
+        $_SESSION['_flash_new'] = is_array($flash)
+            ? array_fill_keys(array_keys($flash), true)
+            : [];
     }
 
     /**
@@ -104,7 +132,9 @@ class Session {
     public static function keep(array $keys): void
     {
         $current = $_SESSION['_flash'] ?? [];
-        $_SESSION['_flash'] = array_intersect_key($current, array_flip($keys));
+        $kept = array_intersect_key($current, array_flip($keys));
+        $_SESSION['_flash'] = $kept;
+        $_SESSION['_flash_new'] = array_fill_keys(array_keys($kept), true);
     }
 
     /**
@@ -142,5 +172,24 @@ class Session {
 
     public static function regenerateToken() {
         self::set('_token', bin2hex(random_bytes(32)));
+    }
+
+    /** Age flash values at request start; values marked new survive one more request. */
+    protected static function ageFlashData(): void
+    {
+        $flash = $_SESSION['_flash'] ?? [];
+        if (!is_array($flash)) {
+            unset($_SESSION['_flash'], $_SESSION['_flash_new']);
+            return;
+        }
+
+        $new = $_SESSION['_flash_new'] ?? [];
+        $new = is_array($new) ? $new : [];
+        foreach (array_keys($flash) as $key) {
+            if (!array_key_exists($key, $new)) {
+                unset($_SESSION['_flash'][$key]);
+            }
+        }
+        unset($_SESSION['_flash_new']);
     }
 }

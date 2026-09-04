@@ -6,9 +6,11 @@ return [
     'lifetime'  => (int) env('SESSION_LIFETIME', 120),   // minutes
     'expire_on_close' => false,
     'encrypt'   => false,
-    'path'      => base_path('storage/session'),
+    'path'      => env('SESSION_SAVE_PATH', base_path('storage/session')),
     'cookie'    => env('SESSION_COOKIE', 'nemesis_session'),
+    'cookie_path' => env('SESSION_COOKIE_PATH', '/'),
+    'domain'    => env('SESSION_COOKIE_DOMAIN', ''),
+    'http_only' => (bool) env('SESSION_HTTP_ONLY', true),
     'secure'    => (bool) env('SESSION_SECURE_COOKIE', false),
-    'http_only' => true,
-    'same_site' => 'lax',   // 'strict' | 'lax' | 'none'
+    'same_site' => env('SESSION_SAME_SITE', 'lax'),   // 'strict' | 'lax' | 'none'
 ];

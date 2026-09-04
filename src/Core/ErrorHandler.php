@@ -117,7 +117,7 @@ class ErrorHandler
         $payload = [
             'error'   => true,
             'status'  => $statusCode,
-            'message' => $e->getMessage(),
+            'message' => self::publicMessage($e, $statusCode),
         ];
 
         if ($e instanceof ValidationException) {
@@ -144,7 +144,7 @@ class ErrorHandler
         $generic  = $base . 'generic.php';
         $viewFile = file_exists($specific) ? $specific : $generic;
 
-        $message = $e->getMessage();
+        $message = self::publicMessage($e, $statusCode);
         $errors  = ($e instanceof ValidationException) ? $e->getErrors() : [];
         $code    = $statusCode;
 
@@ -234,6 +234,29 @@ class ErrorHandler
     private static function isDebug(): bool
     {
         return filter_var(getenv('APP_DEBUG') ?: false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private static function publicMessage(\Throwable $exception, int $statusCode): string
+    {
+        if (self::isDebug()) {
+            return $exception->getMessage();
+        }
+
+        if ($exception instanceof ValidationException) {
+            return 'The given data was invalid.';
+        }
+
+        return match (true) {
+            $statusCode === 400 => 'Bad Request',
+            $statusCode === 401 => 'Unauthorized',
+            $statusCode === 403 => 'Forbidden',
+            $statusCode === 404 => 'Not Found',
+            $statusCode === 405 => 'Method Not Allowed',
+            $statusCode === 419 => 'Page Expired',
+            $statusCode === 422 => 'Unprocessable Entity',
+            $statusCode === 429 => 'Too Many Requests',
+            default => 'Internal Server Error',
+        };
     }
 
     /**

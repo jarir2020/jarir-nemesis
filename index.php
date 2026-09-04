@@ -7,20 +7,7 @@
  * @author   Jarir Ahmed <jarircse16@gmail.com>
  */
 
-// Enable CORS (ONLY for web requests)
-if (PHP_SAPI !== 'cli') {
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-    // Handle preflight
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
-}
-
-require "vendor/autoload.php";
+require __DIR__ . '/vendor/autoload.php';
 
 use Nemesis\Core\Config;
 use Nemesis\Core\Database;
@@ -67,7 +54,7 @@ foreach ($packageProviders as $provider) {
 }
 
 // App Debug Check
-$appDebug = getenv('APP_DEBUG') === 'true';
+$appDebug = filter_var(getenv('APP_DEBUG') ?: false, FILTER_VALIDATE_BOOLEAN);
 if ($appDebug) {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
@@ -100,27 +87,31 @@ if (PHP_SAPI !== 'cli') {
         require __DIR__ . '/routes/api.php';
     }
 
-    (new \Nemesis\Http\Pipeline())
+    $pipeline = (new \Nemesis\Http\Pipeline())
         ->send($request)
-        ->through($kernel->getMiddleware())
-        ->then(function ($request) use ($router) {
-            // Normalize URI by removing base folder (if any)
-            $uri = $_SERVER['REQUEST_URI'];
-            $scriptName = $_SERVER['SCRIPT_NAME'];
+        ->through($kernel->getMiddleware());
 
-            $basePath = str_replace('\\', '/', dirname($scriptName));
-            if ($basePath !== '/' && substr($basePath, -1) === '/') {
-                $basePath = rtrim($basePath, '/');
-            }
+    $response = $pipeline->then(function ($request) use ($router) {
+        // Normalize URI by removing base folder (if any)
+        $uri = $_SERVER['REQUEST_URI'];
+        $scriptName = $_SERVER['SCRIPT_NAME'];
 
-            if ($basePath !== '/' && strpos($uri, $basePath) === 0) {
-                $uri = substr($uri, strlen($basePath));
-            }
+        $basePath = str_replace('\\', '/', dirname($scriptName));
+        if ($basePath !== '/' && substr($basePath, -1) === '/') {
+            $basePath = rtrim($basePath, '/');
+        }
 
-            if ($uri === '' || $uri[0] !== '/') {
-                $uri = '/' . $uri;
-            }
+        if ($basePath !== '/' && strpos($uri, $basePath) === 0) {
+            $uri = substr($uri, strlen($basePath));
+        }
 
-            return $router->dispatch($uri, $request->method());
-        });
+        if ($uri === '' || $uri[0] !== '/') {
+            $uri = '/' . $uri;
+        }
+
+        return $router->dispatch($uri, $request->method());
+    });
+
+    $response->send();
+    $pipeline->terminate($request, $response);
 }

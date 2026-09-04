@@ -9,37 +9,43 @@ class Config {
     protected static $items = [];
 
     public static function load($path) {
-        self::$configPath = $path;
-        
-        // Load .env first
-        self::loadEnv($path);
+        self::$configPath = rtrim((string) $path, '/\\');
+        self::$cachedPath = self::$configPath . '/storage/framework/config.php';
+        self::$items = [];
 
-        // Load config files
-        self::loadConfigurationFiles($path . '/config');
-    }
-
-    protected static function loadEnv($path) {
+        // A cache contains the fully resolved config arrays and the environment
+        // values used to build them. This keeps direct getenv() consumers
+        // working after config:cache as well as config() consumers.
         if (file_exists(self::$cachedPath)) {
-            $config = require self::$cachedPath;
-            foreach ($config as $name => $value) {
-                if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
-                    putenv(sprintf('%s=%s', $name, $value));
-                    $_ENV[$name] = $value;
-                    $_SERVER[$name] = $value;
-                }
+            $cached = require self::$cachedPath;
+            if (is_array($cached) && array_key_exists('__nemesis_config_cache', $cached)) {
+                self::$items = is_array($cached['config'] ?? null) ? $cached['config'] : [];
+                self::restoreEnv($cached['env'] ?? []);
+            } elseif (is_array($cached)) {
+                // Read older cache files written as a plain config array.
+                self::$items = $cached;
             }
             return;
         }
 
+        // Load .env first
+        self::loadEnv(self::$configPath);
+
+        // Load config files
+        self::loadConfigurationFiles(self::$configPath . '/config');
+    }
+
+    protected static function loadEnv($path) {
         if (!file_exists($path . '/.env')) {
             return;
         }
 
         $lines = file($path . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
-            if (strpos(trim($line), '#') === 0) continue;
-            
-            list($name, $value) = explode('=', $line, 2);
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+
+            [$name, $value] = explode('=', $line, 2);
             $name = trim($name);
             $value = trim($value);
             
@@ -70,8 +76,9 @@ class Config {
 
     public static function get($key, $default = null) {
         // Check loaded config arrays first
-        $value = self::arr_get(self::$items, $key);
-        if ($value !== null) {
+        $missing = new \stdClass();
+        $value = self::arr_get(self::$items, $key, $missing);
+        if ($value !== $missing) {
             return $value;
         }
 
@@ -84,10 +91,74 @@ class Config {
         return $default;
     }
 
+    /**
+     * Write the resolved configuration to the project cache.
+     *
+     * @return string Absolute cache path.
+     */
+    public static function cache(): string
+    {
+        if (self::$configPath === null) {
+            throw new \RuntimeException('Configuration must be loaded before it can be cached.');
+        }
+
+        $directory = dirname(self::$cachedPath);
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new \RuntimeException("Unable to create configuration cache directory: {$directory}");
+        }
+
+        $payload = [
+            '__nemesis_config_cache' => 1,
+            'config' => self::$items,
+            'env' => self::environmentSnapshot(),
+        ];
+
+        if (file_put_contents(self::$cachedPath, "<?php\n\nreturn " . var_export($payload, true) . ";\n", LOCK_EX) === false) {
+            throw new \RuntimeException("Unable to write configuration cache: " . self::$cachedPath);
+        }
+
+        return self::$cachedPath;
+    }
+
+    /** Clear the on-disk configuration cache. */
+    public static function clear(): bool
+    {
+        return !file_exists(self::$cachedPath) || unlink(self::$cachedPath);
+    }
+
+    protected static function environmentSnapshot(): array
+    {
+        $snapshot = [];
+        foreach (array_unique(array_merge(array_keys($_ENV), array_keys($_SERVER))) as $name) {
+            if (is_string($name) && getenv($name) !== false) {
+                $snapshot[$name] = getenv($name);
+            }
+        }
+
+        return $snapshot;
+    }
+
+    protected static function restoreEnv(mixed $values): void
+    {
+        if (!is_array($values)) {
+            return;
+        }
+
+        foreach ($values as $name => $value) {
+            if (!is_string($name) || is_array($value) || is_object($value)) {
+                continue;
+            }
+
+            putenv($name . '=' . (string) $value);
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+
     protected static function arr_get($array, $key, $default = null) {
         if (is_null($key)) return $array;
-        if (isset($array[$key])) return $array[$key];
-        if (strpos($key, '.') === false) return $array[$key] ?? $default;
+        if (is_array($array) && array_key_exists($key, $array)) return $array[$key];
+        if (strpos($key, '.') === false) return $default;
 
         foreach (explode('.', $key) as $segment) {
             if (is_array($array) && array_key_exists($segment, $array)) {

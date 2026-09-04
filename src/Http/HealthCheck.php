@@ -53,7 +53,7 @@ class HealthCheck
             $pdo->query('SELECT 1');
             return ['status' => 'ok', 'message' => 'Connected'];
         } catch (\Throwable $e) {
-            return ['status' => 'fail', 'message' => 'Cannot connect: ' . $e->getMessage()];
+            return ['status' => 'fail', 'message' => 'Database unavailable'];
         }
     }
 
@@ -81,7 +81,7 @@ class HealthCheck
 
             return ['status' => 'ok', 'driver' => $driver];
         } catch (\Throwable $e) {
-            return ['status' => 'fail', 'message' => $e->getMessage()];
+            return ['status' => 'fail', 'message' => 'Cache unavailable'];
         }
     }
 
@@ -108,7 +108,7 @@ class HealthCheck
                 'total_mb'     => round($total / 1048576, 1),
             ];
         } catch (\Throwable $e) {
-            return ['status' => 'fail', 'message' => $e->getMessage()];
+            return ['status' => 'fail', 'message' => 'Disk statistics unavailable'];
         }
     }
 

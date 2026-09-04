@@ -12,10 +12,10 @@ $_SERVER['HTTP_ORIGIN'] = 'http://example.com';
 $_SERVER['REQUEST_METHOD'] = 'GET';
 
 ob_start();
-$cors->handle(null, function($req) { return true; });
+$cors->handle(new \Nemesis\Http\Request(), function($req) { return \Nemesis\Http\Response::make('ok'); });
 $output = ob_get_clean();
 
-$headers = xdebug_get_headers();
+$headers = function_exists('xdebug_get_headers') ? xdebug_get_headers() : [];
 $hasOriginHeader = false;
 foreach ($headers as $header) {
     if (strpos($header, 'Access-Control-Allow-Origin') !== false) {
@@ -40,7 +40,7 @@ $_SERVER['HTTP_ORIGIN'] = 'http://example.com';
 
 ob_start();
 try {
-    $cors->handle(null, function($req) { return true; });
+    $cors->handle(new \Nemesis\Http\Request(), function($req) { return \Nemesis\Http\Response::make(); });
 } catch (\Exception $e) {}
 $output = ob_get_clean();
 echo "PASS (OPTIONS handled)\n";

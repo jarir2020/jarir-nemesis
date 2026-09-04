@@ -32,9 +32,23 @@ namespace Nemesis\Helpers {
 
     // Generate a full URL for a given path
     public static function url(string $path = ''): string {
-        $host = self::host();
-        $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-        return 'http://' . $host . $base . '/' . ltrim($path, '/');
+        $configured = getenv('APP_URL');
+        if ($configured === false && function_exists('config')) {
+            $configured = \config('app.url');
+            // The config default is for local development; production should
+            // derive the host when APP_URL was not explicitly configured.
+            if ($configured === 'http://localhost') {
+                $configured = null;
+            }
+        }
+        if (is_string($configured) && $configured !== '') {
+            return rtrim($configured, '/') . '/' . ltrim($path, '/');
+        }
+
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['SERVER_PORT'] ?? null) === '443');
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+        return ($https ? 'https' : 'http') . '://' . self::host() . $base . '/' . ltrim($path, '/');
     }
     
     // Redirect to a given URL

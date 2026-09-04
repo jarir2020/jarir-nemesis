@@ -28,12 +28,13 @@ class DatabaseCacheDriver implements CacheDriver {
 
         if (!$row) return $default;
 
-        if (time() > $row['expires_at']) {
+        if (time() >= $row['expires_at']) {
             $this->forget($key);
             return $default;
         }
 
-        return unserialize($row['value']);
+        $value = @unserialize($row['value']);
+        return $value === false && $row['value'] !== serialize(false) ? $default : $value;
     }
 
     public function set($key, $value, $seconds = 3600) {
@@ -48,10 +49,15 @@ class DatabaseCacheDriver implements CacheDriver {
 
     public function forget($key) {
         $stmt = Database::connect()->prepare("DELETE FROM {$this->table} WHERE `key` = :key");
-        $stmt->execute(['key' => $key]);
+        return $stmt->execute(['key' => $key]);
     }
 
     public function clear() {
-        Database::connect()->exec("DELETE FROM {$this->table}");
+        return Database::connect()->exec("DELETE FROM {$this->table}") !== false;
+    }
+
+    public function has($key) {
+        $marker = new \stdClass();
+        return $this->get($key, $marker) !== $marker;
     }
 }

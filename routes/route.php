@@ -10,6 +10,7 @@ use App\Controllers\TestController;
 
 // Instantiate the router
 $router = isset($container) ? $container->make(\Nemesis\Router\Router::class) : new Router();
+Router::setInstance($router);
 
 // Load Module Routes
 foreach (glob(base_path('app/Modules/*/routes.php')) as $routeFile) {
