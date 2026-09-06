@@ -1,3 +1,32 @@
+# 🚀 Nemesis Framework v7.1.4 - Official Release Notes
+
+## v7.1.4 Session Path and Sandbox Maintenance Release
+
+Released on 2026-09-06, v7.1.4 fixes session startup for hosts whose PHP
+`open_basedir` setting excludes `/tmp` and removes the framework's unsafe
+request-wide `open_basedir` mutation.
+
+### Highlights
+
+- Sessions use the configured project-local `storage/session` directory before
+  `session_start()`.
+- `SESSION_PATH` is available for deployments that need an explicit session
+  directory; the existing `SESSION_SAVE_PATH` name remains compatible.
+- The plugin sandbox keeps explicit `checkFileAccess()` validation while no
+  longer changing request-wide PHP configuration.
+- Regression tests cover both the session save path and sandbox state.
+
+### Deployment checklist
+
+1. Deploy the framework files and `storage/session/.gitkeep`.
+2. Make `storage/session` writable by the PHP process.
+3. Confirm the application and session directory are allowed by any host-level
+   `open_basedir` configuration.
+4. Verify web middleware, login, CSRF, logout, and session persistence across
+   two requests.
+
+---
+
 # 🚀 Nemesis Framework v2.0.0 "Masterpiece" - Official Release Notes
 
 We are thrilled to announce the stable release of **Nemesis Framework v2.0.0**. This milestone marks the transformation of Nemesis into a world-class, **Zero-Dependency** PHP ecosystem. With a perfect **100/100 Industry Score**, Nemesis offers the architectural depth of enterprise frameworks like Laravel with the agility of a featherweight engine.

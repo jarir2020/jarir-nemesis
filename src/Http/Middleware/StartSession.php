@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace Nemesis\Http\Middleware;
 
 use Nemesis\Contracts\MiddlewareInterface;
+use Nemesis\Config\SessionConfig;
 use Nemesis\Http\Request;
 use Nemesis\Http\Response;
 use Nemesis\Http\Session;
@@ -14,6 +15,7 @@ class StartSession implements MiddlewareInterface
 {
     public function handle(Request $request, callable $next): Response
     {
+        Session::boot(SessionConfig::fromEnv());
         new Session(); // Ensures session is started
         return $next($request);
     }

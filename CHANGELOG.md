@@ -1,5 +1,31 @@
 # Nemesis Framework — Changelog
 
+## [7.1.4] — 2026-09-06
+
+Maintenance release for deployments that restrict PHP filesystem access with
+`open_basedir`.
+
+### Bug Fixes
+
+- `Nemesis\Http\Session` now applies the configured project-local session
+  directory to PHP's `session.save_path` before `session_start()`.
+- Added `SessionConfig::$path`, `SESSION_PATH`, and the deployment marker at
+  `storage/session/.gitkeep`; `SESSION_SAVE_PATH` remains supported for
+  compatibility.
+- `StartSession` now boots the typed session configuration before starting a
+  session.
+- `Nemesis\Core\PluginSandbox` no longer mutates request-wide `open_basedir`,
+  preventing the restriction from leaking into later middleware and session
+  startup. Explicit path validation remains enforced by `checkFileAccess()`.
+- Added regression coverage for session save-path selection and sandbox
+  `open_basedir` preservation.
+
+### Deployment Notes
+
+Ensure `storage/session` is writable by the PHP process. If the hosting
+provider sets `open_basedir` at account or PHP-FPM level, the deployed
+application and its session directory must be included in the allowed paths.
+
 ## [7.1.1] — 2026-08-30
 
 Comprehensive gap-fix release. Closes all 12 known gaps identified during

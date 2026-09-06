@@ -16,18 +16,33 @@ class Session {
     protected static ?SessionConfig $config = null;
 
     public function __construct() {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        // PHP reports PHP_SESSION_DISABLED when php.ini has no default
+        // session.save_path. Configure the project-local path before trying
+        // session_start() so that state can still be enabled for this request.
+        if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
             // Apply SessionConfig if it was set via boot()
             $config = self::$config ?? SessionConfig::fromEnv();
             $settings = function_exists('config') ? (array) \config('session', []) : [];
             $lifetimeSeconds = max(0, $config->lifetime * 60);
 
-            $savePath = (string) ($settings['path'] ?? $settings['save_path'] ?? '');
+            $savePath = $config->path !== ''
+                ? $config->path
+                : (string) ($settings['path'] ?? $settings['save_path'] ?? '');
+            if (
+                $savePath !== ''
+                && function_exists('base_path')
+                && !str_starts_with($savePath, DIRECTORY_SEPARATOR)
+                && preg_match('/^[A-Za-z]:[\\\\\/]/', $savePath) !== 1
+            ) {
+                $savePath = base_path($savePath);
+            }
             if ($savePath !== '') {
                 if (!is_dir($savePath) && !mkdir($savePath, 0755, true) && !is_dir($savePath)) {
                     throw new \RuntimeException("Unable to create session directory: {$savePath}");
                 }
-                session_save_path($savePath);
+                if (session_save_path($savePath) === false) {
+                    throw new \RuntimeException("Unable to set session save path: {$savePath}");
+                }
             }
 
             if ($config->cookieName !== '') {

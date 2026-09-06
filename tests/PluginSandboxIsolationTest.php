@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-// Nemesis 7.1.1 | Tests for Gap 3 — PluginSandbox path validation
-// Updated: 2026-08-30
+// Nemesis 7.1.4 | Tests for PluginSandbox path validation
+// Updated: 2026-09-06
 
 namespace Tests\Unit;
 
@@ -13,8 +13,7 @@ class PluginSandboxIsolationTest extends TestCase
 {
     protected function tearDown(): void
     {
-        // Always restore open_basedir after each test.
-        @ini_set('open_basedir', '');
+        // The sandbox must not change request-wide open_basedir state.
     }
 
     public function test_has_permission_works(): void
@@ -78,16 +77,15 @@ class PluginSandboxIsolationTest extends TestCase
         $this->assertTrue($ok);
     }
 
-    public function test_setup_and_teardown_modify_open_basedir(): void
+    public function test_run_does_not_modify_open_basedir(): void
     {
         $sandbox = new PluginSandbox('demo', ['filesystem']);
-        $sandbox->run(function () {
-            // Inside the sandbox, open_basedir should be set.
-            $basedir = ini_get('open_basedir');
-            $this->assertNotEmpty($basedir, 'open_basedir should be set inside the sandbox');
+        $before = ini_get('open_basedir');
+
+        $sandbox->run(function () use ($before) {
+            $this->assertSame($before, ini_get('open_basedir'));
         });
 
-        // After the sandbox exits, open_basedir should be empty again.
-        $this->assertSame('', ini_get('open_basedir'), 'open_basedir should be restored after teardown');
+        $this->assertSame($before, ini_get('open_basedir'));
     }
 }
