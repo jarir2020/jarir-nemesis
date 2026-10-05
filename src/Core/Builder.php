@@ -338,7 +338,12 @@ class Builder
      */
     public function get(array $columns = ['*']): Collection
     {
-        $rawResults = $this->cloneQuery()->get(); // Collection of raw arrays from Fluent
+        $query = $this->cloneQuery();
+        if ($columns !== [] && $columns !== ['*']) {
+            $query->select($columns);
+        }
+
+        $rawResults = $query->get(); // Collection of raw arrays from Fluent
         $models     = $this->hydrate($rawResults);
         $this->eagerLoadRelations($models);
         return new Collection($models);
@@ -347,7 +352,12 @@ class Builder
     /** Return the first hydrated Model, or null. */
     public function first(array $columns = ['*']): ?Model
     {
-        $item = $this->cloneQuery()->first();
+        $query = $this->cloneQuery();
+        if ($columns !== [] && $columns !== ['*']) {
+            $query->select($columns);
+        }
+
+        $item = $query->first();
         if ($item !== null && is_array($item)) {
             $model         = new $this->model($item);
             $model->exists = true;

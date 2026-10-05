@@ -142,7 +142,7 @@ class DatabaseConnectionSelectionTest extends TestCase
 
         $this->assertSame('analytics', $model->getConnectionName());
         $this->assertStringContainsString("protected ?string \$connection = 'analytics';", file_get_contents($path));
-        $this->assertStringContainsString('parent::__construct($this->table, $connection ?? $this->connection);', file_get_contents($path));
+        $this->assertStringContainsString('parent::__construct($attributes);', file_get_contents($path));
 
         @unlink($path);
     }

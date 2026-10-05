@@ -1,4 +1,20 @@
-# 🚀 Nemesis Framework v7.1.4 - Official Release Notes
+# 🚀 Nemesis Framework v7.1.5 - Official Release Notes
+
+## v7.1.5 Session and ORM Patch Release
+
+Released on 2026-10-06, v7.1.5 keeps old form input scoped to the next
+request, lets the typed session configuration use loaded config values, and
+honors requested model query projections.
+
+### Highlights
+
+- `flashOldInput()` now expires old input after it has served one request.
+- `SessionConfig::fromEnv()` uses `config/session.php` as its fallback source.
+- `Model::query()->get($columns)` and `first($columns)` now select the
+  requested columns.
+- Regression tests cover all three fixes.
+
+---
 
 ## v7.1.4 Session Path and Sandbox Maintenance Release
 

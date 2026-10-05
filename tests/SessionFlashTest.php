@@ -59,6 +59,17 @@ class SessionFlashTest extends TestCase
         $this->assertSame('fallback', Session::getOldInput('missing', 'fallback'));
     }
 
+    public function test_old_input_expires_after_the_next_request(): void
+    {
+        Session::flashOldInput(['email' => 'user@example.com']);
+
+        $this->ageSessionData();
+        $this->assertSame('user@example.com', Session::getOldInput('email'));
+
+        $this->ageSessionData();
+        $this->assertNull(Session::getOldInput('email'));
+    }
+
     public function test_pull_returns_and_removes(): void
     {
         Session::set('temp', 'value');
@@ -88,5 +99,11 @@ class SessionFlashTest extends TestCase
 
         $this->assertNotSame($first, $second);
         $this->assertSame(64, strlen($second)); // bin2hex(random_bytes(32)) = 64 chars
+    }
+
+    private function ageSessionData(): void
+    {
+        $method = new \ReflectionMethod(Session::class, 'ageFlashData');
+        $method->invoke(null);
     }
 }

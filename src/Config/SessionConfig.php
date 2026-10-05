@@ -18,10 +18,23 @@ readonly class SessionConfig
 
     public static function fromEnv(): static
     {
-        $path = getenv('SESSION_PATH') ?: getenv('SESSION_SAVE_PATH') ?: '';
-        if ($path === '' && function_exists('config')) {
-            $path = (string) \config('session.path', '');
-        }
+        $settings = function_exists('config')
+            ? (array) \config('session', [])
+            : [];
+
+        $envValue = static function (string $key, mixed $default): mixed {
+            $value = getenv($key);
+            if ($value === false || $value === '') {
+                return $default;
+            }
+
+            return function_exists('env') ? \env($key, $default) : $value;
+        };
+
+        $path = $envValue(
+            'SESSION_PATH',
+            $envValue('SESSION_SAVE_PATH', $settings['path'] ?? '')
+        );
         if ($path === '') {
             $path = function_exists('base_path')
                 ? base_path('storage/session')
@@ -29,11 +42,17 @@ readonly class SessionConfig
         }
 
         return new static(
-            driver:     (string) (getenv('SESSION_DRIVER')  ?: 'file'),
-            lifetime:   (int)    (getenv('SESSION_LIFETIME')?: 120),
-            cookieName: (string) (getenv('SESSION_COOKIE')  ?: 'nemesis_session'),
-            secure:     filter_var(getenv('SESSION_SECURE_COOKIE') ?: getenv('SESSION_SECURE') ?: false, FILTER_VALIDATE_BOOLEAN),
-            sameSite:   strtolower((string) (getenv('SESSION_SAME_SITE') ?: 'lax')),
+            driver:     (string) $envValue('SESSION_DRIVER', $settings['driver'] ?? 'file'),
+            lifetime:   (int)    $envValue('SESSION_LIFETIME', $settings['lifetime'] ?? 120),
+            cookieName: (string) $envValue('SESSION_COOKIE', $settings['cookie'] ?? $settings['cookie_name'] ?? 'nemesis_session'),
+            secure:     (bool)   $envValue(
+                'SESSION_SECURE_COOKIE',
+                $envValue('SESSION_SECURE', $settings['secure'] ?? false)
+            ),
+            sameSite:   strtolower((string) $envValue(
+                'SESSION_SAME_SITE',
+                $settings['same_site'] ?? $settings['sameSite'] ?? 'lax'
+            )),
             path:       (string) $path,
         );
     }

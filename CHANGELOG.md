@@ -1,5 +1,25 @@
 # Nemesis Framework — Changelog
 
+## [7.1.5] — 2026-10-06
+
+Patch release for session configuration, old-input lifetime, and ORM
+projection handling.
+
+### Bug Fixes
+
+- **Session old input:** `flashOldInput()` now keeps form input for the next
+  request and removes it afterward instead of retaining it indefinitely.
+- **Session configuration:** `SessionConfig::fromEnv()` now uses loaded
+  `config/session.php` values when corresponding environment variables are not
+  present, while preserving environment-variable overrides.
+- **ORM projections:** `Model` builder `get($columns)` and `first($columns)`
+  now apply their requested column lists instead of always selecting `*`.
+
+### Tests
+
+- Added regression coverage for old-input expiration, configured session DTO
+  fallbacks, and model query projections.
+
 ## [7.1.4] — 2026-09-06
 
 Maintenance release for deployments that restrict PHP filesystem access with

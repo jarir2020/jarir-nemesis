@@ -1,6 +1,6 @@
-# Nemesis Framework v7.1.4 (Enterprise)
+# Nemesis Framework v7.1.5 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-7.1.4-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-7.1.5-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.2-777bb4.svg)](https://php.net)
 
@@ -16,6 +16,9 @@ Nemesis v7.1.0 also includes an isolated `examples/` gallery with ready-to-use M
 `open_basedir` restrictions and prevents the plugin sandbox from leaking a
 request-wide `open_basedir` mutation. See the [changelog](CHANGELOG.md) for
 upgrade and deployment notes.
+
+**v7.1.5 patch release:** expires old form input after one request, honors
+configured session DTO values, and applies requested ORM column projections.
 
 ---
 

@@ -158,6 +158,7 @@ class Session {
     public static function flashOldInput(array $input): void
     {
         $_SESSION['_old'] = $input;
+        $_SESSION['_old_new'] = true;
     }
 
     /**
@@ -206,5 +207,14 @@ class Session {
             }
         }
         unset($_SESSION['_flash_new']);
+
+        // Old input is request-scoped too: preserve it for the next request,
+        // then remove it when that request has completed.
+        $old = $_SESSION['_old'] ?? null;
+        if (!is_array($old) || !($_SESSION['_old_new'] ?? false)) {
+            unset($_SESSION['_old'], $_SESSION['_old_new']);
+        } else {
+            unset($_SESSION['_old_new']);
+        }
     }
 }
