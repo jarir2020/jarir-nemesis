@@ -318,7 +318,7 @@ class Phase7Test extends TestCase
             'controller', 'model', 'middleware', 'event', 'listener',
             'job', 'policy', 'migration', 'seeder', 'trait', 'repository',
             'entity', 'dto', 'transformer', 'manager', 'handler',
-            'interface', 'factory', 'filter', 'library', 'helper',
+            'interface', 'factory', 'filter', 'library', 'helper', 'request',
             'widget',
         ];
         $dir = __DIR__ . '/../../src/Scaffolder/stubs';

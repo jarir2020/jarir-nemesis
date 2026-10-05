@@ -128,4 +128,21 @@ if (Helpers::passwordVerify('secret123', $hashed)) {
 
 ## Account Verification & Reset
 
-Nemesis provides scaffolded logic for `AccountVerification` and `PasswordReset` in the `Nemesis\Auth` namespace. These utilities handle token generation and expiration for email-based flows.
+Nemesis provides scaffolded logic for `AccountVerification` and `PasswordReset` in the `Nemesis\Auth` namespace. `PasswordReset` generates a cryptographically random token for the email link, stores only its SHA-256 digest, expires it according to configuration, and consumes it in a transaction after a successful password change.
+
+```env
+PASSWORD_RESET_TABLE=password_resets
+PASSWORD_RESET_EXPIRE=60
+```
+
+The default table must contain `email`, `token`, and `created_at` columns. The `token` column must be able to hold a 64-character hexadecimal SHA-256 digest. Existing raw tokens are intentionally not accepted after this hardening; users should request a new reset link.
+
+```php
+use Nemesis\Auth\PasswordReset;
+
+$reset = new PasswordReset();
+$reset->sendResetLink('user@example.com');
+$reset->reset($email, $tokenFromTheLink, $newPassword);
+```
+
+The table name is validated as a simple SQL identifier before it is used. Previous tokens are invalidated before a new token is inserted, and used or expired tokens are removed.

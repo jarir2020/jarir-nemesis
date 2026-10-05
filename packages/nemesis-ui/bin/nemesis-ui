@@ -1,0 +1,57 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+$packageRoot = dirname(__DIR__);
+$autoload = $packageRoot . '/vendor/autoload.php';
+if (is_file($autoload)) {
+    require_once $autoload;
+} else {
+    require_once $packageRoot . '/src/ComponentDefinition.php';
+    require_once $packageRoot . '/src/ComponentRegistry.php';
+    require_once $packageRoot . '/src/ComponentInstaller.php';
+}
+
+use Nemesis\UI\ComponentInstaller;
+use Nemesis\UI\ComponentRegistry;
+
+$command = $argv[1] ?? 'ui:list';
+$registry = ComponentRegistry::defaults();
+
+try {
+    if ($command === 'ui:list' || $command === 'list') {
+        echo "Nemesis UI components:\n\n";
+        foreach ($registry->all() as $component) {
+            echo "  {$component->name} — {$component->description}\n";
+            echo "    {$component->usage}\n";
+        }
+        exit(0);
+    }
+
+    if ($command === 'ui:add') {
+        $name = $argv[2] ?? '';
+        $applicationRoot = getcwd();
+        $target = 'views/components';
+        $force = false;
+        foreach (array_slice($argv, 3) as $argument) {
+            if ($argument === '--force') {
+                $force = true;
+            } elseif (str_starts_with($argument, '--path=')) {
+                $target = substr($argument, 7);
+            } elseif (str_starts_with($argument, '--root=')) {
+                $applicationRoot = substr($argument, 7);
+            }
+        }
+        if ($name === '') {
+            throw new InvalidArgumentException('Usage: php nemesis-ui ui:add name [--path=views/components] [--force]');
+        }
+        $path = (new ComponentInstaller($registry, $packageRoot, $applicationRoot))->install($name, $target, $force);
+        echo "Installed {$name} at {$path}\n";
+        exit(0);
+    }
+
+    throw new InvalidArgumentException('Commands: ui:list, ui:add <name> [--path=...] [--force]');
+} catch (Throwable $e) {
+    fwrite(STDERR, "Error: {$e->getMessage()}\n");
+    exit(1);
+}

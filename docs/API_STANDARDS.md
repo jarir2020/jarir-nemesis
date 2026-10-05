@@ -77,6 +77,38 @@ class UserController extends Controller {
 }
 ```
 
+### Typed API Resources and Collections
+
+Define a resource once, then use `resourceCollection()` when you need a
+countable/iterable collection with pagination metadata. The historical
+`JsonResource::collection()` helper still returns an array for compatibility.
+
+```php
+use App\Http\Resources\UserResource;
+
+$users = UserResource::resourceCollection(User::query()->paginateFromRequest(15))
+    ->additional(['request_id' => $requestId]);
+
+return $users->toResponse('Users retrieved');
+```
+
+The response keeps Nemesis' standard envelope:
+
+```json
+{
+    "success": true,
+    "message": "Users retrieved",
+    "data": [],
+    "meta": {
+        "total": 0,
+        "per_page": 15,
+        "current_page": 1,
+        "last_page": 1
+    },
+    "request_id": "..."
+}
+```
+
 ## CORS Middleware
 
 Enable cross-origin requests for your API.

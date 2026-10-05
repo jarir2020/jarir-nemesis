@@ -127,6 +127,7 @@ Create new application classes.
 | `make:middleware {name}` | Create a new middleware class |
 | `make:request {name}` | Create a new form request class |
 | `make:job {name}` | Create a new job class |
+| `make:mail {name}` | Create a new Mailable class |
 | `make:command {name}` | Create a new console command |
 | `make:test {name}` | Create a new test class |
 | `make:module {name}` | Create a new application module |

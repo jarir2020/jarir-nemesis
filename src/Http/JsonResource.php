@@ -11,9 +11,17 @@ abstract class JsonResource {
     }
 
     public static function collection($resource) {
-        return array_map(function($item) {
-            return (new static($item))->toArray();
-        }, is_array($resource) ? $resource : ($resource->toArray() ?? []));
+        // Keep the historical array return type for existing callers while
+        // delegating item mapping and paginator handling to the typed object.
+        return static::resourceCollection($resource)->toArray();
+    }
+
+    /**
+     * Create a typed collection object without changing collection() callers.
+     */
+    public static function resourceCollection($resource): ResourceCollection
+    {
+        return new ResourceCollection($resource, static::class);
     }
 
     public static function make($resource) {
@@ -53,11 +61,11 @@ abstract class JsonResource {
 
     public static function collectionResponse($resource, string $message = 'Success', int $status = 200): Response
     {
-        return ResourceResponse::success(static::collection($resource), $message, $status);
+        return static::resourceCollection($resource)->toResponse($message, $status);
     }
 
     public static function paginatedResponse(\Nemesis\Core\Paginator $paginator, string $message = 'Success'): Response
     {
-        return ResourceResponse::paginated($paginator, $message);
+        return static::resourceCollection($paginator)->toResponse($message);
     }
 }

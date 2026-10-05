@@ -614,6 +614,20 @@ switch ($command) {
         }
         break;
 
+    case 'make:request':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:request Name\n");
+        $name = preg_replace('/Request$/i', '', trim($name));
+        if ($name === '') die("Usage: php nemesis make:request Name\n");
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generate('request', $name);
+            echo "Form request created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
     case 'make:migration':
         $name = $argv[2] ?? null;
         if (!$name) die("Usage: php nemesis make:migration name\n");
@@ -752,6 +766,20 @@ switch ($command) {
             $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
             $path = $scaffolder->generate('job', $name);
             echo "Job created at {$path}\n";
+        } catch (\RuntimeException $e) {
+            echo "Error: " . $e->getMessage() . "\n"; exit(1);
+        }
+        break;
+
+    case 'make:mail':
+        $name = $argv[2] ?? null;
+        if (!$name) die("Usage: php nemesis make:mail Name\n");
+        $name = preg_replace('/Mail$/i', '', trim($name));
+        if ($name === '') die("Usage: php nemesis make:mail Name\n");
+        try {
+            $scaffolder = new \Nemesis\Scaffolder\Scaffolder();
+            $path = $scaffolder->generate('mail', $name);
+            echo "Mailable created at {$path}\n";
         } catch (\RuntimeException $e) {
             echo "Error: " . $e->getMessage() . "\n"; exit(1);
         }
@@ -2193,9 +2221,11 @@ PHP,
             'make:controller' => 'Create a new controller',
             'make:model' => 'Create a new model [--connection=name]',
             'make:middleware' => 'Create a new middleware',
+            'make:request' => 'Create a new form request',
             'make:migration' => 'Create a new database migration',
             'make:seeder' => 'Create a new database seeder',
             'make:job' => 'Create a new background job class',
+            'make:mail' => 'Create a new Mailable class',
             'make:policy' => 'Create a new authorization policy',
             'make:event'       => 'Create a new event class',
             'make:listener'    => 'Create a new event listener class',
@@ -3280,6 +3310,7 @@ PHP,
         echo "  php nemesis make:controller Name\n";
         echo "  php nemesis make:model Name\n";
         echo "  php nemesis make:middleware Name\n";
+        echo "  php nemesis make:request Name\n";
         break;
 }
 

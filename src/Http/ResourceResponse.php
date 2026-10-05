@@ -9,6 +9,10 @@ class ResourceResponse
 {
     protected static function normalize(mixed $resource): mixed
     {
+        if ($resource instanceof ResourceCollection) {
+            return $resource->resolve();
+        }
+
         if ($resource instanceof JsonResource) {
             return $resource->toArray();
         }

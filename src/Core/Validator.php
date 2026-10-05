@@ -57,6 +57,33 @@ class Validator {
         return !$this->validate($data, $rules);
     }
 
+    /**
+     * Return only the fields declared by the validation rules.
+     *
+     * This deliberately does not return the complete input payload. Callers
+     * that persist validated data should receive an explicit allow-list so
+     * unexpected fields cannot be mass-assigned accidentally.
+     *
+     * @param array<string, mixed> $data
+     * @param array<string, string|array> $rules
+     * @return array<string, mixed>
+     */
+    public function validated(array $data, array $rules): array
+    {
+        if ($this->errors !== []) {
+            return [];
+        }
+
+        $validated = [];
+        foreach (array_keys($rules) as $field) {
+            if (array_key_exists($field, $data)) {
+                $validated[$field] = $data[$field];
+            }
+        }
+
+        return $validated;
+    }
+
     protected function isEmptyValue(mixed $value): bool
     {
         return $value === null || $value === '';

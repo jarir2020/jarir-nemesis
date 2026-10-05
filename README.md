@@ -1,6 +1,6 @@
-# Nemesis Framework v7.1.5 (Enterprise)
+# Nemesis Framework v7.2.0 (Enterprise)
 
-[![Version](https://img.shields.io/badge/version-7.1.5-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
+[![Version](https://img.shields.io/badge/version-7.2.0-blue.svg)](https://packagist.org/packages/jarir/nemesis-framework)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.2-777bb4.svg)](https://php.net)
 
@@ -19,6 +19,10 @@ upgrade and deployment notes.
 
 **v7.1.5 patch release:** expires old form input after one request, honors
 configured session DTO values, and applies requested ORM column projections.
+
+**v7.2.0 feature release:** adds typed form requests, resource collections,
+secure password-reset tokens, composable mailables, and the opt-in
+`packages/nemesis-ui` component workflow.
 
 ---
 

@@ -190,6 +190,21 @@ class Request
         return $this->meta[$key] ?? $default;
     }
 
+    /**
+     * Copy the complete request state into another request instance.
+     *
+     * The router uses this when a controller asks for a typed FormRequest so
+     * middleware-added attributes and route metadata are not lost while the
+     * request is upgraded to its application-specific type.
+     */
+    public function copyStateTo(self $target): void
+    {
+        $target->data       = $this->data;
+        $target->headers    = $this->headers;
+        $target->attributes = $this->attributes;
+        $target->meta       = $this->meta;
+    }
+
     public function method(): string
     {
         $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));

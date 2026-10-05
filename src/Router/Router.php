@@ -862,23 +862,84 @@ class Router
 
     protected function callAction(mixed $action, mixed $request, array $params): mixed
     {
+        $callable = null;
+
         if (is_string($action) && str_contains($action, '@')) {
-            [$controller, $method] = explode('@', $action);
+            [$controller, $method] = explode('@', $action, 2);
             $instance = $this->container->make($controller);
-            return call_user_func_array([$instance, $method], array_merge([$request], array_values($params)));
+            $callable = [$instance, $method];
         }
 
-        if (is_array($action) && count($action) === 2) {
+        if ($callable === null && is_array($action) && count($action) === 2) {
             [$controller, $method] = $action;
             $instance = is_string($controller) ? $this->container->make($controller) : $controller;
-            return call_user_func_array([$instance, $method], array_merge([$request], array_values($params)));
+            $callable = [$instance, $method];
         }
 
-        if (is_callable($action)) {
-            return call_user_func_array($action, array_merge([$request], array_values($params)));
+        if ($callable === null && is_callable($action)) {
+            $callable = $action;
         }
 
-        throw new \Exception("Invalid route action.");
+        if ($callable === null) {
+            throw new \Exception("Invalid route action.");
+        }
+
+        $request = $this->resolveTypedRequest($callable, $request);
+
+        return call_user_func_array($callable, array_merge([$request], array_values($params)));
+    }
+
+    /**
+     * Replace the base request only for a first typed FormRequest parameter.
+     *
+     * Existing actions continue to receive the same Request instance and
+     * route parameters in the same order as before.
+     */
+    protected function resolveTypedRequest(callable $callable, mixed $request): mixed
+    {
+        if (!$request instanceof \Nemesis\Http\Request) {
+            return $request;
+        }
+
+        $reflection = $this->reflectionForCallable($callable);
+        $parameter = $reflection?->getParameters()[0] ?? null;
+        $type = $parameter?->getType();
+
+        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+            return $request;
+        }
+
+        $requestType = $type->getName();
+        if (!is_a($requestType, \Nemesis\Http\FormRequest::class, true)) {
+            return $request;
+        }
+
+        $formRequest = $this->container->make($requestType);
+        if (!$formRequest instanceof \Nemesis\Http\FormRequest) {
+            throw new \RuntimeException("Unable to resolve FormRequest [{$requestType}].");
+        }
+
+        $formRequest->initializeFrom($request);
+        $formRequest->validateResolved();
+
+        return $formRequest;
+    }
+
+    protected function reflectionForCallable(callable $callable): ?\ReflectionFunctionAbstract
+    {
+        if (is_array($callable)) {
+            return new \ReflectionMethod($callable[0], $callable[1]);
+        }
+
+        if ($callable instanceof \Closure || is_string($callable)) {
+            return new \ReflectionFunction($callable);
+        }
+
+        if (is_object($callable) && method_exists($callable, '__invoke')) {
+            return new \ReflectionMethod($callable, '__invoke');
+        }
+
+        return null;
     }
 
     // -------------------------------------------------------------------------

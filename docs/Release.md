@@ -1,4 +1,34 @@
-# 🚀 Nemesis Framework v7.1.5 - Official Release Notes
+# 🚀 Nemesis Framework v7.2.0 - Official Release Notes
+
+## v7.2.0 Feature Release
+
+Released on 2026-10-06, v7.2.0 adds selected Veldora-inspired capabilities
+implemented against Nemesis's existing contracts.
+
+### Highlights
+
+- Typed `FormRequest` validation and authorization with filtered validated data.
+- Iterable/countable `ResourceCollection` API responses with pagination metadata.
+- Hashed, expiring, one-time password reset tokens with transactional safety.
+- `Mailable`/`PendingMail` composition, existing queue integration, and fake
+  delivery assertions.
+- Opt-in `packages/nemesis-ui` registry and copy-owned component installer.
+- Session-driver abstraction reviewed and deferred until a concrete external
+  backend requirement exists.
+
+### Upgrade notes
+
+- Existing raw password-reset tokens are invalid after upgrading; request new
+  links for users with outstanding reset emails.
+- Existing `Mailer::send($to, $subject, $body)` and legacy framework APIs remain
+  supported.
+- The UI package does not enable `<x-...>` tags; use existing `@component`
+  syntax until a future parser extension is separately specified and tested.
+
+### Validation
+
+The release passed the complete Nemesis unit suite with 1,172 tests and both
+the framework and optional UI package Composer manifests validate successfully.
 
 ## v7.1.5 Session and ORM Patch Release
 

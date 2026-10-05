@@ -1,5 +1,50 @@
 # Nemesis Framework — Changelog
 
+## [7.2.0] — 2026-10-06
+
+Feature release importing selected Veldora-inspired patterns as
+Nemesis-native APIs while preserving existing contracts.
+
+### New Features
+
+- **Form requests:** Added typed `Nemesis\Http\FormRequest` dispatch,
+  authorization hooks, custom validation messages, validated-data filtering,
+  JSON failures, and `make:request` scaffolding.
+- **Resource collections:** Added iterable/countable
+  `Nemesis\Http\ResourceCollection` support for arrays, collections, and
+  paginated API responses without changing the historical static collection
+  helper return type.
+- **Mailables:** Added `Nemesis\Mail\Mailable` and `PendingMail` builders for
+  recipients, views, text/HTML bodies, attachments, fake delivery, and the
+  existing queue/PHPMailer stack. Added `make:mail` scaffolding.
+- **Optional UI package:** Added `packages/nemesis-ui` with component metadata,
+  safe copy-owned templates, `ui:list`, and `ui:add`. It uses existing
+  `@component` syntax and does not change the compiler grammar.
+
+### Security Fixes
+
+- Password reset tokens are stored as SHA-256 digests and verified with
+  `hash_equals()`.
+- Reset expiry and table settings are configurable; prior, expired, and used
+  tokens are invalidated safely.
+- Reset table identifiers, mail recipients, headers, and attachment paths are
+  validated before use.
+
+### Compatibility Notes
+
+- The legacy raw `Mailer::send($to, $subject, $body)` and existing request,
+  resource, queue, and session APIs remain available.
+- Raw password-reset tokens stored by older versions are intentionally not
+  accepted; affected users must request a new reset link.
+- Session-driver abstraction remains deferred until a concrete external
+  backend requirement is defined.
+
+### Tests
+
+- Full unit suite: 1,172 tests passed.
+- Added regression coverage for FormRequest, ResourceCollection, password
+  reset hardening, Mailable delivery, and the isolated UI package.
+
 ## [7.1.5] — 2026-10-06
 
 Patch release for session configuration, old-input lifetime, and ORM

@@ -1,0 +1,17 @@
+{
+    "name": "jarir/nemesis-ui",
+    "description": "Opt-in copy-owned server-rendered UI components for Nemesis.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nemesis\\UI\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/nemesis-ui"
+    ]
+}

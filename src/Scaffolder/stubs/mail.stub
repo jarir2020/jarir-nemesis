@@ -1,0 +1,16 @@
+<?php
+declare(strict_types=1);
+
+namespace {{Namespace}};
+
+use Nemesis\Mail\Mailable;
+
+class {{ClassName}} extends Mailable
+{
+    public function build(): static
+    {
+        return $this
+            ->subject('{{Subject}}')
+            ->view('{{ViewName}}');
+    }
+}

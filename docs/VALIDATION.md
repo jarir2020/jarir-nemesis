@@ -33,6 +33,64 @@ try {
 }
 ```
 
+## Form Requests
+
+Use a typed form request when validation and authorization belong to a
+controller action. The router resolves and validates the request before the
+action runs:
+
+```php
+// app/Http/Requests/StoreUserRequest.php
+namespace App\Http\Requests;
+
+use Nemesis\Http\FormRequest;
+
+class StoreUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // Check the current user or policy here.
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name'  => 'required|string|min:2',
+            'email' => 'required|email',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.email' => 'Please provide a valid email address.',
+        ];
+    }
+}
+```
+
+Inject it as the first action parameter:
+
+```php
+public function store(StoreUserRequest $request): Response
+{
+    $data = $request->validated();
+    // Unexpected request fields are not included in $data.
+
+    return Response::json($data, 201);
+}
+```
+
+Validation failures raise `Nemesis\Core\ValidationException` and return the
+framework's standard 422 response. An authorization failure returns 403.
+Generate a starter request with:
+
+```bash
+php nemesis make:request StoreUser
+```
+
+The existing `Request::validate()` API remains available and unchanged.
+
 ---
 
 ## Available Validation Rules
